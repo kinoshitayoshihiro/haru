@@ -1,0 +1,75 @@
+{
+  "sections": {
+    "Intro": { "emotion": "mystical" },
+    "Verse 1": { "emotion": "struggle" },
+    "Verse 2": { "emotion": "conflict" },
+    "Verse 3": { "emotion": "regret" },
+    "Verse 4": { "emotion": "rebirth" },
+    "Pre-Chorus 1": { "emotion": "realization" },
+    "Pre-Chorus 2": { "emotion": "resilience" },
+    "Chorus 1": { "emotion": "hope" },
+    "Chorus 2": { "emotion": "hope" },
+    "Chorus 3": { "emotion": "hope" },
+    "Chorus 4": { "emotion": "redemption" },
+    "Bridge 1": { "emotion": "prayer" },
+    "Bridge 2": { "emotion": "forgiveness" },
+    "Outro": { "emotion": "prayer" }
+  },
+  "templates": {
+    "mystical": {
+      "tensions": ["add11", "13th"],
+      "rhythm": "ballad",
+      "approach": "stepwise"
+    },
+    "struggle": {
+      "tensions": ["m7", "add9"],
+      "rhythm": "rock8",
+      "approach": "chromatic"
+    },
+    "conflict": {
+      "tensions": ["m7", "sus4"],
+      "rhythm": "march",
+      "approach": "below"
+    },
+    "regret": {
+      "tensions": ["m7", "add11"],
+      "rhythm": "swing",
+      "approach": "above"
+    },
+    "resilience": {
+      "tensions": ["m7", "add13"],
+      "rhythm": "rock8",
+      "approach": "stepwise"
+    },
+    "realization": {
+      "tensions": ["M7", "add9"],
+      "rhythm": "rock8",
+      "approach": "leap"
+    },
+    "hope": {
+      "tensions": ["add9", "13th"],
+      "rhythm": "pop",
+      "approach": "stepwise"
+    },
+    "redemption": {
+      "tensions": ["M7", "add13"],
+      "rhythm": "anthem",
+      "approach": "below"
+    },
+    "rebirth": {
+      "tensions": ["add11", "M7"],
+      "rhythm": "lyrical",
+      "approach": "stepwise"
+    },
+    "forgiveness": {
+      "tensions": ["add9", "sus2"],
+      "rhythm": "ballad",
+      "approach": "above"
+    },
+    "prayer": {
+      "tensions": ["sus4", "add11"],
+      "rhythm": "slow4",
+      "approach": "stepwise"
+    }
+  }
+}
