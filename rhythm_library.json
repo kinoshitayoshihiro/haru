@@ -1,596 +1,136 @@
 {
   "piano_patterns": {
+    "default_piano_quarters": {
+      "description": "Default quarter notes for piano (auto-added by PianoGenerator if needed)",
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75}
+      ]
+    },
+    "piano_lh_whole_notes": {
+        "description": "Sustained whole notes for LH piano (fallback or style)",
+        "pattern": [{"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7, "type": "root"}]
+    },
+    "piano_block_quarters_simple": {
+        "description": "Simple quarter note block chords for piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8},
+            {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75},
+            {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8},
+            {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75}
+        ]
+    },
+    "piano_lh_quarter_roots": {
+        "description": "Simple quarter note roots for LH piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+            {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"},
+            {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+            {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"}
+        ]
+    },
     "piano_gentle_block_whole_rh": {
-      "description": "Gentle whole note block chords for RH.",
-      "tags": [
-        "piano",
-        "gentle",
-        "block_chord"
-      ],
+      "description": "Gentle, slow block chords for piano RH (whole note).",
+      "pattern": [ {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7} ]
+    },
+    "piano_flowing_arpeggio_eighths_rh": {
+      "description": "Flowing eighth note arpeggio for RH piano.",
+      "arpeggio_type": "up_down",
       "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 4.0,
-          "velocity_factor": 0.65
-        }
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.8}, {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.75},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.8}, {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.75},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.8}, {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.8}, {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.75}
       ]
     },
-    "piano_sustained_root_lh": {
-      "description": "Sustained root note for LH.",
-      "tags": [
-        "piano",
-        "gentle",
-        "bass_note"
-      ],
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 4.0,
-          "velocity_factor": 0.6,
-          "type": "root"
-        }
-      ]
+    "piano_chordal_moving_rh_pattern": {
+        "description": "Chordal movement for RH piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.8},
+            {"offset": 2.0, "duration": 1.5, "velocity_factor": 0.75},
+            {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
+        ]
     },
-    "piano_reflective_arpeggio_rh": {
-      "description": "Reflective 8th note arpeggio for RH.",
-      "tags": [
-        "piano",
-        "arpeggio",
-        "reflective"
-      ],
-      "arpeggio_type_hint": "up_then_down_narrow",
-      "note_duration_ql": 0.5,
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        },
-        {
-          "offset": 0.5,
-          "duration": 0.5,
-          "velocity_factor": 0.65
-        },
-        {
-          "offset": 1.0,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        },
-        {
-          "offset": 1.5,
-          "duration": 0.5,
-          "velocity_factor": 0.65
-        },
-        {
-          "offset": 2.0,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        },
-        {
-          "offset": 2.5,
-          "duration": 0.5,
-          "velocity_factor": 0.65
-        },
-        {
-          "offset": 3.0,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        },
-        {
-          "offset": 3.5,
-          "duration": 0.5,
-          "velocity_factor": 0.65
-        }
-      ]
+    "piano_powerful_block_8ths_rh": {
+        "description": "Powerful block chords in 8th notes for RH piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.9}, {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.9}, {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9}, {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.9}, {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.85}
+        ]
     },
-    "piano_chordal_moving_rh": {
-      "description": "Chordal but slightly moving RH for Pre-Chorus.",
-      "tags": [
-        "piano",
-        "chordal",
-        "moving"
-      ],
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 1.5,
-          "velocity_factor": 0.75
-        },
-        {
-          "offset": 1.5,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        },
-        {
-          "offset": 2.0,
-          "duration": 1.5,
-          "velocity_factor": 0.75
-        },
-        {
-          "offset": 3.5,
-          "duration": 0.5,
-          "velocity_factor": 0.7
-        }
-      ]
+    "piano_gentle_sustained_root_lh": {
+        "description": "Gentle sustained root for LH piano.",
+        "pattern": [ {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"} ]
     },
-    "piano_walking_bass_like_lh": {
-      "description": "LH plays a simple walking bass like pattern on quarter notes.",
-      "tags": [
-        "piano",
-        "bass",
-        "walking"
-      ],
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 1.0,
-          "velocity_factor": 0.7,
-          "type": "walking_target_root"
-        },
-        {
-          "offset": 1.0,
-          "duration": 1.0,
-          "velocity_factor": 0.65,
-          "type": "walking_passing_scale"
-        },
-        {
-          "offset": 2.0,
-          "duration": 1.0,
-          "velocity_factor": 0.7,
-          "type": "walking_target_fifth"
-        },
-        {
-          "offset": 3.0,
-          "duration": 1.0,
-          "velocity_factor": 0.65,
-          "type": "walking_approach_next"
-        }
-      ]
-    },
-    "piano_powerful_block_chords_rh": {
-      "description": "Powerful block chords for chorus RH.",
-      "tags": [
-        "piano",
-        "powerful",
-        "block_chord"
-      ],
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 0.5,
-          "velocity_factor": 0.9
-        },
-        {
-          "offset": 0.5,
-          "duration": 0.5,
-          "velocity_factor": 0.85
-        },
-        {
-          "offset": 1.0,
-          "duration": 0.5,
-          "velocity_factor": 0.9
-        },
-        {
-          "offset": 1.5,
-          "duration": 0.5,
-          "velocity_factor": 0.85
-        },
-        {
-          "offset": 2.0,
-          "duration": 0.5,
-          "velocity_factor": 0.9
-        },
-        {
-          "offset": 2.5,
-          "duration": 0.5,
-          "velocity_factor": 0.85
-        },
-        {
-          "offset": 3.0,
-          "duration": 0.5,
-          "velocity_factor": 0.9
-        },
-        {
-          "offset": 3.5,
-          "duration": 0.5,
-          "velocity_factor": 0.85
-        }
-      ]
+    "piano_gentle_walking_bass_quarters_lh": {
+        "description": "Gentle walking bass like quarters for LH piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"},
+            {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.6, "type": "approaching_next_beat_or_chord_tone"},
+            {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root_or_fifth"},
+            {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.6, "type": "leading_to_next_chord"}
+        ]
     },
     "piano_active_octave_bass_lh": {
-      "description": "Active octave bass line for LH.",
-      "tags": [
-        "piano",
-        "bass",
-        "octave",
-        "active"
-      ],
-      "pattern": [
-        {
-          "offset": 0.0,
-          "duration": 0.5,
-          "velocity_factor": 0.8,
-          "type": "root_octave_low"
-        },
-        {
-          "offset": 0.5,
-          "duration": 0.5,
-          "velocity_factor": 0.75,
-          "type": "root_octave_high"
-        },
-        {
-          "offset": 1.0,
-          "duration": 0.5,
-          "velocity_factor": 0.8,
-          "type": "root_octave_low"
-        },
-        {
-          "offset": 1.5,
-          "duration": 0.5,
-          "velocity_factor": 0.75,
-          "type": "root_octave_high"
-        },
-        {
-          "offset": 2.0,
-          "duration": 0.5,
-          "velocity_factor": 0.8,
-          "type": "root_octave_low"
-        },
-        {
-          "offset": 2.5,
-          "duration": 0.5,
-          "velocity_factor": 0.75,
-          "type": "root_octave_high"
-        },
-        {
-          "offset": 3.0,
-          "duration": 0.5,
-          "velocity_factor": 0.8,
-          "type": "root_octave_low"
-        },
-        {
-          "offset": 3.5,
-          "duration": 0.5,
-          "velocity_factor": 0.75,
-          "type": "root_octave_high"
-        }
-      ]
+        "description": "Active octave bass for LH piano.",
+        "pattern": [
+            {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+            {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.7, "type": "octave_root"},
+            {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+            {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.7, "type": "octave_root"}
+        ]
+    },
+    "piano_fallback_block": {
+        "description": "Fallback single block chord per measure",
+        "pattern": [{"offset":0.0, "duration": 4.0, "velocity_factor":0.7}]
     }
   },
   "drum_patterns": {
-    "no_drums": {
-      "description": "Silence for drums.",
-      "hits": []
-    },
-    "ballad_soft_kick_snare_8th_hat": {
-      "description": "Soft ballad drums: Kick on 1, Snare on 3, gentle 8th hi-hats.",
-      "tags": [
-        "drum",
-        "ballad",
-        "soft"
-      ],
-      "hits": [
-        {
-          "instrument": "kick",
-          "offset": 0.0,
-          "velocity": 70,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.0,
-          "velocity": 50,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.5,
-          "velocity": 40,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.0,
-          "velocity": 50,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.5,
-          "velocity": 40,
-          "duration": 0.1
-        },
-        {
-          "instrument": "snare",
-          "offset": 2.0,
-          "velocity": 65,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.0,
-          "velocity": 50,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.5,
-          "velocity": 40,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.0,
-          "velocity": 50,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.5,
-          "velocity": 40,
-          "duration": 0.1
-        }
-      ]
-    },
-    "rock_ballad_build_up_8th_hat": {
-      "description": "Rock ballad beat building up, 8th hi-hat.",
-      "tags": [
-        "drum",
-        "rock",
-        "ballad",
-        "build_up"
-      ],
-      "hits": [
-        {
-          "instrument": "kick",
-          "offset": 0.0,
-          "velocity": 85,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.0,
-          "velocity": 65,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.5,
-          "velocity": 55,
-          "duration": 0.1
-        },
-        {
-          "instrument": "snare",
-          "offset": 1.0,
-          "velocity": 80,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.0,
-          "velocity": 65,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.5,
-          "velocity": 55,
-          "duration": 0.1
-        },
-        {
-          "instrument": "kick",
-          "offset": 2.0,
-          "velocity": 90,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.0,
-          "velocity": 65,
-          "duration": 0.1
-        },
-        {
-          "instrument": "kick",
-          "offset": 2.5,
-          "velocity": 80,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.5,
-          "velocity": 55,
-          "duration": 0.1
-        },
-        {
-          "instrument": "snare",
-          "offset": 3.0,
-          "velocity": 80,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.0,
-          "velocity": 65,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.5,
-          "velocity": 55,
-          "duration": 0.1
-        }
-      ]
-    },
-    "anthem_rock_chorus_16th_hat": {
-      "description": "Anthemic rock chorus with 16th hi-hats.",
-      "tags": [
-        "drum",
-        "rock",
-        "anthem",
-        "chorus"
-      ],
-      "hits": [
-        {
-          "instrument": "kick",
-          "offset": 0.0,
-          "velocity": 110,
-          "duration": 0.1
-        },
-        {
-          "instrument": "crash",
-          "offset": 0.0,
-          "velocity": 100,
-          "duration": 1.0
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.0,
-          "velocity": 90,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.25,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.5,
-          "velocity": 80,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 0.75,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "snare",
-          "offset": 1.0,
-          "velocity": 105,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.0,
-          "velocity": 90,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.25,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.5,
-          "velocity": 80,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 1.75,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "kick",
-          "offset": 2.0,
-          "velocity": 110,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.0,
-          "velocity": 90,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.25,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.5,
-          "velocity": 80,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 2.75,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "snare",
-          "offset": 3.0,
-          "velocity": 105,
-          "duration": 0.1
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.0,
-          "velocity": 90,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.25,
-          "velocity": 70,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.5,
-          "velocity": 80,
-          "duration": 0.05
-        },
-        {
-          "instrument": "chh",
-          "offset": 3.75,
-          "velocity": 70,
-          "duration": 0.05
-        }
-      ],
-      "fills": {
-        "chorus_end_fill": [
-          {
-            "instrument": "snare",
-            "offset": 3.0,
-            "velocity": 100,
-            "duration": 0.125
-          },
-          {
-            "instrument": "snare",
-            "offset": 3.25,
-            "velocity": 110,
-            "duration": 0.125
-          },
-          {
-            "instrument": "snare",
-            "offset": 3.5,
-            "velocity": 120,
-            "duration": 0.125
-          },
-          {
-            "instrument": "snare",
-            "offset": 3.75,
-            "velocity": 127,
-            "duration": 0.125
-          },
-          {
-            "instrument": "crash",
-            "offset": 4.0,
-            "velocity": 115,
-            "duration": 1.0
-          }
+    "default_drum_pattern": {
+        "description": "Default simple kick and snare (Global Fallback).",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
         ]
-      }
-    }
+    },
+    "basic_rock_4_4": {
+        "description": "Basic 4/4 rock beat.", "time_signature": "4/4",
+        "pattern": [
+            {"instrument":"kick", "offset": 0.0, "velocity": 100, "duration": 0.1}, {"instrument":"chh", "offset": 0.0, "velocity": 80, "duration": 0.1},
+            {"instrument":"chh", "offset": 0.5, "velocity": 70, "duration": 0.1},
+            {"instrument":"snare", "offset": 1.0, "velocity": 95, "duration": 0.1}, {"instrument":"chh", "offset": 1.0, "velocity": 80, "duration": 0.1},
+            {"instrument":"chh", "offset": 1.5, "velocity": 70, "duration": 0.1},
+            {"instrument":"kick", "offset": 2.0, "velocity": 100, "duration": 0.1}, {"instrument":"chh", "offset": 2.0, "velocity": 80, "duration": 0.1},
+            {"instrument":"kick", "offset": 2.5, "velocity": 85, "duration": 0.1}, {"instrument":"chh", "offset": 2.5, "velocity": 70, "duration": 0.1},
+            {"instrument":"snare", "offset": 3.0, "velocity": 95, "duration": 0.1}, {"instrument":"chh", "offset": 3.0, "velocity": 80, "duration": 0.1},
+            {"instrument":"chh", "offset": 3.5, "velocity": 70, "duration": 0.1}
+        ],
+        "fill_ins": {
+            "simple_snare_roll_half_bar": [
+                {"instrument":"snare","offset":0.0,"velocity":80,"duration":0.125}, {"instrument":"snare","offset":0.125,"velocity":85,"duration":0.125},
+                {"instrument":"snare","offset":0.25,"velocity":90,"duration":0.125}, {"instrument":"snare","offset":0.375,"velocity":95,"duration":0.125},
+                {"instrument":"snare","offset":0.5,"velocity":100,"duration":0.125}, {"instrument":"snare","offset":0.625,"velocity":105,"duration":0.125},
+                {"instrument":"snare","offset":0.75,"velocity":110,"duration":0.125}, {"instrument":"snare","offset":0.875,"velocity":115,"duration":0.125}
+            ],
+             "chorus_end_fill": [
+                {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
+                {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
+                {"instrument": "sd", "offset": 0.5, "velocity": 120, "duration": 0.125},
+                {"instrument": "sd", "offset": 0.75, "velocity": 127, "duration": 0.125},
+                {"instrument": "crash", "offset": 1.0, "velocity": 115, "duration": 1.0}
+            ]
+        }
+    },
+    "ballad_soft_kick_snare_8th_hat": { },
+    "rock_ballad_build_up_8th_hat": { },
+    "anthem_rock_chorus_16th_hat": { },
+    "no_drums": {"description": "Silence for drums.", "time_signature": "4/4", "pattern": []}
   }
 }
