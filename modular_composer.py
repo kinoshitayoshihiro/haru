@@ -3,6 +3,8 @@
 import json
 import argparse
 import logging
+import random
+import sys
 from pathlib import Path
 from music21 import stream, tempo, instrument as m21instrument, midi, meter, key
 from typing import List, Dict, Optional, Any, cast, Sequence # Sequence を追加
