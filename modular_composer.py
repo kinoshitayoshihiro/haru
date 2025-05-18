@@ -16,7 +16,7 @@ try:
     from generator.melody_generator import MelodyGenerator
     # from generator.bass_core_generator.py か bass_generator.py かを明確にする必要あり ★★★
     # GitHubには両方あるので、どちらを使うかによります。ここでは仮に bass_core_generator を使います。
-    from generator.bass_generator import BassCoreGenerator
+    # from generator.bass_generator import BassCoreGenerator
     # from generator.guitar_generator import GuitarGenerator # 必要に応じてコメント解除
 except ImportError as e:
     print(f"CRITICAL ERROR: Could not import generator modules from 'generator' package. "
@@ -41,7 +41,7 @@ DEFAULT_CONFIG = {
     "global_key_tonic": "C",
     "global_key_mode": "major",
     "parts_to_generate": {
-        "piano": True, "drums": True, "melody": False, "bass": False, "chords": True, "guitar": False
+        "piano": True, "drums": True, "melody": True, "bass": True, "chords": True, "guitar": False
     },
     "default_part_parameters": {
         "piano": {
