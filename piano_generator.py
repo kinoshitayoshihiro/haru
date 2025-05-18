@@ -71,26 +71,29 @@ class PianoGenerator:
         self.global_tempo = global_tempo
         self.global_time_signature_obj = get_time_signature_object(global_time_signature)
 
-    def _get_piano_chord_pitches(
-            self, m21_cs: harmony.ChordSymbol, num_voices: Optional[int],
-            target_octave_bottom: int, voicing_style_name: str
-    ) -> List[pitch.Pitch]:
-        final_num_voices = num_voices if num_voices is not None and num_voices > 0 else 4 # デフォルト4声
+# generator/piano_generator.py の _get_piano_chord_pitches メソッド内
 
+    def _get_piano_chord_pitches(self,
+                                 m21_cs: harmony.ChordSymbol,
+                                 num_voices: int, # PianoGenerator内部ではこの引数名で受ける
+                                 target_octave_for_bottom: int, # PianoGenerator内部ではこの引数名で受ける
+                                 voicing_style_name: str) -> List[pitch.Pitch]:
         if self.chord_voicer and hasattr(self.chord_voicer, '_apply_voicing_style'):
             try:
+                # ★★★ ここで ChordVoicer のメソッド定義に合わせて引数名を変更 ★★★
                 return self.chord_voicer._apply_voicing_style(
                     m21_cs,
                     voicing_style_name,
-                    target_octave_for_bottom_note=target_octave_bottom, # ChordVoicer側の引数名に合わせる
-                    num_voices_target=final_num_voices                 # ChordVoicer側の引数名に合わせる
+                    target_octave_for_bottom_note=target_octave_for_bottom, # 渡す際のキー名を変更
+                    num_voices_target=num_voices                          # 渡す際のキー名を変更
                 )
             except TypeError as te:
-                logger.error(f"PianoGen: TypeError calling ChordVoicer for '{m21_cs.figure if m21_cs else 'N/A'}': {te}. "
-                             f"Ensure ChordVoicer._apply_voicing_style args match. Using simple voicing.", exc_info=True)
+                logger.error(f"PianoGen: TypeError calling ChordVoicer._apply_voicing_style: {te}. "
+                             f"Ensure argument names match. Falling back to simple voicing.", exc_info=True) # exc_info追加
             except Exception as e_cv:
-                 logger.warning(f"PianoGen: Error using ChordVoicer for '{m21_cs.figure if m21_cs else 'N/A'}': {e_cv}. Simple voicing.", exc_info=True)
+                 logger.warning(f"PianoGen: Error using ChordVoicer for {m21_cs.figure if m21_cs else 'N/A'}: {e_cv}. Simple voicing.", exc_info=True) # exc_info追加
         
+        # ... (フォールバックロジック) ...        
         logger.debug(f"PianoGen: Using simple internal voicing for '{m21_cs.figure if m21_cs else 'N/A'}'.")
         if not m21_cs or not m21_cs.pitches: return []
         try:
