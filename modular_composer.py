@@ -25,34 +25,40 @@ except Exception as e_imp:
     print(f"An unexpected error occurred during module import: {e_imp}")
     exit(1)
 
+
+# --- ロガー設定 ---
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S')
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger("modular_composer")
 
+# --- デフォルト設定 ---
 DEFAULT_CONFIG = {
-    "global_tempo": 100, "global_time_signature": "4/4",
-    "global_key_tonic": "C", "global_key_mode": "major",
+    "global_tempo": 100,
+    "global_time_signature": "4/4",
+    "global_key_tonic": "C",
+    "global_key_mode": "major",
     "parts_to_generate": {
         "piano": True, "drums": True, "melody": False, "bass": False, "chords": True, "guitar": False
     },
     "default_part_parameters": {
         "piano": {
             "emotion_to_rh_style_keyword": {
-                "reflective_arpeggio_rh": "reflective_arpeggio_rh", # スタイル名とキー名を一致させる例
-                "chordal_moving_rh": "chordal_moving_rh",
-                "powerful_block_rh": "powerful_block_rh",
+                "struggle_with_underlying_strength": "reflective_arpeggio_rh",
+                "deep_regret_and_gratitude": "chordal_moving_rh",
+                "love_pain_acceptance_and_belief": "powerful_block_rh",
                 "default": "simple_block_rh"
             },
             "emotion_to_lh_style_keyword": {
-                "gentle_root_lh": "gentle_root_lh",
-                "walking_bass_like_lh": "walking_bass_like_lh",
-                "active_octave_lh": "active_octave_lh",
+                "struggle_with_underlying_strength": "gentle_root_lh",
+                "deep_regret_and_gratitude": "walking_bass_like_lh",
+                "love_pain_acceptance_and_belief": "active_octave_lh",
                 "default": "simple_root_lh"
             },
-            "style_keyword_to_rhythm_key": { # ★★★ ここのキー名と値を rhythm_library.json と一致させる ★★★
-                "reflective_arpeggio_rh": "piano_flowing_arpeggio_eighths_rh", # この値が rhythm_library.json のキー
+            "style_keyword_to_rhythm_key": {
+                "reflective_arpeggio_rh": "piano_flowing_arpeggio_eighths_rh",
                 "chordal_moving_rh": "piano_chordal_moving_rh_pattern",
                 "powerful_block_rh": "piano_powerful_block_8ths_rh",
                 "simple_block_rh": "piano_block_quarters_simple",
@@ -64,46 +70,42 @@ DEFAULT_CONFIG = {
                 "default_piano_lh_fallback_rhythm": "piano_lh_whole_notes"
             },
             "intensity_to_velocity_ranges": {
-                "low": (50, 60, 55, 65), "medium_low": (55, 65, 60, 70),
-                "medium": (60, 70, 65, 75), "medium_high": (65, 80, 70, 85),
-                "high": (70, 85, 75, 90), "default": (60, 70, 65, 75)
+                "very_low":     (35, 45, 40, 50), "low":          (45, 55, 50, 60),
+                "medium_low":   (55, 65, 60, 70), "medium":       (65, 75, 70, 80),
+                "medium_high":  (75, 85, 80, 90), "high":         (85, 95, 90, 100),
+                "very_high":    (95, 110, 100, 115), "default":      (60, 70, 65, 75)
             },
             "default_apply_pedal": True, "default_arp_note_ql": 0.5,
-            "default_rh_voicing_style": "closed", "default_lh_voicing_style": "closed",
+            "default_rh_voicing_style": "closed", # ★★★ 修正: 文字列リテラル ★★★
+            "default_lh_voicing_style": "closed", # ★★★ 修正: 文字列リテラル ★★★
             "default_rh_target_octave": 4, "default_lh_target_octave": 2,
             "default_rh_num_voices": 3, "default_lh_num_voices": 1
         },
-        "drums": { # ★★★ drums の emotion_to_style_key の値も rhythm_library.json の drum_patterns のキーと一致させる ★★★
+        "drums": {
             "emotion_to_style_key": {
                 "struggle_with_underlying_strength": "ballad_soft_kick_snare_8th_hat",
                 "deep_regret_and_gratitude": "rock_ballad_build_up_8th_hat",
                 "love_pain_acceptance_and_belief": "anthem_rock_chorus_16th_hat",
-                "default_style": "basic_rock_4_4" # フォールバック
+                "default_style": "basic_rock_4_4"
             },
-            "intensity_to_base_velocity": { "default": 75, "low": 60, "medium": 75, "high": 90 }, # 簡略化例
+            "intensity_to_base_velocity": { "default": 75, "low": 60, "medium": 75, "high": 90 },
             "default_fill_interval_bars": 4,
             "default_fill_keys": ["simple_snare_roll_half_bar"]
         },
         "chords": {
-            "instrument": "StringInstrument", "chord_voicing_style": "closed",
-            "chord_target_octave": 3, "chord_num_voices": 4, "chord_velocity": 64
+            "instrument": "StringInstrument",
+            "chord_voicing_style": "closed", # ★★★ 修正: 文字列リテラル ★★★
+            "chord_target_octave": 3,
+            "chord_num_voices": 4,
+            "chord_velocity": 64
         },
-        "melody": { # ★★★ メロディ用のデフォルトパラメータを追加 ★★★
-            "instrument": "Violin", # 例
-            "rhythm_key_map": { # 感情 -> メロディ用リズムキー (rhythm_libraryのmelody_rhythmsを参照)
-                "default": "default_melody_rhythm"
-            },
-            "octave_range": [4, 6],
-            "density": 0.7
+        "melody": {
+            "instrument": "Violin", "rhythm_key_map": { "default": "default_melody_rhythm" },
+            "octave_range": [4, 6], "density": 0.7
         },
-        "bass": { # ★★★ ベース用のデフォルトパラメータを追加 ★★★
-            "instrument": "AcousticBass", # 例
-            "style_map": { # 感情 -> ベーススタイル名 (BassCoreGenerator/BassGeneratorが解釈)
-                "default": "simple_roots"
-            },
-            "rhythm_key_map": { # 感情 -> ベース用リズムキー (rhythm_libraryのbass_linesを参照)
-                 "default": "bass_quarter_notes"
-            }
+        "bass": {
+            "instrument": "AcousticBass", "style_map": { "default": "simple_roots" },
+            "rhythm_key_map": { "default": "bass_quarter_notes" }
         }
     },
     "output_filename_template": "output_{song_title}.mid"
