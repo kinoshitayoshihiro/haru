@@ -1,71 +1,176 @@
-# --- START OF FILE modular_composer.py (DEFAULT_CONFIG 修正案) ---
-# ... (他の import 文や関数の定義は変更なし) ...
-
-# --- デフォルト設定 ---
-DEFAULT_CONFIG = {
-    "global_tempo": 100,
-    "global_time_signature": "4/4",
-    "global_key_tonic": "C",
-    "global_key_mode": "major",
-    "parts_to_generate": {
-        "piano": True, "drums": True, "melody": False, "bass": False, "chords": True, "guitar": False
+{
+  "piano_patterns": {
+    "piano_block_quarters_simple": {
+      "description": "Simple quarter note block chords for piano.",
+      "tags": ["piano", "simple", "block_chord", "quarter_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75}
+      ]
     },
-    "default_part_parameters": {
-        "piano": {
-            "emotion_to_rh_style_keyword": { # 感情 -> 右手スタイルキーワード
-                "struggle_with_underlying_strength": "reflective_arpeggio_rh", # style_keyword_to_rhythm_key で piano_reflective_arpeggio_rh にマップされる
-                "deep_regret_and_gratitude": "chordal_moving_rh",      # style_keyword_to_rhythm_key で piano_chordal_moving_rh にマップされる
-                "love_pain_acceptance_and_belief": "powerful_block_chords_rh", # style_keyword_to_rhythm_key で piano_powerful_block_chords_rh にマップされる
-                "default": "simple_block_rh" # style_keyword_to_rhythm_key で piano_block_quarters_simple にマップされる
-            },
-            "emotion_to_lh_style_keyword": { # 感情 -> 左手スタイルキーワード
-                "struggle_with_underlying_strength": "gentle_sustained_root_lh", # style_keyword_to_rhythm_key で piano_sustained_root_lh にマップされる
-                "deep_regret_and_gratitude": "walking_bass_like_lh",     # style_keyword_to_rhythm_key で piano_walking_bass_like_lh にマップされる
-                "love_pain_acceptance_and_belief": "active_octave_bass_lh",    # style_keyword_to_rhythm_key で piano_active_octave_bass_lh にマップされる
-                "default": "simple_root_lh" # style_keyword_to_rhythm_key で piano_lh_quarter_roots にマップされる
-            },
-            "style_keyword_to_rhythm_key": { # スタイルキーワード -> リズムライブラリの実際のキー
-                # ★★★ ここの値を rhythm_library.json の piano_patterns 直下のキー名と完全に一致させる ★★★
-                "reflective_arpeggio_rh": "piano_reflective_arpeggio_rh",     # rhythm_library.json に定義あり
-                "chordal_moving_rh": "piano_chordal_moving_rh",          # rhythm_library.json に定義あり
-                "powerful_block_chords_rh": "piano_powerful_block_chords_rh", # rhythm_library.json に定義あり
-                "simple_block_rh": "piano_block_quarters_simple",            # rhythm_library.json に定義あり
-                "gentle_sustained_root_lh": "piano_sustained_root_lh",        # rhythm_library.json に定義あり (piano_gentle_sustained_root_lhから変更)
-                "walking_bass_like_lh": "piano_walking_bass_like_lh",      # rhythm_library.json に定義あり
-                "active_octave_bass_lh": "piano_active_octave_bass_lh",       # rhythm_library.json に定義あり
-                "simple_root_lh": "piano_lh_quarter_roots",                 # rhythm_library.json に定義あり
-                # フォールバック用のキーも rhythm_library.json に合わせて定義
-                "default_piano_rh_fallback_rhythm": "default_piano_quarters", # rhythm_library.json に default_piano_quarters があればOK
-                "default_piano_lh_fallback_rhythm": "piano_lh_whole_notes"    # rhythm_library.json に piano_lh_whole_notes があればOK (なければ default_piano_quarters などに)
-            },
-            "intensity_to_velocity_ranges": {
-                "low": (50, 60, 55, 65), "medium_low": (55, 65, 60, 70),
-                "medium": (60, 70, 65, 75), "medium_high": (65, 80, 70, 85),
-                "high": (70, 85, 75, 90), "default": (60, 70, 65, 75)
-            },
-            "default_apply_pedal": True, "default_arp_note_ql": 0.5,
-            "default_rh_voicing_style": "closed", "default_lh_voicing_style": "closed",
-            "default_rh_target_octave": 4, "default_lh_target_octave": 2,
-            "default_rh_num_voices": 3, "default_lh_num_voices": 1
-        },
-        "drums": {
-            "emotion_to_style_key": { # ★★★ ここの値を rhythm_library.json の drum_patterns 直下のキー名と一致させる ★★★
-                "struggle_with_underlying_strength": "ballad_soft_kick_snare_8th_hat", # rhythm_library.json に定義あり
-                "deep_regret_and_gratitude": "rock_ballad_build_up_8th_hat",         # rhythm_library.json に定義あり
-                "love_pain_acceptance_and_belief": "anthem_rock_chorus_16th_hat",    # rhythm_library.json に定義あり
-                "default_style": "default_drum_pattern" # ★ rhythm_library.json に "default_drum_pattern" があればOK (basic_rock_4_4 より確実)
-            },
-            "intensity_to_base_velocity": {"default": 75, "low": 60, "medium": 75, "high": 90},
-            "default_fill_interval_bars": 4,
-            "default_fill_keys": ["chorus_end_fill"] # simple_snare_roll_half_bar は anthem_rock_chorus_16th_hat にはないので、共通のものを指定するか、スタイルごとに定義
-        },
-        "chords": { /* ... 変更なし ... */ },
-        "melody": { /* ... 変更なし ... */ },
-        "bass": { /* ... 変更なし ... */ }
+    "piano_lh_quarter_roots": {
+      "description": "Simple quarter note roots for LH piano.",
+      "tags": ["piano", "simple", "root_notes", "quarter_notes", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"}
+      ]
     },
-    "output_filename_template": "output_{song_title}.mid"
+    "piano_reflective_arpeggio_rh": {
+      "description": "Reflective, gentle arpeggio for RH piano.",
+      "tags": ["piano", "reflective", "gentle", "arpeggio", "right_hand"],
+      "arpeggio_type": "up_down_gentle",
+      "note_duration_ql": 0.5,
+      "pattern": [
+        {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 2.0, "velocity_factor": 0.65}
+      ]
+    },
+    "piano_chordal_moving_rh": {
+      "description": "Chordal and moving rhythm for RH piano.",
+      "tags": ["piano", "chordal", "moving", "right_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.5, "velocity_factor": 0.75},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_powerful_block_chords_rh": {
+      "description": "Powerful block chords for RH piano.",
+      "tags": ["piano", "powerful", "block_chord", "right_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.85},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.9},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.9}
+      ]
+    },
+    "piano_sustained_root_lh": {
+      "description": "Sustained root notes for LH piano.",
+      "tags": ["piano", "sustained", "root_notes", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+      ]
+    },
+    "piano_walking_bass_like_lh": {
+      "description": "Walking bass like pattern for LH piano.",
+      "tags": ["piano", "walking_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "approaching_next_beat_or_chord_tone"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root_or_fifth"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "leading_to_next_chord"}
+      ]
+    },
+    "piano_active_octave_bass_lh": {
+      "description": "Active octave bass pattern for LH piano.",
+      "tags": ["piano", "active", "octave_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
+      ]
+    }
+  },
+  "drum_patterns": {
+    "default_drum_pattern": {
+        "description": "Default simple kick and snare (Global Fallback).",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
+        ]
+    },
+    "ballad_soft_kick_snare_8th_hat": {
+        "description": "Soft ballad beat with kick, snare, and 8th note hi-hat.",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument": "kick", "offset": 0.0, "velocity": 70, "duration": 0.2},
+            {"instrument": "chh", "offset": 0.0, "velocity": 60, "duration": 0.1},
+            {"instrument": "chh", "offset": 0.5, "velocity": 55, "duration": 0.1},
+            {"instrument": "snare", "offset": 1.0, "velocity": 75, "duration": 0.2},
+            {"instrument": "chh", "offset": 1.0, "velocity": 60, "duration": 0.1},
+            {"instrument": "chh", "offset": 1.5, "velocity": 55, "duration": 0.1},
+            {"instrument": "kick", "offset": 2.0, "velocity": 70, "duration": 0.2},
+            {"instrument": "chh", "offset": 2.0, "velocity": 60, "duration": 0.1},
+            {"instrument": "chh", "offset": 2.5, "velocity": 55, "duration": 0.1},
+            {"instrument": "snare", "offset": 3.0, "velocity": 75, "duration": 0.2},
+            {"instrument": "chh", "offset": 3.0, "velocity": 60, "duration": 0.1},
+            {"instrument": "chh", "offset": 3.5, "velocity": 55, "duration": 0.1}
+        ]
+    },
+    "rock_ballad_build_up_8th_hat": {
+        "description": "Rock ballad beat building up, 8th note hi-hat.",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument":"kick", "offset":0.0, "velocity":85, "duration":0.1}, {"instrument":"chh", "offset":0.0, "velocity":70, "duration":0.1},
+            {"instrument":"kick", "offset":0.75, "velocity":80, "duration":0.1}, {"instrument":"chh", "offset":0.5, "velocity":65, "duration":0.1},
+            {"instrument":"snare", "offset":1.0, "velocity":90, "duration":0.1}, {"instrument":"chh", "offset":1.0, "velocity":70, "duration":0.1},
+            {"instrument":"chh", "offset":1.5, "velocity":65, "duration":0.1},
+            {"instrument":"kick", "offset":2.0, "velocity":85, "duration":0.1}, {"instrument":"chh", "offset":2.0, "velocity":70, "duration":0.1},
+            {"instrument":"kick", "offset":2.5, "velocity":80, "duration":0.1}, {"instrument":"chh", "offset":2.5, "velocity":65, "duration":0.1},
+            {"instrument":"snare", "offset":3.0, "velocity":90, "duration":0.1}, {"instrument":"chh", "offset":3.0, "velocity":70, "duration":0.1},
+            {"instrument":"kick", "offset":3.25, "velocity":80, "duration":0.1}, {"instrument":"chh", "offset":3.5, "velocity":65, "duration":0.1},
+            {"instrument":"kick", "offset":3.75, "velocity":80, "duration":0.1}
+        ],
+        "fill_ins": {
+            "chorus_end_fill": [
+                {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
+                {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
+                {"instrument": "mt", "offset": 0.5, "velocity": 120, "duration": 0.125},
+                {"instrument": "lt", "offset": 0.75, "velocity": 127, "duration": 0.125},
+                {"instrument": "crash", "offset": 1.0, "velocity": 115, "duration": 1.0}
+            ]
+        }
+    },
+    "anthem_rock_chorus_16th_hat": {
+        "description": "Anthem rock chorus with 16th note hi-hat.",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument":"kick", "offset":0.0, "velocity":110, "duration":0.1}, {"instrument":"chh", "offset":0.0, "velocity":85, "duration":0.05},
+            {"instrument":"chh", "offset":0.25, "velocity":75, "duration":0.05}, {"instrument":"chh", "offset":0.5, "velocity":80, "duration":0.05},
+            {"instrument":"chh", "offset":0.75, "velocity":75, "duration":0.05},
+            {"instrument":"snare", "offset":1.0, "velocity":105, "duration":0.1}, {"instrument":"chh", "offset":1.0, "velocity":85, "duration":0.05},
+            {"instrument":"chh", "offset":1.25, "velocity":75, "duration":0.05}, {"instrument":"chh", "offset":1.5, "velocity":80, "duration":0.05},
+            {"instrument":"chh", "offset":1.75, "velocity":75, "duration":0.05},
+            {"instrument":"kick", "offset":2.0, "velocity":110, "duration":0.1}, {"instrument":"crash", "offset":2.0, "velocity":100, "duration":0.5},{"instrument":"chh", "offset":2.0, "velocity":85, "duration":0.05},
+            {"instrument":"chh", "offset":2.25, "velocity":75, "duration":0.05}, {"instrument":"chh", "offset":2.5, "velocity":80, "duration":0.05},
+            {"instrument":"chh", "offset":2.75, "velocity":75, "duration":0.05},
+            {"instrument":"snare", "offset":3.0, "velocity":105, "duration":0.1}, {"instrument":"chh", "offset":3.0, "velocity":85, "duration":0.05},
+            {"instrument":"chh", "offset":3.25, "velocity":75, "duration":0.05}, {"instrument":"chh", "offset":3.5, "velocity":80, "duration":0.05},
+            {"instrument":"chh", "offset":3.75, "velocity":75, "duration":0.05}
+        ],
+        "fill_ins": {
+            "crescendo_roll": [
+                {"instrument": "snare", "offset": 0.0, "velocity": 70, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.125, "velocity": 80, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.25, "velocity": 90, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.375, "velocity": 100, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.5, "velocity": 110, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.625, "velocity": 120, "duration": 0.125},
+                {"instrument": "snare", "offset": 0.75, "velocity": 127, "duration": 0.125},
+                {"instrument": "crash", "offset": 0.75, "velocity": 110, "duration": 1.0}
+            ]
+        }
+    },
+    "no_drums": {
+        "description": "Silence for drums.",
+        "time_signature": "4/4",
+        "pattern": []
+    }
+  }
 }
-
-# ... (以降の translate_keywords_to_params, prepare_processed_stream, run_composition, main_cli 関数は前回提示のものをベースとする) ...
-
-# --- END OF FILE modular_composer.py ---
