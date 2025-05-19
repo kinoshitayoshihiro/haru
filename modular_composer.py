@@ -203,8 +203,10 @@ def translate_keywords_to_params(
     logger.info(f"Final params for [{instrument_name_key}] (Emo: {emotion_key}, Int: {intensity_key}) -> {params}")
     return params
 
+# --- START OF FILE modular_composer.py (prepare_processed_stream の修正箇所) ---
+# ... (他の部分は変更なし) ...
+
 def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib: Dict) -> List[Dict]:
-    # (この関数は前回提示した修正を適用済みと仮定 - translate_keywords_to_params へ rhythm_lib を渡す)
     processed_stream: List[Dict] = []
     current_abs_offset: float = 0.0
     global_settings = chordmap_data.get("global_settings", {})
@@ -215,38 +217,45 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib:
     global_key_mode = global_settings.get("key_mode", main_config["global_key_mode"])
 
     sorted_sections = sorted(chordmap_data.get("sections", {}).items(), key=lambda item: item[1].get("order", float('inf')))
-    for sec_name, sec_info in sorted_sections:
-        logger.info(f"Preparing section: {sec_name}")
+
+    for section_name, sec_info in sorted_sections:
+        logger.info(f"Preparing section: {section_name}")
         sec_musical_intent = sec_info.get("musical_intent", {})
         sec_part_settings = sec_info.get("part_settings", {})
-        sec_tonic = sec_info.get("tonic", global_key_tonic); sec_mode = sec_info.get("mode", global_key_mode)
+        sec_tonic = sec_info.get("tonic", global_key_tonic)
+        sec_mode = sec_info.get("mode", global_key_mode) # ★★★ ここで sec_mode が定義されている ★★★
         sec_len_measures = sec_info.get("length_in_measures")
         chord_prog = sec_info.get("chord_progression", [])
-        if not chord_prog: logger.warning(f"Section '{sec_name}' no chords. Skip."); continue
+        if not chord_prog: logger.warning(f"Section '{section_name}' no chords. Skip."); continue
 
         for chord_idx, chord_def in enumerate(chord_prog):
             chord_lbl = chord_def.get("label", "C")
             dur_b = float(chord_def["duration_beats"]) if "duration_beats" in chord_def else (float(sec_len_measures) * beats_per_measure) / len(chord_prog) if sec_len_measures and chord_prog else beats_per_measure
+            
             blk_intent = sec_musical_intent.copy()
             if "emotion" in chord_def: blk_intent["emotion"] = chord_def["emotion"]
             if "intensity" in chord_def: blk_intent["intensity"] = chord_def["intensity"]
+            
             blk_hints = {k:v for k,v in chord_def.items() if k not in ["label","duration_beats","order","musical_intent","part_settings","tensions_to_add"]}
             blk_hints["part_settings"] = sec_part_settings
-            blk_data = {"offset":current_abs_offset, "q_length":dur_b, "chord_label":chord_lbl, "section_name":sec_name,
-                        "tonic_of_section":sec_tonic, "mode":sec_m, "tensions_to_add":chord_def.get("tensions_to_add",[]),
+
+            blk_data = {"offset":current_abs_offset, "q_length":dur_b, "chord_label":chord_lbl, "section_name":section_name,
+                        "tonic_of_section":sec_tonic, "mode":sec_mode, "tensions_to_add":chord_def.get("tensions_to_add",[]), # ★★★ sec_m を sec_mode に修正 ★★★
                         "is_first_in_section":(chord_idx==0), "is_last_in_section":(chord_idx==len(chord_prog)-1), "part_params":{}}
+            
             for p_key_name in main_config["parts_to_generate"].keys():
                 def_p = main_config["default_part_parameters"].get(p_key_name, {})
-                # ★★★ 各楽器に対応するリズムライブラリのサブカテゴリを渡すように修正 ★★★
-                rhythm_category_for_instrument = rhythm_lib.get(f"{p_key_name}_patterns", # piano_patterns, drum_patterns
-                                                rhythm_lib.get(f"{p_key_name}_rhythms",    # melody_rhythms
-                                                rhythm_lib.get(f"{p_key_name}_lines", {}))) # bass_lines など
-                blk_data["part_params"][p_key_name] = translate_keywords_to_params(blk_intent, blk_hints, def_p, p_key_name, rhythm_category_for_instrument)
+                rhythm_cat_for_instrument = rhythm_lib.get(f"{p_key_name}_patterns",
+                                                rhythm_lib.get(f"{p_key_name}_rhythms",
+                                                rhythm_lib.get(f"{p_key_name}_lines", {})))
+                blk_data["part_params"][p_key_name] = translate_keywords_to_params(blk_intent, blk_hints, def_p, p_key_name, rhythm_cat_for_instrument)
             processed_stream.append(blk_data)
             current_abs_offset += dur_b
     logger.info(f"Prepared {len(processed_stream)} blocks. Duration: {current_abs_offset:.2f} beats.")
     return processed_stream
 
+# ... (他の関数やクラスは変更なし) ...
+# --- END OF FILE modular_composer.py ---
 
 def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict, rhythm_lib_all: Dict):
     # (run_composition の前半のスコア初期化は変更なし)
