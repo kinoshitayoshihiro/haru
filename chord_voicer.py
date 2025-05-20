@@ -1,215 +1,136 @@
-# --- START OF FILE generators/chord_voicer.py (修正版) ---
+# --- START OF FILE generators/core_music_utils.py (修正版) ---
 import music21
-from typing import List, Dict, Optional, Tuple, Any, Sequence
-from music21 import (stream, note, harmony, pitch, meter, duration,
-                     instrument as m21instrument, interval, tempo, key,
-                     chord as m21chord, volume as m21volume)
-import random
 import logging
-
-# ★★★ core_music_utils から sanitize_chord_label をインポート ★★★
-try:
-    from .core_music_utils import get_time_signature_object, sanitize_chord_label
-except ImportError:
-    logger_cv_fallback = logging.getLogger(__name__) # フォールバック用ロガー
-    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
-        if not ts_str: ts_str = "4/4"
-        try: return meter.TimeSignature(ts_str)
-        except meter.MeterException:
-            logger_cv_fallback.warning(f"CV Fallback GTSO: Invalid TS '{ts_str}'. Default 4/4.")
-            return meter.TimeSignature("4/4")
-    # ★★★ フォールバック用の sanitize_chord_label (簡易版) ★★★
-    def sanitize_chord_label(label: str) -> str:
-        logger_cv_fallback.warning(f"CV Fallback sanitize_chord_label used for '{label}'.")
-        label = label.replace('maj7', 'M7').replace('mi7', 'm7')
-        if label.count('(') > label.count(')') and label.endswith('('):
-            label = label[:-1]
-        return label
-    logger_cv_fallback.warning("ChordVoicer: Could not import from .core_music_utils. Using fallbacks.")
-
+from music21 import meter, pitch, scale, harmony
+from typing import Optional, Dict, Any, Tuple, Union
+import re
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM: int = 3
-VOICING_STYLE_CLOSED = "closed"
-VOICING_STYLE_OPEN = "open"
-VOICING_STYLE_SEMI_CLOSED = "semi_closed"
-VOICING_STYLE_DROP2 = "drop2"
-VOICING_STYLE_FOUR_WAY_CLOSE = "four_way_close"
+MIN_NOTE_DURATION_QL: float = 0.125
 
-class ChordVoicer:
-    def __init__(self,
-                 default_instrument=m21instrument.StringInstrument(),
-                 global_tempo: int = 120,
-                 global_time_signature: str = "4/4"):
-        self.default_instrument = default_instrument
-        self.global_tempo = global_tempo
-        # get_time_signature_object の呼び出しは try-except ブロックの外、または ImportError で定義後
-        try:
-            self.global_time_signature_obj = get_time_signature_object(global_time_signature)
-        except NameError: # get_time_signature_object がフォールバックでも定義されていない最悪のケース
-             logger.error("ChordVoicer: CRITICAL - get_time_signature_object is not defined. Using basic 4/4.")
-             self.global_time_signature_obj = meter.TimeSignature("4/4")
-        except Exception as e_ts_init: # その他の初期化時のエラー
-            logger.error(f"ChordVoicer: Error initializing time signature '{global_time_signature}': {e_ts_init}. Defaulting to 4/4.")
-            self.global_time_signature_obj = meter.TimeSignature("4/4")
+def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
+    if not ts_str: ts_str = "4/4"
+    try: return meter.TimeSignature(ts_str)
+    except meter.MeterException: logger.warning(f"GTSO: Invalid TS '{ts_str}'. Default 4/4."); return meter.TimeSignature("4/4")
+    except Exception as e: logger.error(f"GTSO: Error for TS '{ts_str}': {e}. Default 4/4.", exc_info=True); return meter.TimeSignature("4/4")
+
+def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> Optional[scale.ConcreteScale]:
+    # (前回の修正を維持、ここでは省略)
+    effective_mode_str = mode_str if mode_str else "major"; effective_tonic_str = tonic_str if tonic_str else "C"
+    try: tonic_p = pitch.Pitch(effective_tonic_str)
+    except: logger.error(f"BuildScale: Invalid tonic '{effective_tonic_str}'. Default C."); tonic_p = pitch.Pitch("C")
+    mode_map: Dict[str, Any] = {"ionian": scale.MajorScale, "major": scale.MajorScale, "dorian": scale.DorianScale,"phrygian": scale.PhrygianScale, "lydian": scale.LydianScale,"mixolydian": scale.MixolydianScale,"aeolian": scale.MinorScale, "minor": scale.MinorScale,"locrian": scale.LocrianScale,"harmonicminor": scale.HarmonicMinorScale,"melodicminor": scale.MelodicMinorScale}
+    s_class = mode_map.get(effective_mode_str.lower())
+    if s_class:
+        try: return s_class(tonic_p)
+        except: logger.error(f"BuildScale: Error creating {s_class.__name__} with {tonic_p}. Fallback C Major."); return scale.MajorScale(pitch.Pitch("C"))
+    else: logger.warning(f"BuildScale: Mode '{effective_mode_str}' unknown for {tonic_p}. Default Major."); return scale.MajorScale(tonic_p)
 
 
-    def _apply_voicing_style(
-            self,
-            m21_cs: Optional[harmony.ChordSymbol], # ★★★ ChordSymbolがNoneの可能性を許容 ★★★
-            style_name: str,
-            target_octave_for_bottom_note: Optional[int] = DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM,
-            num_voices_target: Optional[int] = None
-    ) -> List[pitch.Pitch]:
-        # ★★★ m21_cs が None の場合は空リストを返す ★★★
-        if m21_cs is None:
-            return []
-        if not m21_cs.pitches:
-            logger.warning(f"ChordVoicer._apply_style: ChordSymbol '{m21_cs.figure}' has no pitches.")
-            return []
+def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
+    """
+    コードラベルをmusic21が解釈しやすい形式にサニタイズする。
+    ValueError: Invalid chord abbreviation 'm7(' などのエラーに対応。
+    """
+    if not label or not isinstance(label, str): return None
+    original_label = label
+    label_lower = label.strip().lower()
 
-        voiced_pitches_list: List[pitch.Pitch] = []
-        original_pitches_sorted = sorted(list(m21_cs.pitches), key=lambda p: p.ps)
-        # ★★★ ChordSymbolを直接操作せず、figureから都度生成するか、deepcopyする方が安全 ★★★
-        # temp_cs_for_voicing = harmony.ChordSymbol(m21_cs.figure) # 毎回figureから生成
+    if label_lower in ["rest", "r", "silence", "none", "", "n.c.", "nc"]:
+        logger.debug(f"Sanitize: '{original_label}' as Rest -> None.")
+        return None
 
-        try:
-            # 各ボイシングスタイルで temp_cs_for_voicing を使う代わりに、m21_cs の情報を元に
-            # music21のメソッドが返す新しいオブジェクトを使うか、メソッドが inPlace=False であることを確認
-            if style_name == VOICING_STYLE_OPEN:
-                voiced_pitches_list = list(m21_cs.openPosition(inPlace=False).pitches)
-            elif style_name == VOICING_STYLE_SEMI_CLOSED:
-                closed_p = sorted(list(m21_cs.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
-                if len(closed_p) >= 2:
-                    bass_of_cs = m21_cs.bass()
-                    if bass_of_cs and closed_p[0].name == bass_of_cs.name:
-                        new_bass_p = closed_p[0].transpose(-12)
-                        voiced_pitches_list = sorted([new_bass_p] + closed_p[1:], key=lambda p: p.ps)
-                    else: voiced_pitches_list = closed_p
-                else: voiced_pitches_list = closed_p
-            elif style_name == VOICING_STYLE_DROP2:
-                closed_for_drop2 = sorted(list(m21_cs.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
-                if len(closed_for_drop2) >= 2:
-                    idx_to_drop = -1
-                    if len(closed_for_drop2) >= 4: idx_to_drop = -2
-                    elif len(closed_for_drop2) == 3: idx_to_drop = 1
-                    if idx_to_drop != -1 :
-                        pitches_copy = list(closed_for_drop2); pitch_to_drop_obj = pitches_copy.pop(idx_to_drop)
-                        dropped_pitch_obj = pitch_to_drop_obj.transpose(-12)
-                        voiced_pitches_list = sorted(pitches_copy + [dropped_pitch_obj], key=lambda p: p.ps)
-                    else: voiced_pitches_list = closed_for_drop2
-                else: voiced_pitches_list = closed_for_drop2
-            elif style_name == VOICING_STYLE_FOUR_WAY_CLOSE:
-                temp_m21_chord = m21chord.Chord(list(m21_cs.pitches)) # 新しいChordオブジェクトを作成
-                if len(temp_m21_chord.pitches) >= 4 :
-                    try: temp_m21_chord.fourWayClose(inPlace=True); voiced_pitches_list = list(temp_m21_chord.pitches)
-                    except Exception as e_4way: logger.warning(f"CV: fourWayClose for {m21_cs.figure} failed: {e_4way}. Defaulting."); voiced_pitches_list = list(m21_cs.closedPosition(inPlace=False).pitches)
-                else: logger.debug(f"CV: Not enough pitches for fourWayClose on {m21_cs.figure}. Using closed."); voiced_pitches_list = list(m21_cs.closedPosition(inPlace=False).pitches)
-            else: # Default or unknown style
-                if style_name != VOICING_STYLE_CLOSED: logger.debug(f"CV: Unknown style '{style_name}'. Defaulting to closed for {m21_cs.figure}.")
-                voiced_pitches_list = list(m21_cs.closedPosition(inPlace=False).pitches)
-        except Exception as e_style_app:
-            logger.error(f"CV._apply_style: Error applying '{style_name}' to '{m21_cs.figure}': {e_style_app}. Defaulting.", exc_info=True)
-            voiced_pitches_list = original_pitches_sorted
+    # 特殊な全体置換
+    label = label.replace("alt", "") # "alt" は解釈が曖昧なので一旦除去 (テンションで指定推奨)
+    label = label.replace("sus2", "add2") # music21はadd2を好む傾向
 
-        if not voiced_pitches_list: voiced_pitches_list = original_pitches_sorted
+    # "Bbmaj7" -> "B-maj7"のようなフラット表記の修正
+    flat_map = {"Bb": "B-", "Eb": "E-", "Ab": "A-", "Db": "D-", "Gb": "G-"}
+    for k_flat, v_flat in flat_map.items():
+        if label.startswith(k_flat): # 先頭が大文字のフラット (例: Bbmaj7)
+            label = label.replace(k_flat, v_flat, 1)
+            break
+        elif label.startswith(k_flat.lower()): # 先頭が小文字のフラット (例: bbdim) -> これはmusic21的には B--dim
+            # これは非常に稀で、通常はb- (B minor flat)などを意図しない限り、
+            # bが臨時記号のフラットを指すことは少ないが、念のため。
+            # 'bb' (B double flat) -> 'B--' に変換すべきだが、元の意図が 'Bbm' (B flat minor) の可能性もある。
+            # ここでは単純なケースのみ。
+            pass # 小文字で始まる b はベース音やマイナーの可能性が高く、慎重な扱いが必要
 
-        if num_voices_target is not None and voiced_pitches_list:
-            if len(voiced_pitches_list) > num_voices_target:
-                voiced_pitches_list = sorted(voiced_pitches_list, key=lambda p:p.ps)[:num_voices_target]
-                logger.debug(f"CV: Reduced voices to {num_voices_target} for '{m21_cs.figure}'.")
+    # 括弧の処理: 例 Am7(add11) -> Am7add11, E7(b9) -> E7b9
+    # music21は "Am7add11" を直接解釈しにくい。"Am7" と "add11" に分けて処理するのが理想。
+    # ここでは、まず括弧を外して連結する。その後のパースはharmony.ChordSymbolに任せる。
+    # エラーログ "Invalid chord abbreviation 'm7('" のようなケースに対処するため、
+    # 括弧の前後で有効なコード品質かを確認するアプローチも考えられるが、複雑化する。
+    # ここでは、単純に括弧とカンマ、不要なスペースを除去し、文字を連結する。
 
-        if voiced_pitches_list and target_octave_for_bottom_note is not None:
-            # (オクターブ調整ロジックは変更なし)
-            current_bottom_p = min(voiced_pitches_list, key=lambda p: p.ps)
-            ref_p_name = m21_cs.root().name if m21_cs.root() else 'C'
-            target_bottom_ps_val = pitch.Pitch(f"{ref_p_name}{target_octave_for_bottom_note}").ps
-            oct_diff = round((target_bottom_ps_val - current_bottom_p.ps) / 12.0)
-            shift_semitones = int(oct_diff * 12)
-            if shift_semitones != 0:
-                logger.debug(f"CV: Shifting '{m21_cs.figure}' by {shift_semitones} semitones for target bottom octave {target_octave_for_bottom_note}.")
-                try: voiced_pitches_list = [p.transpose(shift_semitones) for p in voiced_pitches_list]
-                except Exception as e_trans: logger.error(f"CV: Error transposing for octave adjustment: {e_trans}")
-        return voiced_pitches_list
+    # 括弧が開いたまま閉じられていないケース ("Cmaj7(add9")
+    if '(' in label and ')' not in label:
+        logger.warning(f"Sanitize: Label '{original_label}' has unclosed parenthesis. Attempting to remove from '('.")
+        label = label.split('(')[0].strip()
+    # 括弧が閉じたまま開かれていないケース ("add9)Cmaj7") - あまりないが
+    elif ')' in label and '(' not in label:
+        logger.warning(f"Sanitize: Label '{original_label}' has unopened parenthesis. Attempting to remove up to ')'.")
+        label = label.split(')')[-1].strip()
 
-    def compose(self, processed_chord_stream: List[Dict]) -> stream.Part:
-        chord_part = stream.Part(id="ChordVoicerPart")
-        chord_part.insert(0, self.default_instrument)
-        chord_part.append(tempo.MetronomeMark(number=self.global_tempo))
-        chord_part.append(self.global_time_signature_obj)
-
-        if not processed_chord_stream: logger.info("CV.compose: Empty stream."); return chord_part
-        logger.info(f"CV.compose: Processing {len(processed_chord_stream)} blocks.")
-
-        for blk_idx, blk_data in enumerate(processed_chord_stream):
-            offset_ql = float(blk_data.get("offset", 0.0))
-            duration_ql = float(blk_data.get("q_length", 4.0))
-            chord_label_original = blk_data.get("chord_label", "C")
-            
-            part_params = blk_data.get("chords_params", blk_data.get("chord_params", {}))
-            voicing_style = part_params.get("chord_voicing_style", VOICING_STYLE_CLOSED)
-            target_octave = part_params.get("chord_target_octave", DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM)
-            num_voices = part_params.get("chord_num_voices")
-            chord_velocity = int(part_params.get("chord_velocity", 64))
-
-            logger.debug(f"CV Block {blk_idx+1}: OrigLabel='{chord_label_original}', Style:{voicing_style}, Oct:{target_octave}, Voices:{num_voices}")
-
-            # ★★★ "Rest" の処理とラベル整形 ★★★
-            cs_obj: Optional[harmony.ChordSymbol] = None
-            is_rest_block = False
-            if chord_label_original.lower() in ["rest", "n.c.", "nc", ""]: # 空白もRest扱い
-                is_rest_block = True
-                logger.info(f"CV Block {blk_idx+1} is a Rest.")
-            else:
-                sanitized_label = sanitize_chord_label(chord_label_original)
-                try:
-                    cs_obj = harmony.ChordSymbol(sanitized_label)
-                    if not cs_obj.pitches:
-                        logger.warning(f"CV: Chord '{sanitized_label}' (orig: '{chord_label_original}') has no pitches. Treating as Rest.")
-                        is_rest_block = True
-                except harmony.HarmonyException as he:
-                    logger.error(f"CV: HarmonyException for chord '{sanitized_label}' (orig: '{chord_label_original}'): {he}. Treating as Rest.")
-                    is_rest_block = True
-                except Exception as e_cs_cv:
-                    logger.error(f"CV: Error creating ChordSymbol for '{sanitized_label}' (orig: '{chord_label_original}'): {e_cs_cv}. Treating as Rest.", exc_info=True)
-                    is_rest_block = True
-            
-            if is_rest_block:
-                # ChordVoicer が Rest をどのように扱うか？
-                # ここでは単純にこのブロックに何も追加しない、または明示的なRestを追加する
-                # (PianoGeneratorのようにRestを生成するならそのロジックを追加)
-                # 今回は何も追加しないことで、このブロックは無音になる
-                logger.debug(f"CV: Skipping Rest block {blk_idx+1} for ChordVoicer part.")
-                continue 
-
-            # この時点で cs_obj は有効な ChordSymbol であるはず
-            if not cs_obj : # 万が一のNoneチェック
-                logger.error(f"CV: cs_obj is unexpectedly None for label '{chord_label_original}'. Skipping.")
-                continue
-
-            # テンション追加ロジックは cs_obj ができてから
-            tensions = blk_data.get("tensions_to_add", [])
-            if tensions and cs_obj: # cs_obj がNoneでないことを確認
-                for t_str in tensions:
-                    try: cs_obj.addCustomModification(t_str)
-                    except Exception as e_add_tens: logger.warning(f"CV: Tension '{t_str}' to '{cs_obj.figure}' failed: {e_add_tens}")
-            
-            if not cs_obj.pitches: # テンション追加後にもピッチがあるか確認
-                logger.warning(f"CV: No pitches for {cs_obj.figure} after tensions. Skip."); continue
-
-            final_pitches = self._apply_voicing_style(
-                cs_obj, voicing_style, # ★★★ cs_obj を渡す ★★★
-                target_octave_for_bottom_note=target_octave,
-                num_voices_target=num_voices
-            )
-            if not final_pitches: logger.warning(f"CV: No pitches after voicing for {cs_obj.figure}. Skip."); continue
-            
-            if final_pitches:
-                chord_m21 = m21chord.Chord(final_pitches, quarterLength=duration_ql)
-                for n_in_c in chord_m21: n_in_c.volume = m21volume.Volume(velocity=chord_velocity)
-                chord_part.insert(offset_ql, chord_m21)
+    # 括弧とその中のコンマを処理してテンションを連結
+    # 例: Cmaj7(#9, b13) -> Cmaj7#9b13
+    match = re.search(r'^(.*?)\((.*)\)(.*)$', label)
+    if match:
+        base_chord = match.group(1).strip()
+        tensions_in_paren = match.group(2)
+        suffix_after_paren = match.group(3).strip()
         
-        logger.info(f"CV.compose: Finished. Part has {len(chord_part.flatten().notesAndRests)} elements.")
-        return chord_part
-# --- END OF FILE generators/chord_voicer.py ---
+        # 括弧内のカンマとスペースを除去
+        cleaned_tensions = re.sub(r'[,\s]', '', tensions_in_paren)
+        label = base_chord + cleaned_tensions + suffix_after_paren
+        logger.debug(f"Sanitize: Expanded parens in '{original_label}' to '{label}' (intermediate)")
+
+    # "M7(" のような不正な略記を修正しようと試みる (これは元のchordmap側の品質問題が大きい)
+    # 品質部分が"("で終わっている場合、おそらくテンションが続くはずが欠落している
+    # 例: "Am7(" -> "Am7"
+    invalid_abbreviations = ["m7(", "M7(", "7(", "m9(", "M9(", "dim(", "dim7("]
+    for inv_abbr in invalid_abbreviations:
+        if label.endswith(inv_abbr):
+            corrected_abbr = inv_abbr[:-1] # 末尾の"("を削除
+            label = label.replace(inv_abbr, corrected_abbr)
+            logger.warning(f"Sanitize: Corrected likely malformed abbreviation in '{original_label}' from '{inv_abbr}' to '{corrected_abbr}', resulting in '{label}'. Review chordmap source.")
+            break # 最初に見つかったものだけ修正
+
+    # music21は "Bbm" (B flat minor) より "B-m" を好む
+    label = re.sub(r'^([A-Ga-g])b([mMdDaAuUgG0-9sS#-/]+)', r'\1-\2', label)
+
+    # スラッシュコード "C/Bb" -> "C/B-" (ベース音のフラット)
+    if '/' in label:
+        parts = label.split('/')
+        if len(parts) == 2:
+            bass_note_part = parts[1]
+            # ベース音部分だけのサニタイズ (再帰呼び出しを避けるため簡易的に)
+            if bass_note_part.startswith("Bb"): bass_note_part = "B-" + bass_note_part[2:]
+            elif bass_note_part.startswith("Eb"): bass_note_part = "E-" + bass_note_part[2:]
+            # ... 他のフラット音も同様
+            label = f"{parts[0]}/{bass_note_part}"
+
+
+    # 最終的な品質チェック (例: "CM" -> "Cmaj", "Cm" -> "Cmin")
+    # music21は "maj" や "min" を推奨
+    # ただし、"CM7" は "Cmaj7" のことなので、この種の置換は注意が必要
+    label = label.replace('M', 'maj') # Cmaj7 はCM7ではなくCmaj7に
+
+    if label != original_label:
+        logger.info(f"Sanitize: Final from '{original_label}' -> '{label}'.")
+    
+    # さらに、この段階で test parse してみる（ただし、エラーが多いとログが冗長になる）
+    try:
+        test_cs = harmony.ChordSymbol(label)
+        if not test_cs.pitches and label.lower() != "rest":
+             logger.warning(f"Sanitize: ChordSymbol '{label}' created, but has no pitches (e.g. an empty symbol).")
+    except harmony.HarmonyException as he:
+        logger.warning(f"Sanitize: Resulting label '{label}' (from '{original_label}') still causes HarmonyException: {he}")
+    except Exception as e_final_parse:
+        logger.warning(f"Sanitize: Resulting label '{label}' (from '{original_label}') causes other Exception: {e_final_parse}")
+
+    return label
+
+# --- END OF FILE generators/core_music_utils.py ---
