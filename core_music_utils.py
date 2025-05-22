@@ -1,4 +1,4 @@
-# --- START OF FILE generators/core_music_utils.py (最終調整完了版) ---
+# --- START OF FILE generators/core_music_utils.py (真・最終統合版 vFinal 改) ---
 import music21
 import logging
 from music21 import meter, pitch, scale, harmony
@@ -47,7 +47,7 @@ def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> sca
         logger.error(f"BuildScale: Error creating '{scl_cls.__name__}' for {tonic_p.name}: {e_create}. Fallback C Major.", exc_info=True)
         return scale.MajorScale(pitch.Pitch("C"))
 
-def _expand_tension_block_o3(seg: str) -> str:
+def _expand_tension_block_o3_final(seg: str) -> str:
     seg = seg.strip().lower()
     if not seg: return ""
     if seg.startswith(("#", "b")): return seg
@@ -57,19 +57,19 @@ def _expand_tension_block_o3(seg: str) -> str:
         return "" 
     if seg.isdigit(): return f"add{seg}"
     if seg in ["omit3", "omit5", "omitroot"]: return seg
-    logger.debug(f"Sanitize (_expand_tension_block): Unknown tension fragment '{seg}', passing as is.")
+    logger.debug(f"Sanitize (_expand_tension_block): Unknown tension '{seg}', passing as is.")
     return seg
 
-def sanitize_chord_label(label: Optional[str]) -> str:
+def sanitize_chord_label(label: Optional[str]) -> Optional[str]: # "Rest" or sanitized string or None
     if not label or not isinstance(label, str):
-        logger.debug(f"Sanitize: Label '{label}' is None or not str. Returning 'Rest'.")
-        return "Rest"
+        logger.debug(f"Sanitize: Label '{label}' None/not str -> Rest")
+        return "Rest" #get_music21_chord_object側でNoneに変換されるので文字列RestでOK
     
     original_label = label
     sanitized = label.strip()
 
     if not sanitized or sanitized.lower() in {"rest", "r", "nc", "n.c.", "silence", "-"}:
-        logger.debug(f"Sanitize: '{original_label}' -> 'Rest' (direct match).")
+        logger.debug(f"Sanitize: '{original_label}' -> Rest (direct match).")
         return "Rest"
 
     # 0. ワードベースの品質変換 (o3さん提案)
@@ -81,20 +81,21 @@ def sanitize_chord_label(label: Optional[str]) -> str:
     }
     for pat, rep in word_map.items():
         sanitized = re.sub(pat, rep, sanitized)
+    
+    # 0b. ルート音の先頭文字を大文字化 (o3さん提案)
+    sanitized = re.sub(r'^([a-g])', lambda m: m.group(1).upper(), sanitized)
+
 
     # 1. ルート音とスラッシュベース音のフラット正規化
-    sanitized = re.sub(r'^([A-Ga-g])bb', r'\1--', sanitized)
-    sanitized = re.sub(r'^([A-Ga-g])b(?![#b])', r'\1-', sanitized)
-    sanitized = re.sub(r'/([A-Ga-g])bb', r'/\1--', sanitized)
-    sanitized = re.sub(r'/([A-Ga-g])b(?![#b])', r'/\1-', sanitized)
+    sanitized = re.sub(r'^([A-G])bb', r'\1--', sanitized) # Bbb -> B--
+    sanitized = re.sub(r'^([A-G])b(?![#b])', r'\1-', sanitized)  # Bb -> B-
+    sanitized = re.sub(r'/([A-G])bb', r'/\1--', sanitized) # /Bb -> /B-
+    sanitized = re.sub(r'/([A-G])b(?![#b])', r'/\1-', sanitized)
     
-    # 1b. SUS正規化 (o3さん最終パッチを参考に、処理順序を調整)
-    #    まず、大文字小文字混在の "SUS" (数字なし) を "sus4" にする。
-    #    例: G7SUS -> G7sus4,  Csus -> Csus4
-    sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\1sus4', sanitized)
-    #    次に、"SUS2" や "SUS4" を小文字の "sus2", "sus4" にする。
-    #    例: G7SUS4 -> G7sus4 (上の処理でこうなっているはずなので、これで小文字化)
-    sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized) # SUS2->sus2, SUS4->sus4
+    # 1b. SUS正規化 (o3さん提案をベースに調整)
+    sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized) # G7SUS -> G7sus4
+    sanitized = re.sub(r'(?i)sus([24])', r'sus\1', sanitized) # SUS2 -> sus2, SUS4 -> sus4 (小文字化)
+
 
     # 2. 括弧の不均衡修正
     if '(' in sanitized and ')' not in sanitized:
@@ -102,17 +103,17 @@ def sanitize_chord_label(label: Optional[str]) -> str:
         base_part = sanitized.split('(')[0]
         content_after_paren = sanitized.split('(', 1)[1] if len(sanitized.split('(', 1)) > 1 else ""
         if content_after_paren.strip():
-            recovered_tensions = "".join(_expand_tension_block_o3(p) for p in content_after_paren.split(','))
+            recovered_tensions = "".join(_expand_tension_block_o3_final(p) for p in content_after_paren.split(','))
             if recovered_tensions:
                 sanitized = base_part + recovered_tensions
                 logger.info(f"Sanitize: Recovered from unclosed: '{recovered_tensions}' -> '{sanitized}'")
-            else: sanitized = base_part; logger.info(f"Sanitize: No valid tensions in unclosed, kept -> '{sanitized}'")
+            else: sanitized = base_part; logger.info(f"Sanitize: No valid tensions from unclosed, kept -> '{sanitized}'")
         else: sanitized = base_part; logger.info(f"Sanitize: Empty after unclosed, kept -> '{sanitized}'")
 
-    # 3. altコード展開
+    # 3. altコード展開 (正しいグループ参照\g<1>)
     sanitized = re.sub(r'([A-Ga-g][#\-]?)(?:7)?alt', r'\g<1>7#9b13', sanitized, flags=re.IGNORECASE)
     
-    # 4. 括弧の平坦化
+    # 4. 括弧の平坦化 (_expand_tension_block_o3_final を使用)
     prev_sanitized_state = "" ; loop_count = 0
     while '(' in sanitized and ')' in sanitized and sanitized != prev_sanitized_state and loop_count < 5:
         prev_sanitized_state = sanitized; loop_count += 1
@@ -120,7 +121,7 @@ def sanitize_chord_label(label: Optional[str]) -> str:
         if match:
             base, inner_content, suf = match.groups()
             tension_parts = [seg.strip() for seg in inner_content.split(',')]
-            expanded_inner_content = "".join(_expand_tension_block_o3(p) for p in tension_parts)
+            expanded_inner_content = "".join(_expand_tension_block_o3_final(p) for p in tension_parts)
             sanitized = base + expanded_inner_content + suf
         else: break
 
@@ -132,7 +133,6 @@ def sanitize_chord_label(label: Optional[str]) -> str:
     sanitized = re.sub(r'(?i)diminished7', 'dim7', sanitized)
     sanitized = sanitized.replace('domant7', '7')
     sanitized = re.sub(r'(?i)dominant7?\b', '7', sanitized)
-    # major, minor, min の順序と条件に注意
     sanitized = re.sub(r'(?i)major7', 'maj7', sanitized)
     sanitized = re.sub(r'(?i)major9', 'maj9', sanitized)
     sanitized = re.sub(r'(?i)major13', 'maj13', sanitized)
@@ -141,15 +141,17 @@ def sanitize_chord_label(label: Optional[str]) -> str:
     sanitized = re.sub(r'(?i)minor11', 'm11', sanitized)
     sanitized = re.sub(r'(?i)minor13', 'm13', sanitized)
     sanitized = re.sub(r'(?i)min(?!or\b|\.|m7b5)', 'm', sanitized) 
+    sanitized = re.sub(r'(?i)aug(?!mented)', 'aug', sanitized)
     sanitized = re.sub(r'(?i)augmented', 'aug', sanitized)
-    sanitized = re.sub(r'(?i)major(?!7|9|13)', 'maj', sanitized) # 後に数字が続くmajはmaj7等になっているはず
+    sanitized = re.sub(r'(?i)major(?!7|9|13|\b)', 'maj', sanitized) # major単体 or majorの後が品質でない場合 -> maj
                                                        
-    # 6. "add"キーワードと数字のみ連結の補完
+    # 6. "add"キーワードの最終確認と、数字のみが連結した場合の "add" 補完
     sanitized = re.sub(r'(?i)(add)(\d+)', r'add\2', sanitized) 
-    sanitized = re.sub(r'(?i)(m[aj]?[79]?|(?<!sus)7|(?<!sus)\d)(\d{2,})(?!add|\d|th|nd|rd|st)', r'\1add\2', sanitized)
+    sanitized = re.sub(r'(?i)(m[aj]?[79]?|(?<!sus)7|(?<!ma?j)7th|(?<!sus)\d(?!\d))(\d{2,})(?!add|\d|th|nd|rd|st)', r'\1add\2', sanitized)
 
-    # 7. maj9(#...) -> maj7(#...)add9
-    sanitized = re.sub(r'(maj)9(#\d+)', r'\g<1>7\g<2>add9', sanitized, flags=re.IGNORECASE) # o3さん提案（グループ参照修正済）
+
+    # 7. maj9(#...) -> maj7(#...)add9 (o3さん提案の正しいグループ参照)
+    sanitized = re.sub(r'(maj)9(#\d+)', r'\g<1>7\g<2>add9', sanitized, flags=re.IGNORECASE)
 
     # 8. susコードの重複等最終修正
     sanitized = re.sub(r'(?i)sus44$', 'sus4', sanitized)
@@ -165,19 +167,40 @@ def sanitize_chord_label(label: Optional[str]) -> str:
         logger.info(f"Sanitize: '{original_label}' to '{sanitized}'")
     else:
         logger.debug(f"Sanitize: Label '{original_label}' no change.")
+
+    # 11. 最終パース試行 (o3さん提案) → パースできなければ "Rest" を返す
+    try:
+        if sanitized: # 空文字列になっていないことを確認
+             harmony.ChordSymbol(sanitized) # パース試行（結果は使わない）
+        else: # サニタイズの結果、空文字列になったらRest
+            logger.info(f"Sanitize: Resulted in empty string for '{original_label}', treating as Rest.")
+            return "Rest"
+    except Exception as e_final_parse:
+        logger.warning(f"Sanitize: Final sanitized form '{sanitized}' (from '{original_label}') could not be parsed by music21 ({type(e_final_parse).__name__}: {e_final_parse}). Fallback to Rest.")
+        return "Rest" # music21が最終的に読めなければRest
+
+    # bad(inputのような未知のパターンは、この時点で変換されていなければ、
+    # 上記のtry-exceptでRestになる
+    if not re.match(r'^[A-Ga-g]', sanitized): # ルート音がアルファベットで始まらないものはRest
+        logger.warning(f"Sanitize: Final form '{sanitized}' does not start with a note name. Fallback to Rest.")
+        return "Rest"
+        
     return sanitized
 
 def get_music21_chord_object(chord_label_str: Optional[str], current_key: Optional[scale.ConcreteScale] = None) -> Optional[harmony.ChordSymbol]:
     if not isinstance(chord_label_str, str) or not chord_label_str.strip():
         logger.debug(f"get_obj: Input '{chord_label_str}' empty/not str. As Rest.")
         return None
-    sanitized_label = sanitize_chord_label(chord_label_str)
+
+    sanitized_label = sanitize_chord_label(chord_label_str) # これが "Rest" を返す可能性あり
+    
     if not sanitized_label or sanitized_label.upper() == "REST":
         logger.debug(f"get_obj: Sanitized to '{sanitized_label}'. As Rest.")
         return None
+
     cs = None
     try:
-        cs = harmony.ChordSymbol(sanitized_label)
+        cs = harmony.ChordSymbol(sanitized_label) # sanitize_chord_labelの最後で既にパース試行済みだが、ここで正式にオブジェクト取得
         if not cs.pitches:
             logger.info(f"get_obj: Parsed '{sanitized_label}' (orig:'{chord_label_str}') but no pitches (fig: {cs.figure}). As Rest.")
             return None
@@ -190,8 +213,8 @@ def get_music21_chord_object(chord_label_str: Optional[str], current_key: Option
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s')
     
-    # 期待値はこの「祝・完成版」の sanitize_chord_label が生成するであろう文字列
-    final_expected_outcomes_perfected = {
+    # 「祝・完成版」の期待値
+    final_expected_outcomes_masterpiece = {
         "E7(b9)": "E7b9", "C7(#9,b13)": "C7#9b13", "C7(b9,#11,add13)": "C7b9#11add13",
         "C7alt": "C7#9b13", "Fmaj7(add9)": "Fmaj7add9", "Fmaj7(add9,13)": "Fmaj7add9add13", 
         "Bbmaj7(#11)": "B-maj7#11", 
@@ -202,58 +225,60 @@ if __name__ == '__main__':
         "F#7": "F#7", "Calt": "C7#9b13", "silence": "Rest",
         "Cminor7": "Cm7", "Gdominant7": "G7",
         "Bb": "B-", "Ebm": "E-m", "F#": "F#", "Dbmaj7": "D-maj7",
-        "G7SUS": "G7sus4", # これが正しく G7sus4 になるか
-        "d minor": "Dm", "e dim": "Edim", "C major7": "Cmaj7", "G AUG": "Gaug"
+        "G7SUS": "G7sus4", # o3さんパッチで G7sus4 になるはず
+        "d minor": "Dm", "e dim": "Edim", "C major7": "Cmaj7", "G AUG": "Gaug",
+        "G7sus": "G7sus4" # これも G7sus4 に
     }
     
-    other_tests_perfected = [
+    other_tests_masterpiece = [
         "N.C.", "Rest", "", "  Db  ", "GM7(", "G diminished", "C major",
         "C/Bb", "CbbM7", "C##M7", 
-        "bad(input", "C(omit3)", "Fmaj7(add9", "G7sus", "Gsus"
+        "bad(input", "C(omit3)", "Fmaj7(add9", "Gsus" # Gsus も Gsus4 に
     ]
     
-    all_labels_to_test_perfected = sorted(list(set(list(final_expected_outcomes_perfected.keys()) + other_tests_perfected)))
+    all_labels_to_test_masterpiece = sorted(list(set(list(final_expected_outcomes_masterpiece.keys()) + other_tests_masterpiece)))
 
-    print("\n--- Running sanitize_chord_label Test Cases (Harugoro x o3 Masterpiece) ---")
-    s_parses_p = 0; f_parses_p = 0; r_count_p = 0; exp_match_p = 0; exp_mismatch_p = 0
+    print("\n--- Running sanitize_chord_label Test Cases (Harugoro x o3 Masterpiece Edition) ---")
+    s_parses_m = 0; f_parses_m = 0; r_count_m = 0; exp_match_m = 0; exp_mismatch_m = 0
 
-    for label_orig in all_labels_to_test_perfected:
-        expected_val = final_expected_outcomes_perfected.get(label_orig)
+    for label_orig in all_labels_to_test_masterpiece:
+        expected_val = final_expected_outcomes_masterpiece.get(label_orig)
         sanitized_res = sanitize_chord_label(label_orig)
         
         eval_str = ""
         if expected_val:
-            if sanitized_res == expected_val: eval_str = "✔ (Exp OK)"; exp_match_p +=1
-            else: eval_str = f"✘ (Exp: '{expected_val}')"; exp_mismatch_p +=1
+            if sanitized_res == expected_val: eval_str = "✔ (Exp OK)"; exp_match_m +=1
+            else: eval_str = f"✘ (Exp: '{expected_val}')"; exp_mismatch_m +=1
         
         print(f"Original: '{label_orig:<18}' -> Sanitized: '{sanitized_res:<25}' {eval_str}")
 
-        cs_obj_p = get_music21_chord_object(label_orig) 
+        cs_obj_m = get_music21_chord_object(label_orig) 
         
-        if cs_obj_p:
-            try: fig_disp = cs_obj_p.figure
+        if cs_obj_m:
+            try: fig_disp = cs_obj_m.figure
             except: fig_disp = "[ErrFig]"
-            print(f"  music21 obj: {fig_disp:<25} (Pitches: {[p.name for p in cs_obj_p.pitches]})"); s_parses_p += 1
-        elif sanitize_chord_label(label_orig) == "Rest":
+            print(f"  music21 obj: {fig_disp:<25} (Pitches: {[p.name for p in cs_obj_m.pitches]})"); s_parses_m += 1
+        elif sanitize_chord_label(label_orig).upper() == "REST": # sanitizeが"Rest"を返した場合 (Noneでないことを保証)
             print(f"  Interpreted as Rest by sanitize_chord_label.")
-            r_count_p += 1
+            r_count_m += 1
         else:
+            # get_music21_chord_object が None を返したが、sanitize_labelが"Rest"以外だったケース => パース失敗
             print(f"  music21 FAILED or NO PITCHES for sanitized '{sanitized_res}'")
-            f_parses_p += 1
+            f_parses_m += 1
 
-    print(f"\n--- Test Summary (Harugoro x o3 Masterpiece) ---")
-    total_labels_p = len(all_labels_to_test_perfected)
-    attempted_to_parse_p = total_labels_p - r_count_p
+    print(f"\n--- Test Summary (Harugoro x o3 Masterpiece Edition) ---")
+    total_labels_m = len(all_labels_to_test_masterpiece)
+    attempted_to_parse_m = total_labels_m - r_count_m
 
-    print(f"Total unique labels processed: {total_labels_p}")
-    if exp_match_p + exp_mismatch_p > 0:
-      print(f"Matches with expected sanitization: {exp_match_p}")
-      print(f"Mismatches with expected sanitization: {exp_mismatch_p}")
-    print(f"Successfully parsed by music21 (Chord obj with pitches): {s_parses_p} / {attempted_to_parse_p} non-Rest attempts")
-    print(f"Failed to parse or no pitches by music21: {f_parses_p}")
-    print(f"Explicitly 'Rest' by sanitize_chord_label: {r_count_p}")
+    print(f"Total unique labels processed: {total_labels_m}")
+    if exp_match_m + exp_mismatch_m > 0:
+      print(f"Matches with expected sanitization: {exp_match_m}")
+      print(f"Mismatches with expected sanitization: {exp_mismatch_m}")
+    print(f"Successfully parsed by music21 (Chord obj with pitches): {s_parses_m} / {attempted_to_parse_m} non-Rest attempts")
+    print(f"Failed to parse or no pitches by music21: {f_parses_m}")
+    print(f"Explicitly 'Rest' by sanitize_chord_label: {r_count_m}")
     
-    overall_success_rate_p = ((s_parses_p + r_count_p) / total_labels_p * 100) if total_labels_p > 0 else 0
-    print(f"Estimated overall functional success (incl. Rests): {overall_success_rate_p:.2f}%")
+    overall_success_rate_m = ((s_parses_m + r_count_m) / total_labels_m * 100) if total_labels_m > 0 else 0
+    print(f"Estimated overall functional success (incl. Rests): {overall_success_rate_m:.2f}%")
 
 # --- END OF FILE generators/core_music_utils.py ---
