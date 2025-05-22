@@ -143,6 +143,16 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]: # o3さんス�
                        r'\g<1>7#9b13', sanitized, flags=re.I)
     sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13')
 
+    # ── ①②③ まとめて解決 ──────────────────────────
+
+    # alt ⇒ 7#9b13 展開直後に置く
+    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13')
+
+    # 連続 “addaddXX” → “addXX”
+    sanitized = re.sub(r'addadd', 'add', sanitized, flags=re.I)
+
+    # 重複 addXX 語が 2 回以上並んでいたら 1 つに
+    sanitized = re.sub(r'(add\d+)(?=.*\\1)', '', sanitized, flags=re.I)
 
     # 2. 括弧の不均衡修正
     if '(' in sanitized and ')' not in sanitized:
