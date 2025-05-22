@@ -1,4 +1,5 @@
 # --- START OF FILE generators/piano_generator.py (修正版) ---
+from typing import cast
 import music21
 from typing import List, Dict, Optional, Tuple, Any, Sequence
 from music21 import (stream, note, harmony, pitch, meter, duration,
