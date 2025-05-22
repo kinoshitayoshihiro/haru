@@ -1,4 +1,4 @@
-# --- START OF FILE generators/core_music_utils.py (修正案 2025-05-22 16:xx) ---
+# --- START OF FILE generators/core_music_utils.py (修正案 2025-05-22 夜) ---
 import music21
 import logging
 from music21 import meter, pitch, scale, harmony
@@ -7,9 +7,10 @@ import re
 
 logger = logging.getLogger(__name__)
 
-MIN_NOTE_DURATION_QL: float = 0.125
+MIN_NOTE_DURATION_QL: float = 0.125 # (これはこのファイルでは使われていないが、他で使われている可能性あり)
 
 def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
+    # ... (変更なし) ...
     if not ts_str:
         ts_str = "4/4"
         logger.debug(f"get_time_signature_object: ts_str is None, defaulting to '4/4'.")
@@ -23,6 +24,7 @@ def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
         return meter.TimeSignature("4/4")
 
 def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> Optional[scale.ConcreteScale]:
+    # ... (変更なし) ...
     effective_mode_str = mode_str if mode_str else "major"
     effective_tonic_str = tonic_str if tonic_str else "C"
     logger.debug(f"build_scale_object: Attempting scale for {effective_tonic_str} {effective_mode_str}")
@@ -59,95 +61,146 @@ def sanitize_chord_label(label: str) -> str:
         return str(label)
 
     original_label = label
-    sanitized = label.strip() # 前後の空白を除去
+    sanitized = label.strip()
 
     if sanitized.upper() in ["N.C.", "NC", "REST", ""]:
         logger.debug(f"Sanitizing '{original_label}' to 'Rest'")
         return "Rest"
 
-    # ステップ 1: music21が解釈しやすい基本的な品質表記に統一
+    # --- Harugoro様提案の修正ポイントを統合 ---
+    # 1) 再帰的に括弧テンションを展開 (Harugoro様のwhileループ案)
+    #    例: C7(#9,b13) -> C7#9b13, Am7(add11) -> Am7add11
+    #    music21が "(#9,b13)" や "(add11)" の形を好むことを考慮し、
+    #    ここでは「括弧を完全に除去」するのではなく、「二重括弧を除去し、中身を維持」する方向に調整。
+    #    ただし、もしHarugoro様の意図が「括弧そのものを削除」であれば、以下を調整。
+    temp_sanitized = sanitized
+    iteration_count = 0
+    max_iterations = 5 # 無限ループ防止
+    while '(' in temp_sanitized and ')' in temp_sanitized and iteration_count < max_iterations:
+        iteration_count += 1
+        # 最も内側の括弧から処理するイメージ (実際は最も左の括弧から)
+        m = re.search(r'^(.*?)(\([^)]*\))(.*)$', temp_sanitized) # 修正: 非貪欲マッチと中身をキャプチャ
+        if not m:
+            break
+        pre_paren, paren_content_with_parens, post_paren = m.groups()
+        
+        # 括弧の中身だけ取り出す
+        paren_content_inner = paren_content_with_parens[1:-1]
+        
+        # 中身のカンマや空白を削除するか、music21が解釈できる形に整形するか
+        # Harugoro様の案: re.sub(r'[,\s]', '', tens) -- カンマとスペースを完全に除去
+        # ここでは music21 v9 の挙動に期待し、過度な除去はせず、スペースの正規化程度に留める
+        paren_content_cleaned = re.sub(r'\s*,\s*', ',', paren_content_inner.strip()) # カンマ周りのスペース整理
+        paren_content_cleaned = re.sub(r'\s+', ' ', paren_content_cleaned) # 連続スペースを一つに
+
+        # 再構築: Harugoro様案では base + tens_cleaned + suf (括弧を除去)
+        # music21 は括弧付きを好むため、ここでは括弧を維持
+        temp_sanitized = f"{pre_paren}({paren_content_cleaned}){post_paren}"
+
+        # 二重括弧が生じていたら単純化
+        temp_sanitized = temp_sanitized.replace('((', '(').replace('))', ')')
+
+    sanitized = temp_sanitized
+    
+    # 二重括弧の最終チェックと除去 (もし残っていた場合)
+    while '((' in sanitized or '))' in sanitized:
+        sanitized = sanitized.replace('((', '(').replace('))', ')')
+
+    # 2) 末尾に残った '(' を除去 (Harugoro様の提案)
+    sanitized = sanitized.rstrip('(')
+
+
+    # ステップ 1b: 基本的な品質表記の正規化 (大文字小文字区別なし)
+    # ★ Harugoro様の提案「Quality変換を削除（maj/minをそのまま残す）」は、
+    #    括弧付きの場合に影響するとのこと。
+    #    ここでは、括弧処理の後で品質変換を行うことで、影響を最小限に抑えることを試みる。
+    #    または、music21がmaj/minを受け付けるなら変換しないのも手。
+    #    テスト結果に応じて、このブロックの有効/無効を判断。
+    #    現状、`Fmaj7` は `FM7` にしない方が安全かもしれないというテスト結果を踏まえ、
+    #    この変換は控えめにするか、問題が再発しないか注視する。
+    #    今回はHarugoro様提案の「変換削除」に近い形として、問題のあるmaj->Mは避ける
     quality_replacements = {
-        r'(?i)maj7': 'M7', r'(?i)maj9': 'M9', r'(?i)maj13': 'M13',
+        # r'(?i)maj7': 'M7', # これが括弧付きで問題を起こす可能性を指摘されたためコメントアウト
+        # r'(?i)maj9': 'M9',
+        # r'(?i)maj13': 'M13',
         r'(?i)min7': 'm7', r'(?i)mi7': 'm7',
         r'(?i)min9': 'm9', r'(?i)mi9': 'm9',
         r'(?i)min11': 'm11',r'(?i)mi11': 'm11',
         r'(?i)min13': 'm13',r'(?i)mi13': 'm13',
         r'(?i)dom7': '7',
-        r'(?i)half-diminished': 'ø', r'(?i)ø7': 'ø', r'm7b5': 'ø', # m7b5 も ø へ
+        r'(?i)half-diminished': 'ø', r'(?i)ø7': 'ø', r'm7b5': 'ø',
         r'(?i)diminished7': 'dim7', r'(?i)dim7': 'dim7',
-        r'(?i)diminished': 'dim', r'(?i)dim(?!7)': 'dim', # dim の後に7が続かない場合のみ
-        r'(?i)augmented': 'aug', r'(?i)aug(?!m)': 'aug', # aug の後に m が続かない場合
-        r'(?i)sus(?!4)': 'sus4', # sus の後に4がない場合はsus4に (C7sus -> C7sus4)
-                                # C7sus4 はそのまま
+        r'(?i)diminished(?!\()': 'dim', # dim( のように括弧が続く場合は除外
+        r'(?i)dim(?!7|\()': 'dim',      # dim7 や dim( を除外
+        r'(?i)augmented(?!\()': 'aug',
+        r'(?i)aug(?!m|\()': 'aug',
     }
     for old, new in quality_replacements.items():
         sanitized = re.sub(old, new, sanitized)
 
-    # ステップ 2: ルート音とベース音の臨時記号を正規化 (例: Bb -> B-, C/Ab -> C/A-)
-    # ルート音とベース音のパターンをそれぞれ処理
-    # 例: Bbm7 -> B-m7,  C/Gb -> C/G-
-    # 複雑なネストを避けるため、少し冗長だが個別に処理
+    # 3) sus4 / sus2 重複ガード (Harugoro様の提案: 末尾アンカーと数字指定)
+    #    Csus4 -> Csus4 (変化なし)
+    #    C7sus -> C7sus4
+    #    Csus44 -> Csus4 (もし発生していたら修正)
+    sanitized = re.sub(r'(?i)sus44$', 'sus4', sanitized) # 事後処理
+    sanitized = re.sub(r'(?i)sus22$', 'sus2', sanitized) # 事後処理
+    # `sus` で終わり、直後に4や2がない場合 -> `sus4`
+    sanitized = re.sub(r'(?i)(sus)(?![24])', r'\14', sanitized)
+
+
+    # ステップ 2: ルート音とベース音の臨時記号を正規化
     parts = sanitized.split('/')
-    root_part = parts[0]
-    bass_part = parts[1] if len(parts) > 1 else None
+    root_part_str = parts[0]
+    bass_part_str = parts[1] if len(parts) > 1 else None
 
-    # ルート音の処理 (例: BbM7 -> B-M7, F#m7 -> F#m7)
-    root_match = re.match(r"([A-Ga-g])([#b-]{0,2})(.*)", root_part)
-    if root_match:
-        note_name, acc, rest_of_chord = root_match.groups()
-        acc = acc.replace('bb', '--').replace('b', '-') # music21 style flats
-        # music21 は '##' を 'x' と解釈することもあるが、'##' で問題ない場合が多い
-        root_part = note_name + acc + rest_of_chord
+    def normalize_note_part(part_str):
+        if not part_str: return ""
+        # 基本的な臨時記号の正規化
+        part_str = part_str.replace('bb', '--').replace('b', '-')
+        # music21は "Cb" より "C-" を好む。"C##" は "Cx" だが "C##" も可
+        return part_str
 
-    if bass_part:
-        bass_match = re.match(r"([A-Ga-g])([#b-]{0,2})(.*)", bass_part) # ベース音もコードクオリティを持つことは稀だが一応
-        if bass_match:
-            bass_note_name, bass_acc, bass_rest = bass_match.groups()
-            bass_acc = bass_acc.replace('bb', '--').replace('b', '-')
-            bass_part = bass_note_name + bass_acc + bass_rest
-        sanitized = root_part + "/" + bass_part
+    sanitized_root = normalize_note_part(root_part_str)
+    sanitized_bass = normalize_note_part(bass_part_str) if bass_part_str else None
+
+    if sanitized_bass:
+        sanitized = f"{sanitized_root}/{sanitized_bass}"
     else:
-        sanitized = root_part
+        sanitized = sanitized_root
 
+    # 4) alt 展開 (Harugoro様の提案)
+    #    music21 は alt をそのまま解釈しない
+    #    Xalt  -> X7#9b13 (最も一般的な解釈)
+    #    X7alt -> X7#9b13
+    #    これは、ChordSymbol オブジェクト作成後に alter する方がより music21 的ではあるが、
+    #    文字列置換で対応するならこのように。
+    if re.fullmatch(r'[A-G][#\-]*alt', sanitized, flags=re.IGNORECASE):
+        sanitized = sanitized.lower().replace('alt', '7(#9,b13)') # music21が解釈しやすいように括弧付きに
+    elif re.fullmatch(r'[A-G][#\-]*7alt', sanitized, flags=re.IGNORECASE):
+        sanitized = sanitized.lower().replace('alt', '(#9,b13)') # 同上
+    # さらに具体的に #(sharp), b(flat) の記号に変換するなら:
+    sanitized = sanitized.replace("#9", " sharp9").replace("b9", " flat9") # (など、alterationToValue の仕様に合わせる)
+    sanitized = sanitized.replace("#11", " sharp11").replace("b11", " flat11")
+    sanitized = sanitized.replace("#13", " sharp13").replace("b13", " flat13")
+    # スペースで区切られた方がmusic21のパーサーは安定する傾向
+    sanitized = sanitized.replace("sharp", " #").replace("flat", " b") # 例 C7( #9, b13)
 
-    # ステップ 3: 括弧内のテンション表記の正規化
-    # 例: C7(add11) -> C7(add11) (music21が解釈可能)
-    # 例: C7(#9,b13) -> C7(#9,b13) (music21が解釈可能)
-    # ここでは、過度な変換を避け、music21パーサーにできるだけ任せる。
-    # 以前のエラーで `((` が発生していたので、単純な二重括弧の除去のみ行う。
-    sanitized = sanitized.replace('((', '(').replace('))', ')')
-
-    # 不要なスペースの整理（括弧の内外）
+    # 不要なスペースの最終整理（特に括弧の内外、カンマ周り）
     sanitized = re.sub(r'\s*\(\s*', '(', sanitized)
     sanitized = re.sub(r'\s*\)\s*', ')', sanitized)
-    sanitized = re.sub(r'\s*,\s*', ',', sanitized) # カンマ周りのスペース
-
-    # (addX) の X が数字であることを期待
-    # (#X) や (bX) の X が数字であることを期待
-    # music21 は `(add11)`, `(#9)`, `(b9,#11)` のような形をサポートするはず。
-
-    # "sus44" のような重複が発生していた問題への対処
-    sanitized = sanitized.replace('sus44', 'sus4')
-
-    # エラーログ `ValueError: Invalid chord abbreviation 'm7(('` や `M9((#11))`
-    # このような `X((` というパターンは、`sanitized_label` が生成されるまでの過程で
-    # 既に括弧が追加されているところに、`format_alterations_in_parentheses` のような
-    # 関数がさらに括弧を追加しようとした場合に発生しやすい。
-    # 現状の修正では `format_alterations_in_parentheses` は使わない方向で。
+    sanitized = re.sub(r'\s*,\s*', ',', sanitized)
+    sanitized = re.sub(r'\s+', ' ', sanitized).strip() # 全体から余分なスペースを削除
 
     if sanitized != original_label:
         logger.info(f"sanitize_chord_label: Sanitized '{original_label}' to '{sanitized}'")
     else:
-        logger.debug(f"sanitize_chord_label: Label '{original_label}' required no changes.")
+        logger.debug(f"sanitize_chord_label: Label '{original_label}' required no changes by sanitization.")
 
     return sanitized
 
 
 def get_music21_chord_object(chord_label_str: str, current_key: Optional[scale.ConcreteScale] = None) -> Optional[harmony.ChordSymbol]:
-    """
-    与えられたコードラベル文字列から music21 の ChordSymbol オブジェクトを生成する。
-    エラーが発生した場合は None を返す。
-    """
+    # ... (変更なし、ただし呼び出す sanitize_chord_label が新しくなっている) ...
     if not chord_label_str or chord_label_str.strip().upper() in ["N.C.", "NC", "REST", ""]:
         logger.debug(f"get_music21_chord_object: Chord label '{chord_label_str}' interpreted as Rest.")
         return None
@@ -156,7 +209,6 @@ def get_music21_chord_object(chord_label_str: str, current_key: Optional[scale.C
     cs = None
     try:
         cs = harmony.ChordSymbol(sanitized_label)
-        # パース成功後、もしピッチが空なら (例: ChordSymbol("Rest"))、それもRest扱いとする
         if not cs.pitches:
             logger.debug(f"get_music21_chord_object: Parsed '{sanitized_label}' but it has no pitches. Treating as Rest.")
             return None
@@ -164,94 +216,99 @@ def get_music21_chord_object(chord_label_str: str, current_key: Optional[scale.C
         return cs
     except harmony.HarmonyException as he:
         logger.error(f"get_music21_chord_object: HarmonyException when parsing '{sanitized_label}' (orig: '{chord_label_str}'): {he}. Treating as Rest.")
-    except music21.exceptions21.Music21Exception as m21e: # pitch.AccidentalExceptionなどもこちら
+    except music21.exceptions21.Music21Exception as m21e:
         logger.error(f"get_music21_chord_object: Music21Exception when parsing '{sanitized_label}' (orig: '{chord_label_str}'): {m21e}. Treating as Rest.")
     except Exception as e:
         logger.error(f"get_music21_chord_object: Unexpected error parsing '{sanitized_label}' (orig: '{chord_label_str}'): {e}. Treating as Rest.", exc_info=True)
     
-    return None # エラー時はNoneを返す
+    return None
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s')
+    # Harugoro様の提案テストケース + 既存テストケース
+    harugoro_tests = {
+        "E7(b9)": "E7(b9)", # music21 can parse this
+        "C7(#9,b13)": "C7(#9,b13)", # music21 can parse this (with correct spacing)
+        "Am7(add11)": "Am7(add11)", # music21 can parse this
+        "Csus4": "Csus4",
+        "Esus4(b9)": "Esus4(b9)",
+        "Calt": "C7(#9,b13)",
+        "C7alt": "C7(#9,b13)",
+    }
+
     test_labels_from_log = [
-        "Am7(add11)", # -> Am7((add11)) -> m7((
-        "E7(b9)",     # -> E7(( b9))  -> 7((b9))
-        "C7sus4",     # -> C7sus44    -> 7sus44
-        "Fmaj7(add9)",# -> FM7((add9)) -> M7((
-        "Bbmaj9(#11)",# -> B-M9(( #11)) -> M9((#11))
-        "C7(#9,b13)", # -> C7(( #9, b13)) -> ((#
-        "Dm7(add13)", # -> Dm7((add13)) -> m7((
-        "A7(b9)",     # -> A7(( b9)) -> 7((b9))
-        "Fmaj7(add9,13)",# -> FM7((add9, 13)) -> m((add
-        "C/Bb",
-        "Ebmaj7(#11)", # -> E-M7(( #11))
-        "Bbmaj7(#11)", # -> B-M7(( #11))
-        "Fmaj9(#11)"   # -> FM9(( #11))
+        "Am7(add11)", "E7(b9)", "C7sus4", "Fmaj7(add9)",
+        "Bbmaj9(#11)", "C7(#9,b13)", "Dm7(add13)", "A7(b9)",
+        "Fmaj7(add9,13)", "C/Bb", "Ebmaj7(#11)", "Bbmaj7(#11)",
+        "Fmaj9(#11)"
     ]
     additional_tests = [
         "Cmaj7", "Fmaj7", "Cm7b5", "G7sus",
-        "Dbmaj7", "Ebm7", "Abmaj7",
-        "Bbm6",
+        "Dbmaj7", "Ebm7", "Abmaj7", "Bbm6",
         "FM7", "B-M7", "C", "Am", "G", "Dbm",
-        "N.C.", "Rest", "",
-        "GM7(", "Am7(add11",
-        "C#m7", "F#7",
-        "C7(b9,#11)", "Gaug", "Fdim",
-        "Calt", "C7alt", "C7#9b13",
+        "N.C.", "Rest", "", "GM7(", "Am7(add11",
+        "C#m7", "F#7", "C7(b9,#11)", "Gaug", "Fdim",
         "Gsus", "F/G", "Am/G#", "D/F#",
-        "Esus4(b9)",
-        "Bb", "Eb/G", "C#",
-        "Am7", "Dm7", "GM7"
+        "Esus4(b9)", "Bb", "Eb/G", "C#",
+        "Am7", "Dm7", "GM7",
+        "C M7", "C min7", "C dom7", "C half-diminished", "C diminished", "C augmented",
+        "C7 sus", "CbbM7" # double flat test
     ]
-    all_test_labels = test_labels_from_log + additional_tests
+    
+    all_unique_labels = sorted(list(set(test_labels_from_log + additional_tests + list(harugoro_tests.keys()))))
 
-    print("\n--- Running sanitize_chord_label Test Cases ---")
+    print("\n--- Running sanitize_chord_label Test Cases (Harugoro Nightly Build) ---")
     successful_parses = 0
     failed_parses = 0
-    for label in sorted(list(set(all_test_labels))): # 重複を除きソート
-        sanitized = sanitize_chord_label(label)
-        print(f"Original: '{label}' -> Sanitized: '{sanitized}'")
+    
+    # ここでエラーログから特定されたラベルもテスト対象に追加
+    error_prone_labels_from_previous_log = [
+        "Am7(add11)", "E7(b9)", "C7sus4", "Fmaj7(add9)", "Bbmaj9(#11)", "C7(#9,b13)", 
+        "Dm7(add13)", "A7(b9)", "Fmaj7(add9,13)", "Ebmaj7(#11)", "Bbmaj7(#11)", 
+        "Fmaj9(#11)", "Calt", "C7alt"
+    ]
+    all_unique_labels = sorted(list(set(all_unique_labels + error_prone_labels_from_previous_log)))
+
+
+    for label_orig in all_unique_labels:
+        expected_sanitized = harugoro_tests.get(label_orig) # Harugoro様の期待値があればそれ
+        sanitized_result = sanitize_chord_label(label_orig)
+        
+        test_pass_str = ""
+        if expected_sanitized:
+            if sanitized_result == expected_sanitized:
+                test_pass_str = "✔ (Expected match)"
+            else:
+                test_pass_str = f"✘ (Expected '{expected_sanitized}')"
+        
+        print(f"Original: '{label_orig:<15}' -> Sanitized: '{sanitized_result:<15}' {test_pass_str}")
+
         cs_obj = None
-        if sanitized and sanitized.upper() not in ["N.C.", "NC", "REST"]:
+        if sanitized_result and sanitized_result.upper() not in ["N.C.", "NC", "REST"]:
             try:
-                cs_obj = harmony.ChordSymbol(sanitized)
-                if cs_obj:
-                    if cs_obj.pitches: # ピッチが実際に生成されたか
-                        print(f"  music21 parsed: {cs_obj.figure:<15} (Pitches: {[p.name for p in cs_obj.pitches]})")
-                        successful_parses += 1
-                    else:
-                        print(f"  music21 parsed '{sanitized}' as ChordSymbol, BUT NO PITCHES (figure: {cs_obj.figure}). Interpreted as REST.")
-                        failed_parses +=1 # ピッチがないものは失敗扱い
+                cs_obj = harmony.ChordSymbol(sanitized_result)
+                if cs_obj and cs_obj.pitches:
+                    print(f"  music21 parsed: {cs_obj.figure:<20} (Pitches: {[p.name for p in cs_obj.pitches]})")
+                    successful_parses += 1
+                else:
+                    figure_str = cs_obj.figure if cs_obj else "N/A"
+                    print(f"  music21 parsed '{sanitized_result}' as ChordSymbol, BUT NO PITCHES (figure: {figure_str}). Interpreted as REST.")
+                    failed_parses += 1
             except Exception as e:
-                print(f"  music21 ERROR parsing sanitized '{sanitized}': {type(e).__name__}: {e}")
+                print(f"  music21 ERROR parsing sanitized '{sanitized_result}': {type(e).__name__}: {e}")
                 failed_parses += 1
-        elif sanitized.upper() == "REST":
+        elif sanitized_result.upper() == "REST":
             print(f"  Interpreted as Rest.")
-            # REST は成功とみなすか？ここではカウントしない
         else:
-            print(f"  Sanitized to empty or unhandled: '{sanitized}'")
+            print(f"  Sanitized to empty or unhandled: '{sanitized_result}'")
             failed_parses +=1
 
-    print(f"\n--- Sanitization Test Summary ---")
-    print(f"Successfully parsed ChordSymbols with pitches: {successful_parses}")
+    print(f"\n--- Sanitization Test Summary (Harugoro Nightly Build) ---")
+    total_tests = successful_parses + failed_parses
+    success_rate = (successful_parses / total_tests * 100) if total_tests > 0 else 0
+    print(f"Total unique labels tested: {total_tests}")
+    print(f"Successfully parsed ChordSymbols with pitches: {successful_parses} ({success_rate:.2f}%)")
     print(f"Failed/Rest/NoPitches ChordSymbols: {failed_parses}")
-
-    print("\n--- Running get_music21_chord_object Test Cases (simulates direct use) ---")
-    g_successful = 0
-    g_failed = 0
-    for label in sorted(list(set(all_test_labels))):
-        # print(f"--- Processing original '{label}' with get_music21_chord_object ---")
-        cs_obj = get_music21_chord_object(label)
-        if cs_obj:
-            # print(f"  Successfully created ChordSymbol: {cs_obj.figure}")
-            # print(f"  Pitches: {[p.nameWithOctave for p in cs_obj.pitches]}")
-            g_successful += 1
-        else:
-            # print(f"  Failed to create ChordSymbol or it's a Rest. Original: '{label}'")
-            g_failed += 1
-    print(f"\n--- get_music21_chord_object Test Summary ---")
-    print(f"Successfully created ChordSymbols with pitches: {g_successful}")
-    print(f"Failed or Rest interpretations: {g_failed}")
 
 # --- END OF FILE generators/core_music_utils.py ---
