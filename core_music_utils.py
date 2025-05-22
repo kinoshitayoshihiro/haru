@@ -1,4 +1,4 @@
-# --- START OF FILE generators/core_music_utils.py (修正案 2025-05-23) ---
+# --- START OF FILE generators/core_music_utils.py (最終改訂案 2025-05-23 v2) ---
 import music21
 import logging
 from music21 import meter, pitch, scale, harmony
@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 MIN_NOTE_DURATION_QL: float = 0.125
 
 def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
+    # ... (変更なし) ...
     if not ts_str:
         ts_str = "4/4"
         logger.debug(f"get_time_signature_object: ts_str is None, defaulting to '4/4'.")
@@ -23,6 +24,7 @@ def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
         return meter.TimeSignature("4/4")
 
 def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> Optional[scale.ConcreteScale]:
+    # ... (変更なし) ...
     effective_mode_str = mode_str if mode_str else "major"
     effective_tonic_str = tonic_str if tonic_str else "C"
     logger.debug(f"build_scale_object: Attempting scale for {effective_tonic_str} {effective_mode_str}")
@@ -55,139 +57,103 @@ def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> Opt
 
 def sanitize_chord_label(label: str) -> str:
     if not isinstance(label, str):
-        logger.warning(f"sanitize_chord_label: Input label '{label}' is not a string. Returning as is.")
+        logger.warning(f"Sanitize: Label '{label}' not str. Returning as is.")
         return str(label)
 
     original_label = label
     sanitized = label.strip()
 
     if sanitized.upper() in ["N.C.", "NC", "REST", ""]:
-        logger.debug(f"Sanitizing '{original_label}' to 'Rest'")
+        logger.debug(f"Sanitize: '{original_label}' to 'Rest'")
         return "Rest"
 
-    # ステップ A: テンション内の変化記号をプレースホルダに (例: (b9) -> (@b9@))
-    # これにより、後続の全体的な 'b' -> '-' 置換でテンションの 'b' が変更されるのを防ぐ
-    sanitized = re.sub(r'([#b])(\d+)', r'@\1\2@', sanitized)
-    # logger.debug(f"After placeholder: {sanitized}")
-
-    # ステップ B & C (部分): 括弧を展開し、addテンションを連結、括弧内スペース・カンマ除去
-    # 1. (add11) -> (11) のように "add" を削除 (数字だけ残すことで連結を意図)
-    sanitized = re.sub(r'add(\d+)', r'\1', sanitized, flags=re.IGNORECASE)
-    # logger.debug(f"After 'add' removal: {sanitized}")
-
-    # 2. 括弧を展開し、中身を連結 (括弧内のスペース・カンマは除去)
-    #    例: Am7(11) -> Am711
-    #    例: C7(@#9@,@b13@) -> C7@#9@@b13@
-    def flatten_parenthesis_content(match_obj):
-        content_inside_parentheses = match_obj.group(1)
-        return re.sub(r'[,\s]', '', content_inside_parentheses)
+    # --- Harugoro様最終パッチ案に基づく修正 ---
+    # 1. トークンハック廃止。ルート音とスラッシュベースのフラットを限定的に処理
+    #    b -> -, bb -> -- (シャープはそのまま)
+    #    テンション内の b/# はこの段階では変更しない。
+    sanitized = re.sub(r'^([A-Ga-g])bb', r'\1--', sanitized)
+    sanitized = re.sub(r'^([A-Ga-g])b(?![#])', r'\1-', sanitized) # bの後に#が続く場合(b#9など)は除外
+    sanitized = re.sub(r'/([A-Ga-g])bb', r'/\1--', sanitized)
+    sanitized = re.sub(r'/([A-Ga-g])b(?![#])', r'/\1-', sanitized)
     
-    # このループは、ネストされた括弧や、複雑な括弧表記を段階的に平坦化することを目的とする。
-    # Cmaj7(add9(b5))のようなものは想定しないが、(X,(Y))のようなものは平坦化できる。
+    # 2. 括弧の不均衡修正 (開き括弧のみの場合)
+    if '(' in sanitized and ')' not in sanitized:
+        logger.info(f"Sanitize: Dangling '(', keeping content before it for '{original_label}' -> '{sanitized.split('(')[0]}'")
+        sanitized = sanitized.split('(')[0]
+
+    # 3. 括弧を展開し、中身をフラット化 (スペース・カンマ除去、キーワード維持)
+    #    例: Am7(add11) -> Am7add11, C7(#9, b13) -> C7#9b13
     temp_sanitized_paren = sanitized
-    for _ in range(3): # 最大3回の繰り返しで、たいていの単純なネストは解消されるはず
-        new_sanitized_paren = re.sub(r'\(([^)]+)\)', flatten_parenthesis_content, temp_sanitized_paren)
-        if new_sanitized_paren == temp_sanitized_paren:
+    prev_flatten_state = ""
+    max_flatten_loops = 5
+    count_flatten_loops = 0
+    while '(' in temp_sanitized_paren and ')' in temp_sanitized_paren and temp_sanitized_paren != prev_flatten_state and count_flatten_loops < max_flatten_loops:
+        prev_flatten_state = temp_sanitized_paren
+        count_flatten_loops += 1
+        match_paren = re.match(r'^(.*?)\(([^)]+)\)(.*)$', temp_sanitized_paren)
+        if match_paren:
+            base, tens, suf = match_paren.groups()
+            tens_cleaned = re.sub(r'[,\s]', '', tens) # カンマとスペースを除去
+            temp_sanitized_paren = base + tens_cleaned + suf
+        else:
             break
-        temp_sanitized_paren = new_sanitized_paren
     sanitized = temp_sanitized_paren
-    # logger.debug(f"After parenthesis flattening: {sanitized}")
 
-    # ステップ D (部分): 特定の maj7/maj9 と #11 の連結パターン
-    # 例: Fmaj7@#11@ -> Fmaj7#11 (プレースホルダ復元後に再度処理する方がよいかも)
-    # ここでは、もし "maj7#11" のような形になっていれば、それを維持する意図。
-    # Harugoro様の提案: label = re.sub(r'(maj[79])#?11', r'\1#11', label)
-    # #?11 だと #がなくても#11になるので、#11の場合のみを対象とする。
-    sanitized = re.sub(r'(maj[79])(#11)', r'\1\2', sanitized, flags=re.IGNORECASE)
-    # logger.debug(f"After maj[79](#11) fix: {sanitized}")
+    # 4. "add"キーワードの正規化 (小文字にし、数字が続くことを確認)
+    #    Am7add11 はこの時点で Am7add11 のままのはず
+    sanitized = re.sub(r'(?i)(add)(\d+)', r'add\2', sanitized)
 
-    # 全体的なスペース除去（括弧展開後にもう一度）
-    sanitized = re.sub(r'\s', '', sanitized)
-    # logger.debug(f"After all space removal: {sanitized}")
-    
-    # ステップ F: 品質関連の正規化 (ø, half-dim, dim, dom など)
+    # 5. maj7addX, maj9addX のような形を整形
+    #    例: Fmaj79 -> Fmaj7add9 (もし flatten で add が消えていたら)
+    #    例: Bbmaj7#11 -> B-maj7#11 (これは flat 正規化で B- になっているはず)
+    #    この正規表現は、maj7 や maj9 の後に直接数字が続く場合に "add" を挿入する
+    sanitized = re.sub(r'(?i)(maj[79])(\d+)(?!add)', r'\1add\2', sanitized)
+    # 例: maj7(#11) のような形が maj7#11 になっている場合に、不要な#を整理
+    sanitized = re.sub(r'(maj[79])(?:add)?(#\d+)', r'\1\2', sanitized, flags=re.IGNORECASE)
+
+
+    # 6. 品質関連の正規化 (ø, half-dim, dim, dom など)
     sanitized = sanitized.replace('ø7', 'm7b5').replace('ø', 'm7b5')
     sanitized = re.sub(r'(?i)half[-]?dim', 'm7b5', sanitized)
-    sanitized = re.sub(r'(?i)diminished', 'dim', sanitized)
-    sanitized = re.sub(r'(?i)dominant7', '7', sanitized)
-    # エラーログのタイポ修正
+    # エラーログのタイポと冗長表現の修正
     sanitized = sanitized.replace('dimished', 'dim').replace('domant7', '7')
-    # 基本的な品質 (majは維持、minはmへ)
+    sanitized = re.sub(r'(?i)diminished(?!7)', 'dim', sanitized) # diminished (7以外) -> dim
+    sanitized = re.sub(r'(?i)diminished7', 'dim7', sanitized)
+    sanitized = re.sub(r'(?i)dominant7', '7', sanitized)
+    sanitized = re.sub(r'(?i)augmented', 'aug', sanitized)
+    
+    # min 系を m へ (maj はそのまま維持)
     sanitized = re.sub(r'(?i)minor7', 'm7', sanitized)
     sanitized = re.sub(r'(?i)minor9', 'm9', sanitized)
     sanitized = re.sub(r'(?i)minor11', 'm11', sanitized)
     sanitized = re.sub(r'(?i)minor13', 'm13', sanitized)
-    sanitized = re.sub(r'(?i)min(?!or\b)', 'm', sanitized) # Cmin -> Cm (minorワードは避ける)
+    sanitized = re.sub(r'(?i)min(?!or\b|\.)', 'm', sanitized) # "min" で終わるか、ピリオドが続かない場合
 
-    # logger.debug(f"After quality normalization: {sanitized}")
 
-    # altコードの展開 (プレースホルダ使用)
-    if re.fullmatch(r'[A-Ga-g][#\-]*alt', sanitized, flags=re.IGNORECASE):
-        base_note = sanitized[:-3]
-        sanitized = f"{base_note}7@#9@@b13@" # プレースホルダでテンション指定
-    elif re.fullmatch(r'[A-Ga-g][#\-]*7alt', sanitized, flags=re.IGNORECASE):
-        base_note_and_7 = sanitized[:-3]
-        sanitized = f"{base_note_and_7}@#9@@b13@"
-    # logger.debug(f"After alt expansion: {sanitized}")
+    # 7. alt コードの展開 (music21は 'alt' を直接解釈しない)
+    #    Calt -> C7#9b13
+    sanitized = re.sub(r'([A-Ga-g][#\-]?)7?alt', r'\17#9b13', sanitized, flags=re.IGNORECASE)
 
-    # susコードの正規化 (Harugoro様の修正 \g<1>4 を適用)
+    # 8. susコードの正規化 (Harugoro様の修正 \g<1>4 を適用)
     sanitized = re.sub(r'(?i)sus44$', 'sus4', sanitized)
     sanitized = re.sub(r'(?i)sus22$', 'sus2', sanitized)
     try:
-        # `sus` で終わり、直後に数字(2か4)がない場合 -> `sus4`
         sanitized = re.sub(r'(?i)(sus)(?![24\d])', r'\g<1>4', sanitized)
     except re.error as e_re_sus:
-        logger.warning(f"sanitize_chord_label: Regex error during sus normalization for '{sanitized}': {e_re_sus}")
-    # logger.debug(f"After sus normalization: {sanitized}")
-
-    # ステップ A の復元: プレースホルダを元に戻す (例: @b9@ -> b9)
-    sanitized = sanitized.replace('@b', 'b').replace('@#', '#').replace('@@', '') # @@は二重プレースホルダ予防の名残
-    # logger.debug(f"After placeholder restoration: {sanitized}")
-
-    # ルート音とベース音の臨時記号をmusic21標準形へ (例: Bb -> B-, C/Db -> C/D-)
-    parts = sanitized.split('/')
-    root_part_str = parts[0]
-    bass_part_str = parts[1] if len(parts) > 1 else None
-
-    def normalize_note_accidentals_final(note_str_param):
-        if not note_str_param: return ""
-        # 'b' を '-' に置換 (ただし、m7b5のような品質内のbは避ける。多くは既にプレースホルダで保護済のはず)
-        # この段階では、ルート音とベース音名に含まれる 'b' のみを対象とする
-        # 例: Cbmaj7 -> C-maj7, Gm7b5 (ここは変更なしのはず)
+        logger.warning(f"Sanitize: Regex error sus normal: {e_re_sus}. Label: '{sanitized}'")
         
-        # ルート音/ベース音のみの'b'を'-'に (正規表現で音名部分のみをターゲット)
-        # 先頭の音名部分とベースの音名部分
-        def replace_acc_in_note_name(match_obj):
-            name = match_obj.group(1)
-            acc = match_obj.group(2)
-            rest = match_obj.group(3)
-            acc = acc.replace('bb', '--').replace('b', '-')
-            return name + acc + rest
-
-        note_str_param = re.sub(r'^([A-Ga-g])([#b\-]{0,2})(.*)', replace_acc_in_note_name, note_str_param)
-        return note_str_param
-
-    sanitized_root = normalize_note_accidentals_final(root_part_str)
-    sanitized_bass = normalize_note_accidentals_final(bass_part_str) if bass_part_str else None
-
-    if sanitized_bass:
-        sanitized = f"{sanitized_root}/{sanitized_bass}"
-    else:
-        sanitized = sanitized_root
-    # logger.debug(f"After root/bass accidental normalization: {sanitized}")
-
-    # 最後の整形: 末尾の開き括弧除去、全体的な重複スペースなど
-    sanitized = sanitized.rstrip('(')
-    sanitized = re.sub(r'\s+', ' ', sanitized).strip() # 最終的なスペース整理
+    # 9. 最終的な全体のスペース・カンマ除去 (かなり強力なので注意)
+    #    これにより、#9 b13 -> #9b13 のようになることも期待
+    sanitized = re.sub(r'[,\s]', '', sanitized)
 
     if sanitized != original_label:
-        logger.info(f"sanitize_chord_label: Sanitized '{original_label}' to '{sanitized}'")
+        logger.info(f"Sanitize: '{original_label}' to '{sanitized}'")
     else:
-        logger.debug(f"sanitize_chord_label: Label '{original_label}' required no changes by sanitization process.")
+        logger.debug(f"Sanitize: Label '{original_label}' unchanged.")
     return sanitized
 
-# (get_music21_chord_object と if __name__ == '__main__': は前回提示版(2025-05-22 深夜)を使用してください)
-# 以下に再掲しますが、上記の sanitize_chord_label に合わせてテストケースは調整しています。
+# (get_music21_chord_object と if __name__ == '__main__': は前回提示版(2025-05-22 深夜)のものをベースに、
+#  テストケースの期待値をHarugoro様提案に合わせるのが良いでしょう。以下に調整版を記載します。)
 
 def get_music21_chord_object(chord_label_str: str, current_key: Optional[scale.ConcreteScale] = None) -> Optional[harmony.ChordSymbol]:
     if not chord_label_str or chord_label_str.strip().upper() in ["N.C.", "NC", "REST", ""]:
@@ -212,41 +178,43 @@ def get_music21_chord_object(chord_label_str: str, current_key: Optional[scale.C
     
     return None
 
-
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s')
     
-    # Harugoro様の最新テストケースと期待値
-    harugoro_final_tests_expected = {
-        "C7(b9,#11,add13)": "C7b9#1113", # プレースホルダ復元と連結後
-        "Fmaj7(add9)":      "Fmaj79",     # 同上
-        "Bbmaj7(#11)":      "B-maj7#11",  # 同上 (ルートフラット正規化含む)
-        "Cø7":              "Cm7b5",      # 品質正規化
-        "C7alt":            "C7#9b13",    # alt展開と連結後
-        # Susテスト
-        "Dsus": "Dsus4", "Gsus4": "Gsus4", "Asus2": "Asus2", "Csus44": "Csus4",
-        # ログからのその他重要ケース
-        "Am7(add11)": "Am711",
+    # Harugoro様の最終パッチ後の期待値テストケース
+    harugoro_final_expected = {
         "E7(b9)": "E7b9",
         "C7(#9,b13)": "C7#9b13",
-        "Fmaj7(add9,13)": "Fmaj7913",
+        "C7(b9,#11,add13)": "C7b9#11add13", # 変更: add も連結
+        "C7alt": "C7#9b13",
+        "Fmaj7(add9)": "Fmaj7add9",     # 変更: add も連結
+        "Fmaj7(add9,13)": "Fmaj7add9add13", # 変更: add も連結
+        "Bbmaj7(#11)": "B-maj7#11", # B- になっている想定
+        "Cø7": "Cm7b5",
+        "Am7(add11)": "Am7add11",    # 変更: add も連結
+        # Susテスト (これらは変更なし)
+        "Dsus": "Dsus4", "Gsus4": "Gsus4", "Asus2": "Asus2", "Csus44": "Csus4",
+        # ログから問題があったが、修正で期待できるもの
         "Bbmaj9(#11)": "B-maj9#11",
-        "Calt": "C7#9b13",
+        "Cm7b5": "Cm7b5", # Cm7b5@ にならず Cm7b5
+        "F#7": "F#7",     # F#7@ にならない
     }
     
     additional_test_cases = [
-        "Cmaj7", "Cm7b5", "G7sus","Dbmaj7", "Ebm7", "Abmaj7", "Bbm6",
-        "N.C.", "Rest", "", "  Db  ","GM7(", "Am7(add11", "C#m7", "F#7",
-        "F/G", "Am/G#", "D/F#", "CbbM7", "C##M7", "Cminor7", "Cdominant7"
+        "Cmaj7", "Dbmaj7", "Ebm7", "Abmaj7", "Bbm6",
+        "N.C.", "Rest", "", "  Db  ", "GM7(", "Am7(add11", # "Am7(add11" (閉じ括弧なし)はGM7(のようにAm7になるはず
+        "C#m7", "Calt",
+        "F/G", "Am/G#", "D/F#", "C/Bb",
+        "CbbM7", "C##M7", "Cminor7", "Cdominant7", "G7sus"
     ]
     
-    all_labels_to_test = sorted(list(set(list(harugoro_final_tests_expected.keys()) + additional_test_cases)))
+    all_labels_to_test = sorted(list(set(list(harugoro_final_expected.keys()) + additional_test_cases)))
 
-    print("\n--- Running sanitize_chord_label Test Cases (Harugoro Build v3) ---")
+    print("\n--- Running sanitize_chord_label Test Cases (Harugoro Final Build) ---")
     successful_parses = 0; failed_parses = 0; rest_count = 0; no_pitch_count = 0
 
     for label_orig in all_labels_to_test:
-        expected_sanitized_val = harugoro_final_tests_expected.get(label_orig)
+        expected_sanitized_val = harugoro_final_expected.get(label_orig)
         sanitized_result = sanitize_chord_label(label_orig)
         
         eval_str = ""
@@ -270,7 +238,7 @@ if __name__ == '__main__':
             except Exception as e: print(f"  music21 ERROR parsing '{sanitized_result}': {type(e).__name__}: {e}"); failed_parses += 1
         else: print(f"  Sanitized to empty: '{sanitized_result}'"); failed_parses +=1
             
-    print(f"\n--- Test Summary (Harugoro Build v3) ---")
+    print(f"\n--- Test Summary (Harugoro Final Build) ---")
     total_attempted = successful_parses + failed_parses + no_pitch_count
     total_processed = len(all_labels_to_test)
     print(f"Total labels processed: {total_processed}")
