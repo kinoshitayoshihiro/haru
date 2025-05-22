@@ -82,6 +82,70 @@
         {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
         {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
       ]
+    },
+    "default_piano_quarters": { 
+      "description": "Piano default quarter note rhythm (Fallback).",
+      "tags": ["piano", "default", "quarter_notes"],
+      "pattern": [
+          {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_fallback_block": {
+        "description": "Piano fallback block chords (simple).",
+        "tags": ["piano", "fallback", "block_chord"],
+        "pattern": [
+            {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}
+        ]
+    },
+    "piano_flowing_arpeggio_eighths_rh": {
+      "description": "Flowing eighth note arpeggio for RH piano.",
+      "tags": ["piano", "arpeggio", "eighth_notes", "right_hand"],
+      "arpeggio_type": "up",
+      "note_duration_ql": 0.5, 
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.65},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.65},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.65},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.65}
+      ]
+    },
+    "piano_chordal_moving_rh_pattern": {
+      "description": "Chordal and moving rhythm pattern for RH piano.",
+      "tags": ["piano", "chordal", "moving", "right_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.5, "velocity_factor": 0.75},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_powerful_block_8ths_rh": {
+        "description": "Powerful 8th note block chords for RH piano.",
+        "tags": ["piano", "powerful", "block_chord", "eighth_notes", "right_hand"],
+        "pattern": [
+            {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85},
+            {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.85}
+        ]
+    },
+    "piano_lh_whole_notes": {
+        "description": "Simple whole note roots for LH piano (fallback).",
+        "tags": ["piano", "simple", "root_notes", "whole_notes", "left_hand", "fallback"],
+        "pattern": [
+            {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+        ]
     }
   },
   "drum_patterns": {
@@ -128,6 +192,12 @@
             {"instrument":"kick", "offset":3.75, "velocity":80, "duration":0.1}
         ],
         "fill_ins": {
+            "simple_snare_roll_half_bar": [
+                 {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
+                 {"instrument": "sd", "offset": 0.125, "velocity": 105, "duration": 0.125},
+                 {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
+                 {"instrument": "sd", "offset": 0.375, "velocity": 115, "duration": 0.125}
+            ],
             "chorus_end_fill": [
                 {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
                 {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
@@ -171,6 +241,30 @@
         "description": "Silence for drums.",
         "time_signature": "4/4",
         "pattern": []
+    }
+  },
+  "melody_rhythms": {
+    "default_melody_rhythm": {
+      "description": "Default melody rhythm - simple quarter notes.",
+      "tags": ["melody", "default", "quarter_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.85},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.85},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.8}
+      ]
+    }
+  },
+  "bass_lines": {
+    "bass_quarter_notes": {
+      "description": "Default bass line - simple quarter notes on root.",
+      "tags": ["bass", "default", "quarter_notes", "root"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}
+      ]
     }
   }
 }
