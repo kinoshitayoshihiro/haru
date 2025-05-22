@@ -122,6 +122,26 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]: # o3さんス�
     # 1b. SUS正規化 (o3さん最終パッチを参考に、処理順序を調整)
     sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized)
     sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized)
+    # ── 重複 addXX を 1 個に統合 ──────────────────────────
+    sanitized = re.sub(r'(add\\d+)(?=.*\\1)', '', sanitized)
+
+    # ── alt 変換後の 13 の冗長 add を除去 ──────────────
+    sanitized = sanitized.replace('badd13', 'b13')\
+                         .replace('#add13', '#13')
+
+    # ── sus44 → sus4 ガード（念のため再確認） ───────────
+    sanitized = re.sub(r'sus([24])\\1$', r'sus\\1', sanitized, flags=re.I)
+    # SUS 補完と重複ガード
+    sanitized = re.sub(r'(?i)(?<!\d)(sus)(?![24])', 'sus4', sanitized)
+    sanitized = re.sub(r'sus([24])\1$', r'sus\1', sanitized, flags=re.I)
+
+    # addXX 重複除去（最終 add だけ残す）
+    sanitized = re.sub(r'(add\d+)(?=.*\1)', '', sanitized)
+
+    # alt 展開
+    sanitized = re.sub(r'([A-Ga-g][#\-]?)(?:7)?alt',
+                       r'\g<1>7#9b13', sanitized, flags=re.I)
+    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13')
 
 
     # 2. 括弧の不均衡修正
