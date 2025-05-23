@@ -340,6 +340,57 @@ if __name__ == '__main__':
             print(f"  music21 FAILED or NO PITCHES for sanitized '{sanitize_chord_label(label_orig)}' (get_obj returned None)")
             f_parses_tm += 1
 
+
+    # core_music_utils.py や、ノイズ生成関数を置く場所
+
+import random
+import math # ガウス乱数生成のため (random.gauss)
+
+NUMPY_AVAILABLE = False
+try:
+    import numpy as np
+    NUMPY_AVAILABLE = True
+    logger.info("NumPy found. Fractional noise generation is enabled.")
+except ImportError:
+    logger.warning("NumPy not found. Fractional noise generation will be disabled. Using simpler random variations instead.")
+    # numpy のエイリアスとして、最低限の機能を持つダミークラスや関数を定義することもできるが、
+    # ここでは NUMPY_AVAILABLE フラグで分岐する方針をとる。
+
+def generate_fractional_noise(length: int, hurst: float = 0.7, scale_factor: float = 1.0) -> List[float]:
+    if not NUMPY_AVAILABLE:
+        # NumPyがない場合のフォールバック: 単純なガウス乱数や一様乱数で代替
+        # ここでは例として、指定されたスケールでガウス乱数を生成
+        logger.debug(f"FBM disabled (NumPy not found). Generating Gaussian noise for length {length}.")
+        # random.gauss(mu, sigma) - 平均 mu, 標準偏差 sigma
+        # scale_factor を振幅の目安とする
+        return [random.gauss(0, scale_factor / 3) for _ in range(length)] # sigmaをscale_factorの1/3程度に
+
+    # NumPyが利用可能な場合の既存のロジック
+    if length <= 0: return []
+    white_noise = np.random.randn(length)
+    fft_white = np.fft.fft(white_noise)
+    freqs = np.fft.fftfreq(length)
+    freqs[0] = 1e-6 if freqs.size > 0 and freqs[0] == 0 else freqs[0]
+    filter_amplitude = np.abs(freqs) ** (-hurst)
+    if freqs.size > 0: filter_amplitude[0] = 0
+    fft_fbm = fft_white * filter_amplitude
+    fbm_noise = np.fft.ifft(fft_fbm).real
+    std_dev = np.std(fbm_noise)
+    if std_dev != 0: fbm_norm = scale_factor * (fbm_noise - np.mean(fbm_noise)) / std_dev
+    else: fbm_norm = np.zeros(length)
+    return fbm_norm.tolist()
+
+# apply_note_humanization 関数内で FBM を使うかどうかの分岐
+# def apply_note_humanization(...):
+#     ...
+#     if use_fbm_time and NUMPY_AVAILABLE: # NUMPY_AVAILABLE フラグをチェック
+#         time_shift = generate_fractional_noise(1, hurst=fbm_hurst, scale_factor=fbm_time_scale)[0]
+#     else:
+#         if use_fbm_time and not NUMPY_AVAILABLE:
+#             logger.debug("FBM time shift requested but NumPy not available. Using uniform random time shift.")
+#         time_shift = random.uniform(-time_variation, time_variation)
+#     ...
+    
     print(f"\n--- Test Summary (Harugoro x o3 True Masterpiece) ---")
     total_labels_tm = len(all_labels_to_test_true_final)
     attempted_to_parse_tm = total_labels_tm - r_count_tm
