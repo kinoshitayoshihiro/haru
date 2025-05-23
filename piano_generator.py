@@ -94,7 +94,7 @@ def apply_note_humanization(
         elif isinstance(n_obj, note.Note): # No volume object, create one
             base_vel = 64
             vel_change = random.randint(-velocity_variation, velocity_variation)
-            n_obj.volume = volume.Volume(velocity=max(1, min(127, base_vel + vel_change)))
+            n_obj.volume = m21volume.Volume(velocity=max(1, min(127, base_vel + vel_change)))
             
     return element_copy
 
