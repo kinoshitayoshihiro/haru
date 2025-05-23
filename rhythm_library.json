@@ -148,16 +148,15 @@
         ]
     }
   },
-  "drum_patterns": {
-    "default_drum_pattern": {
-        "description": "Default simple kick and snare (Global Fallback).",
-        "time_signature": "4/4",
-        "pattern": [
-            {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
-            {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
-            {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
-            {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
-        ]
+  "default_drum_pattern": {
+    "description": "Default simple kick and snare (Global Fallback).",
+    "time_signature": "4/4",
+    "pattern": [
+        {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
+    ]
     },
     "ballad_soft_kick_snare_8th_hat": {
         "description": "Soft ballad beat with kick, snare, and 8th note hi-hat.",
