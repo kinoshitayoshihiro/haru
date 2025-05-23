@@ -20,91 +20,11 @@
         {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"}
       ]
     },
-    "piano_reflective_arpeggio_rh": {
-      "description": "Reflective, gentle arpeggio for RH piano.",
-      "tags": ["piano", "reflective", "gentle", "arpeggio", "right_hand"],
-      "arpeggio_type": "up_down_gentle",
-      "note_duration_ql": 0.5,
-      "pattern": [
-        {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.7},
-        {"offset": 2.0, "duration": 2.0, "velocity_factor": 0.65}
-      ]
-    },
-    "piano_chordal_moving_rh": {
-      "description": "Chordal and moving rhythm for RH piano.",
-      "tags": ["piano", "chordal", "moving", "right_hand"],
-      "pattern": [
-        {"offset": 0.0, "duration": 1.5, "velocity_factor": 0.75},
-        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
-        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
-        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
-      ]
-    },
-    "piano_powerful_block_chords_rh": {
-      "description": "Powerful block chords for RH piano.",
-      "tags": ["piano", "powerful", "block_chord", "right_hand"],
-      "pattern": [
-        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.9},
-        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.85},
-        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.9},
-        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9},
-        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85},
-        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.9}
-      ]
-    },
-    "piano_sustained_root_lh": {
-      "description": "Sustained root notes for LH piano.",
-      "tags": ["piano", "sustained", "root_notes", "left_hand"],
-      "pattern": [
-        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
-      ]
-    },
-    "piano_walking_bass_like_lh": {
-      "description": "Walking bass like pattern for LH piano.",
-      "tags": ["piano", "walking_bass", "left_hand"],
-      "pattern": [
-        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
-        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "approaching_next_beat_or_chord_tone"},
-        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root_or_fifth"},
-        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "leading_to_next_chord"}
-      ]
-    },
-    "piano_active_octave_bass_lh": {
-      "description": "Active octave bass pattern for LH piano.",
-      "tags": ["piano", "active", "octave_bass", "left_hand"],
-      "pattern": [
-        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
-        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.7},
-        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
-        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
-        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
-        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.7},
-        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
-        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
-      ]
-    },
-    "default_piano_quarters": { 
-      "description": "Piano default quarter note rhythm (Fallback).",
-      "tags": ["piano", "default", "quarter_notes"],
-      "pattern": [
-          {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7},
-          {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
-          {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7},
-          {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
-      ]
-    },
-    "piano_fallback_block": {
-        "description": "Piano fallback block chords (simple).",
-        "tags": ["piano", "fallback", "block_chord"],
-        "pattern": [
-            {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}
-        ]
-    },
     "piano_flowing_arpeggio_eighths_rh": {
       "description": "Flowing eighth note arpeggio for RH piano.",
       "tags": ["piano", "arpeggio", "eighth_notes", "right_hand"],
       "arpeggio_type": "up",
-      "note_duration_ql": 0.5, 
+      "note_duration_ql": 0.5,
       "pattern": [
         {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.7},
         {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.65},
@@ -140,23 +60,73 @@
             {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.85}
         ]
     },
+    "piano_sustained_root_lh": {
+      "description": "Sustained root notes for LH piano.",
+      "tags": ["piano", "sustained", "root_notes", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+      ]
+    },
+    "piano_walking_bass_like_lh": {
+      "description": "Walking bass like pattern for LH piano.",
+      "tags": ["piano", "walking_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "approaching_next_beat_or_chord_tone"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root_or_fifth"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "leading_to_next_chord"}
+      ]
+    },
+    "piano_active_octave_bass_lh": {
+      "description": "Active octave bass pattern for LH piano.",
+      "tags": ["piano", "active", "octave_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
+      ]
+    },
+    "default_piano_quarters": {
+      "description": "Piano default quarter note rhythm (Fallback).",
+      "tags": ["piano", "default", "quarter_notes"],
+      "pattern": [
+          {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
     "piano_lh_whole_notes": {
         "description": "Simple whole note roots for LH piano (fallback).",
         "tags": ["piano", "simple", "root_notes", "whole_notes", "left_hand", "fallback"],
         "pattern": [
             {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
         ]
+    },
+    "piano_fallback_block": {
+        "description": "Piano fallback block chords (simple).",
+        "tags": ["piano", "fallback", "block_chord"],
+        "pattern": [
+            {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}
+        ]
     }
+    
   },
-  "default_drum_pattern": {
-    "description": "Default simple kick and snare (Global Fallback).",
-    "time_signature": "4/4",
-    "pattern": [
-        {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
-        {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
-        {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
-        {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
-    ]
+  "drum_patterns": {
+    "default_drum_pattern": {
+        "description": "Default simple kick and snare (Global Fallback).",
+        "time_signature": "4/4",
+        "pattern": [
+            {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
+            {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
+        ]
     },
     "ballad_soft_kick_snare_8th_hat": {
         "description": "Soft ballad beat with kick, snare, and 8th note hi-hat.",
@@ -240,6 +210,28 @@
         "description": "Silence for drums.",
         "time_signature": "4/4",
         "pattern": []
+    },
+    "no_drums_or_sparse_cymbal": {
+      "description": "Silence or very sparse cymbal swells (verse / intro).",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "crash", "offset": 0.0, "velocity": 50, "duration": 4.0, "optional": true}
+      ]
+    },
+    "no_drums_or_gentle_cymbal_swell": {
+      "description": "Gentle swell on crash / ride; otherwise silence.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "ride_cymbal_1", "offset": 0.0, "velocity": 40, "duration": 4.0, "articulation": "swell", "optional": true}
+      ]
+    },
+    "no_drums_or_sparse_chimes": {
+      "description": "Sparse wind-chime or shaker hits; default empty for now.",
+      "time_signature": "4/4",
+      "pattern": [
+        // Example: {"instrument": "tambourine", "offset": 1.0, "velocity": 30, "duration": 0.2, "optional": true}
+        // ジェネレータ側でこのキーが来た場合に特殊処理する想定なら pattern は空でも良い
+      ]
     }
   },
   "melody_rhythms": {
@@ -251,6 +243,18 @@
         {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.8},
         {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.85},
         {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.8}
+      ]
+    },
+    "syncopated_8ths": {
+      "description": "Syncopated 8th-note figure (1-bar template).",
+      "tags": ["melody", "syncopated", "eighth_notes"],
+      "pattern": [
+        { "offset": 0.0,  "duration": 0.5, "velocity_factor": 0.9 },
+        { "offset": 0.5,  "duration": 0.5, "velocity_factor": 0.85 },
+        { "offset": 1.25, "duration": 0.5, "velocity_factor": 0.8 },
+        { "offset": 1.75, "duration": 0.5, "velocity_factor": 0.8 },
+        { "offset": 2.25, "duration": 0.5, "velocity_factor": 0.85 },
+        { "offset": 3.0,  "duration": 1.0, "velocity_factor": 0.9 }
       ]
     }
   },
@@ -264,6 +268,100 @@
         {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
         {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}
       ]
+    },
+    "root_only": {
+      "description": "Whole- or half-note roots only (very low intensity).",
+      "tags": ["bass", "simple", "long_notes", "root"],
+      "pattern": [
+          {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+      ]
+    },
+    "root_fifth": {
+      "description": "Root-fifth alternation pattern (ballad feel).",
+      "tags": ["bass", "ballad", "root_fifth"],
+      "pattern": [ // ジェネレータ側で解釈する想定
+          {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.7, "type": "root"},
+          {"offset": 2.0, "duration": 2.0, "velocity_factor": 0.65, "type": "fifth"}
+      ]
+    },
+    "walking": {
+      "description": "4-beat walking bass; actual notes computed on the fly.",
+      "tags": ["bass", "walking", "jazz"],
+      "pattern_type": "algorithmic_walking", // ジェネレータ側でこのタイプを認識
+      "pattern": [ // プレースホルダーまたは基本的な4分音符のタイミングのみ
+          {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75},
+          {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
+          {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+          {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    }
+  },
+  "guitar_patterns": {
+    "guitar_default_quarters": {
+        "description": "Default quarter note strums/hits for guitar.",
+        "tags": ["guitar", "default", "strum", "quarter_notes"],
+        "pattern": [
+            {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8, "strum_direction": "down", "articulation": "normal"},
+            {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75, "strum_direction": "down", "articulation": "normal"},
+            {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8, "strum_direction": "down", "articulation": "normal"},
+            {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75, "strum_direction": "down", "articulation": "normal"}
+        ]
+    },
+    "guitar_folk_strum_simple": {
+        "description": "Simple folk strum D _ D U _ D _ (D=Down, U=Up).",
+        "tags": ["guitar", "folk", "strum"],
+        "pattern": [
+            {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.9, "strum_direction": "down"},
+            {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7, "strum_direction": "down"},
+            {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.8, "strum_direction": "up"},
+            {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.85, "strum_direction": "down"}
+        ]
+    },
+    "guitar_ballad_arpeggio_pima": {
+        "description": "PIMA-like arpeggio pattern for ballads (4 beats).",
+        "tags": ["guitar", "arpeggio", "ballad", "fingerstyle"],
+        "pattern_type": "arpeggio_indices",  // GuitarGeneratorで解釈
+        "arpeggio_indices": [0, 3, 2, 1, 3, 2], // 0=最低音弦, 1=次の弦... (6弦ギター想定)
+        "note_duration_ql": 0.666, // 付点8分音符に近い
+        "pattern": [ // 各アルペジオノートのタイミングと相対ベロシティ
+            {"offset": 0.0,   "duration": 0.666, "velocity_factor": 1.0},
+            {"offset": 0.666, "duration": 0.666, "velocity_factor": 0.9},
+            {"offset": 1.332, "duration": 0.666, "velocity_factor": 0.95},
+            {"offset": 1.998, "duration": 0.666, "velocity_factor": 0.85},
+            {"offset": 2.664, "duration": 0.666, "velocity_factor": 0.9},
+            {"offset": 3.330, "duration": 0.670, "velocity_factor": 0.8} // 最後の音で4拍に収める
+        ]
+    },
+    "guitar_rock_mute_16th": {
+        "description": "Fast 16th note muted rhythm for rock/funk.",
+        "tags": ["guitar", "rock", "funk", "mute", "sixteenth_notes"],
+        "pattern_type": "mute_fixed_step", // GuitarGeneratorで解釈
+        "step_duration_ql": 0.25,         // 16分音符間隔
+        "note_articulation_factor": 0.3,  // 非常に短いスタッカート
+        "pattern": [ // このpatternはアクセントやゴーストノートの指示に使える (オプション)
+            {"offset": 0.0, "velocity_factor": 1.0}, {"offset": 0.25, "velocity_factor": 0.7},
+            {"offset": 0.5, "velocity_factor": 0.9}, {"offset": 0.75, "velocity_factor": 0.6},
+            {"offset": 1.0, "velocity_factor": 1.0}, {"offset": 1.25, "velocity_factor": 0.7},
+            {"offset": 1.5, "velocity_factor": 0.9}, {"offset": 1.75, "velocity_factor": 0.6},
+            {"offset": 2.0, "velocity_factor": 1.0}, {"offset": 2.25, "velocity_factor": 0.7},
+            {"offset": 2.5, "velocity_factor": 0.9}, {"offset": 2.75, "velocity_factor": 0.6},
+            {"offset": 3.0, "velocity_factor": 1.0}, {"offset": 3.25, "velocity_factor": 0.7},
+            {"offset": 3.5, "velocity_factor": 0.9}, {"offset": 3.75, "velocity_factor": 0.6}
+        ]
+    },
+    "guitar_power_chord_rock_8ths": {
+        "description": "Rock style 8th note power chords.",
+        "tags": ["guitar", "rock", "power_chord", "eighth_notes"],
+        "pattern": [
+            {"offset": 0.0, "duration": 0.5, "velocity_factor": 1.0},
+            {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 1.0, "duration": 0.5, "velocity_factor": 1.0},
+            {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 2.0, "duration": 0.5, "velocity_factor": 1.0},
+            {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.9},
+            {"offset": 3.0, "duration": 0.5, "velocity_factor": 1.0},
+            {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.9}
+        ]
     }
   }
 }
