@@ -288,7 +288,7 @@ class ChordVoicer:
             except Exception as e_add_final:
                 logger.error(f"CV Block {blk_idx+1}: Error adding final chord for '{cs_object_current.figure if cs_object_current else 'N/A'}': {e_add_final}", exc_info=True)
         
-        logger.info(f"CV.compose: Finished composition. Part contains {len(list(chord_part.flat.notesAndRests))} elements.") 
+        logger.info(f"CV.compose: Finished composition. Part contains {len(list(chord_part.flatten().notesAndRests))} elements.") 
         return chord_part
 
 # --- END OF FILE generators/chord_voicer.py ---
