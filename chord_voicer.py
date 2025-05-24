@@ -3,7 +3,7 @@ import music21
 from typing import List, Dict, Optional, Tuple, Any, Sequence
 from music21 import (stream, note, harmony, pitch, meter, duration,
                      instrument as m21instrument, interval, tempo, key,
-                     chord as m21chord.Chord, volume as m21volume)
+                     chord as m21chord, volume as m21volume)
 import random
 import logging
 
