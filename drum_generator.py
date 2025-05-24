@@ -180,6 +180,6 @@ class DrumGenerator:
                 elif current_measure_iter_dur >= p_bar_dur - MIN_NOTE_DURATION_QL/2: measures_since_last_fill +=1
                 current_block_time_ql += current_measure_iter_dur
         
-        logger.info(f"DrumGen: Finished. Part has {len(list(drum_part.flat.notesAndRests))} elements.") 
+        logger.info(f"DrumGen: Finished. Part has {len(list(drum_part.flatten().notesAndRests))} elements.") 
         return drum_part
 # --- END OF FILE generator/drum_generator.py ---
