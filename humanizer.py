@@ -6,7 +6,7 @@ from typing import List, Dict, Any, Union, Optional, cast
 
 # music21 のサブモジュールを正しい形式でインポート
 import music21.note as note 
-import music21.chord as m21chord # 指摘された形式
+import music21.chord as m21chord # check_imports.py の期待する形式 (スペースに注意)
 import music21.volume as volume 
 import music21.duration as duration 
 import music21.pitch as pitch 
@@ -68,7 +68,7 @@ HUMANIZATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
 }
 
 def apply_humanization_to_element(
-    m21_element_obj: Union[note.Note, m21chord.Chord], # m21_element を m21_element_obj に変更
+    m21_element_obj: Union[note.Note, m21chord.Chord], 
     template_name: Optional[str] = None, 
     custom_params: Optional[Dict[str, Any]] = None
 ) -> Union[note.Note, m21chord.Chord]: 
@@ -129,7 +129,7 @@ def apply_humanization_to_part(
 
     humanized_part = stream.Part(id=part_to_humanize.id + "_humanized" if part_to_humanize.id else "HumanizedPart") 
     
-    for el_class_item in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: # el_class を el_class_item に変更
+    for el_class_item in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: 
         for item_el in part_to_humanize.getElementsByClass(el_class_item): 
             humanized_part.insert(item_el.offset, copy.deepcopy(item_el)) 
 
