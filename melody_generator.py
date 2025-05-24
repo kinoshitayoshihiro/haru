@@ -3,33 +3,39 @@ from __future__ import annotations
 """melody_generator.py – *lightweight rewrite*
 ... (docstringは変更なし) ...
 """
-from typing import Dict, List, Sequence, Any, Tuple, Optional, Union # Union を追加
+from typing import Dict, List, Sequence, Any, Tuple, Optional, Union, cast # cast を追加
+
 import random
 import logging
 
-# music21 のサブモジュールを個別にインポート
-from music21 import stream
-from music21 import note
-from music21 import harmony
-from music21 import tempo
-from music21 import meter
-from music21 import instrument as m21instrument
-from music21 import key
-from music21 import pitch # コード内で使用されているため追加
+# music21 のサブモジュールを正しい形式でインポート
+import music21.stream as stream
+import music21.note as note
+import music21.harmony as harmony
+import music21.tempo as tempo
+import music21.meter as meter
+import music21.instrument as m21instrument # 指摘された形式
+import music21.key as key
+import music21.pitch as pitch # コード内で使用されているため追加
 
 # melody_utils と humanizer をインポート
 try:
-    from .melody_utils import generate_melodic_pitches # 同じディレクトリなので相対インポート
-    from utilities.core_music_utils import MIN_NOTE_DURATION_QL, get_time_signature_object, sanitize_chord_label # sanitize_chord_label を追加
+    from .melody_utils import generate_melodic_pitches 
+    from utilities.core_music_utils import MIN_NOTE_DURATION_QL, get_time_signature_object, sanitize_chord_label 
     from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES
 except ImportError as e:
-    logger_fallback = logging.getLogger(__name__ + ".fallback_utils") # logger_fallback を定義
+    logger_fallback = logging.getLogger(__name__ + ".fallback_utils") 
     logger_fallback.error(f"MelodyGenerator: Failed to import required modules (melody_utils or humanizer or core_music_utils): {e}")
-    def generate_melodic_pitches(*args, **kwargs): return [] # Dummy
-    def apply_humanization_to_part(part, *args, **kwargs): return part # Dummy
-    MIN_NOTE_DURATION_QL = 0.125 # Dummy
-    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature("4/4") # meter を使用
-    def sanitize_chord_label(label: Optional[str]) -> Optional[str]: # ダミーの sanitize_chord_label を追加
+    def generate_melodic_pitches(*args, **kwargs) -> List[note.Note]: return [] 
+    def apply_humanization_to_part(part, *args, **kwargs) -> stream.Part: # stream.Part を返すように修正
+        # このダミー関数は stream.Part を返す必要があるため、引数の part をそのまま返すか、
+        # 新しい stream.Part を生成して返す
+        if isinstance(part, stream.Part):
+            return part
+        return stream.Part() # 新しい空のPartを返す
+    MIN_NOTE_DURATION_QL = 0.125 
+    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature("4/4") 
+    def sanitize_chord_label(label: Optional[str]) -> Optional[str]: 
         if not label or label.strip().lower() in ["rest", "n.c.", "nc", "none"]: return None
         return label.strip()
     HUMANIZATION_TEMPLATES = {}
@@ -73,12 +79,12 @@ class MelodyGenerator:
         )
         details = self.rhythm_library.get(rhythm_key, default_rhythm)
         if "pattern" not in details or not isinstance(details["pattern"], list):
-            logger.warning(f"MelodyGen: Rhythm key '{rhythm_key}' invalid or missing 'pattern' list. Using default.")
+            logger.warning(f"MelodyGen: Rhythm key '{rhythm_key}' invalid or missing 'pattern' (offsets list). Using default.")
             return default_rhythm
         if "note_duration_ql" not in details:
-            details["note_duration_ql"] = default_rhythm.get("note_duration_ql", 1.0) # getを追加
+            details["note_duration_ql"] = default_rhythm.get("note_duration_ql", 1.0) 
         if "reference_duration_ql" not in details:
-            details["reference_duration_ql"] = default_rhythm.get("reference_duration_ql", 4.0) # getを追加
+            details["reference_duration_ql"] = default_rhythm.get("reference_duration_ql", 4.0) 
         return details
 
     def compose(self, processed_blocks: Sequence[Dict[str, Any]]) -> stream.Part:
@@ -104,22 +110,25 @@ class MelodyGenerator:
             chord_label_str = blk_data.get("chord_label", "C")
             block_q_length = blk_data.get("q_length", 4.0)
             
-            # get_music21_chord_object は core_music_utils からインポートされる想定
-            # try-exceptブロックは維持
+            cs_m21_obj: Optional[harmony.ChordSymbol] = None # 初期化
             try:
-                # from utilities.core_music_utils import get_music21_chord_object # ここでの再インポートは不要
-                cs_current_block = sanitize_chord_label(chord_label_str) # sanitize_chord_labelを使用
-                if cs_current_block is None: # sanitize_chord_labelがNoneを返す場合
+                sanitized_label = sanitize_chord_label(chord_label_str) 
+                if sanitized_label is None: 
                     cs_m21_obj = None
                 else:
-                    cs_m21_obj = harmony.ChordSymbol(cs_current_block) # harmony.ChordSymbolを使用
+                    cs_m21_obj = harmony.ChordSymbol(sanitized_label) 
 
-                if cs_m21_obj is None or not cs_m21_obj.pitches: # ピッチがない場合もスキップ
+                if cs_m21_obj is None or not cs_m21_obj.pitches: 
                     logger.warning(f"MelodyGenerator: Could not parse chord '{chord_label_str}' or no pitches for block {blk_idx+1}. Skipping melody notes.")
                     current_total_offset += block_q_length
                     continue
-            except Exception as e_chord_parse: # harmony.HarmonyException やその他のパースエラーをキャッチ
+            except Exception as e_chord_parse: 
                 logger.warning(f"MelodyGenerator: Error parsing chord '{chord_label_str}' for block {blk_idx+1}: {e_chord_parse}. Skipping.")
+                current_total_offset += block_q_length
+                continue
+
+            # cs_m21_obj が None でないことをここで保証
+            if cs_m21_obj is None: # このチェックは論理的には不要だが、念のため
                 current_total_offset += block_q_length
                 continue
 
@@ -140,7 +149,7 @@ class MelodyGenerator:
                 stretch_factor = block_q_length / template_reference_duration
             
             final_beat_offsets_for_block = [tpl_off * stretch_factor for tpl_off in beat_offsets_template if (tpl_off * stretch_factor) < block_q_length]
-            if not final_beat_offsets_for_block and beat_offsets_template : # ブロックが短すぎて何も配置できない場合、最初の要素だけでも配置試行
+            if not final_beat_offsets_for_block and beat_offsets_template : 
                  if (beat_offsets_template[0] * stretch_factor) < block_q_length:
                      final_beat_offsets_for_block = [beat_offsets_template[0] * stretch_factor]
 
@@ -148,7 +157,7 @@ class MelodyGenerator:
             octave_range_for_block = tuple(melody_params.get("octave_range", [4, 5]))
             
             generated_notes = generate_melodic_pitches(
-                chord=cs_m21_obj, # cs_m21_obj を使用 (Noneでないことは上で確認済み)
+                chord=cs_m21_obj, 
                 tonic=tonic_for_block,
                 mode=mode_for_block,
                 beat_offsets=final_beat_offsets_for_block, 
@@ -158,7 +167,7 @@ class MelodyGenerator:
             )
 
             density_for_block = melody_params.get("density", 0.7)
-            note_velocity = melody_params.get("velocity", 80) # note_velocity を定義
+            note_velocity = melody_params.get("velocity", 80) 
 
             for idx, n_obj in enumerate(generated_notes):
                 if self.rng.random() <= density_for_block:
@@ -170,10 +179,10 @@ class MelodyGenerator:
                     else:
                         max_dur = block_q_length - note_start_offset_in_block
                     
-                    actual_dur = max(MIN_NOTE_DURATION_QL, min(max_dur, base_note_duration_ql * stretch_factor))
+                    actual_dur = max(MIN_NOTE_DURATION_QL, min(max_dur, base_note_duration_ql * stretch_factor if 'stretch_factor' in locals() else base_note_duration_ql))
                     n_obj.quarterLength = actual_dur * 0.95 
                     
-                    n_obj.volume = m21instrument.Volume(velocity=note_velocity) # m21instrument を使用
+                    n_obj.volume = m21instrument.Volume(velocity=note_velocity) 
                     
                     melody_part.insert(current_total_offset + note_start_offset_in_block, n_obj)
 
@@ -182,12 +191,12 @@ class MelodyGenerator:
         global_melody_params = processed_blocks[0].get("part_params", {}).get("melody", {}) if processed_blocks else {}
         if global_melody_params.get("melody_humanize", global_melody_params.get("humanize", False)):
             h_template_mel = global_melody_params.get("melody_humanize_style_template", 
-                                                     global_melody_params.get("humanize_style_template", "default_subtle")) # humanize_style_templateも考慮
+                                                     global_melody_params.get("humanize_style_template", "default_subtle")) 
             h_custom_mel = {
                 k.replace("melody_humanize_", "").replace("humanize_", ""): v
                 for k, v in global_melody_params.items()
                 if (k.startswith("melody_humanize_") or k.startswith("humanize_")) and 
-                   not k.endswith("_template") and not k.endswith("humanize") and not k.endswith("_opt") # _optも除外
+                   not k.endswith("_template") and not k.endswith("humanize") and not k.endswith("_opt") 
             }
             logger.info(f"MelodyGenerator: Applying humanization with template '{h_template_mel}' and params {h_custom_mel}")
             melody_part = apply_humanization_to_part(melody_part, template_name=h_template_mel, custom_params=h_custom_mel)
