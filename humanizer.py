@@ -2,21 +2,21 @@
 import random
 import math
 import copy
-from typing import List, Dict, Any, Union, Optional, cast # cast を追加
+from typing import List, Dict, Any, Union, Optional, cast 
 
-# music21 のサブモジュールを個別にインポート
-from music21 import note
-from music21 import chord as m21chord # update_imports.py の指摘通り
-from music21 import volume
-from music21 import duration
-from music21 import pitch
-from music21 import stream
-from music21 import m21instrument # instrument を m21instrument とエイリアスするかどうかは他ファイルと統一
-from music21 import tempo
-from music21 import meter
-from music21 import key
-from music21 import expressions
-from music21 import exceptions21
+# music21 のサブモジュールを正しい形式でインポート
+import music21.note as note # note を note としてインポート
+import music21.chord as m21chord # 指摘された形式
+import music21.volume as volume # volume を volume としてインポート
+import music21.duration as duration # duration を duration としてインポート
+import music21.pitch as pitch # pitch を pitch としてインポート
+import music21.stream as stream # stream を stream としてインポート
+import music21.instrument as instrument # instrument を instrument としてインポート (エイリアスなし)
+import music21.tempo as tempo # tempo を tempo としてインポート
+import music21.meter as meter # meter を meter としてインポート
+import music21.key as key # key を key としてインポート
+import music21.expressions as expressions # expressions を expressions としてインポート
+from music21 import exceptions21 # トップレベルからのインポート
 
 # MIN_NOTE_DURATION_QL は core_music_utils からインポートすることを推奨
 try:
@@ -68,11 +68,11 @@ HUMANIZATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
 }
 
 def apply_humanization_to_element(
-    m21_element: Union[note.Note, m21chord.Chord], # note, m21chord を使用
+    m21_element: Union[note.Note, m21chord.Chord], 
     template_name: Optional[str] = None, 
     custom_params: Optional[Dict[str, Any]] = None
-) -> Union[note.Note, m21chord.Chord]: # note, m21chord を使用
-    if not isinstance(m21_element, (note.Note, m21chord.Chord)): # note, m21chord を使用
+) -> Union[note.Note, m21chord.Chord]: 
+    if not isinstance(m21_element, (note.Note, m21chord.Chord)): 
         logger.warning(f"Humanizer: apply_humanization_to_element received non-Note/Chord object: {type(m21_element)}")
         return m21_element
 
@@ -100,58 +100,58 @@ def apply_humanization_to_element(
     element_copy.offset += time_shift
     if element_copy.offset < 0: element_copy.offset = 0.0
 
-    if element_copy.duration: # duration を使用
+    if element_copy.duration: 
         original_ql = element_copy.duration.quarterLength
         duration_change = original_ql * random.uniform(-dur_perc, dur_perc)
         new_ql = max(MIN_NOTE_DURATION_QL / 8, original_ql + duration_change)
         try: element_copy.duration.quarterLength = new_ql
-        except exceptions21.DurationException as e: logger.warning(f"Humanizer: DurationException for {element_copy}: {e}. Skip dur change.") # exceptions21 を使用
+        except exceptions21.DurationException as e: logger.warning(f"Humanizer: DurationException for {element_copy}: {e}. Skip dur change.") 
 
-    notes_to_affect = element_copy.notes if isinstance(element_copy, m21chord.Chord) else [element_copy] # m21chord を使用
-    for n_obj in notes_to_affect:
-        if isinstance(n_obj, note.Note): # note を使用
-            base_vel = n_obj.volume.velocity if hasattr(n_obj, 'volume') and n_obj.volume and n_obj.volume.velocity is not None else 64 # volume を使用
+    notes_to_affect = element_copy.notes if isinstance(element_copy, m21chord.Chord) else [element_copy] 
+    for n_obj_affect in notes_to_affect: # n_obj を n_obj_affect に変更
+        if isinstance(n_obj_affect, note.Note): 
+            base_vel = n_obj_affect.volume.velocity if hasattr(n_obj_affect, 'volume') and n_obj_affect.volume and n_obj_affect.volume.velocity is not None else 64 
             vel_change = random.randint(-vel_var, vel_var)
             final_vel = max(1, min(127, base_vel + vel_change))
-            if hasattr(n_obj, 'volume') and n_obj.volume is not None: n_obj.volume.velocity = final_vel # volume を使用
-            else: n_obj.volume = volume.Volume(velocity=final_vel) # volume を使用
+            if hasattr(n_obj_affect, 'volume') and n_obj_affect.volume is not None: n_obj_affect.volume.velocity = final_vel 
+            else: n_obj_affect.volume = volume.Volume(velocity=final_vel) 
             
     return element_copy
 
 def apply_humanization_to_part(
-    part_to_humanize: stream.Part, # stream を使用
+    part_to_humanize: stream.Part, 
     template_name: Optional[str] = None,
     custom_params: Optional[Dict[str, Any]] = None
-) -> stream.Part: # stream を使用
-    if not isinstance(part_to_humanize, stream.Part): # stream を使用
+) -> stream.Part: 
+    if not isinstance(part_to_humanize, stream.Part): 
         logger.error("Humanizer: apply_humanization_to_part expects a music21.stream.Part object.")
         return part_to_humanize 
 
-    humanized_part = stream.Part(id=part_to_humanize.id + "_humanized" if part_to_humanize.id else "HumanizedPart") # stream を使用
+    humanized_part = stream.Part(id=part_to_humanize.id + "_humanized" if part_to_humanize.id else "HumanizedPart") 
     
-    for el_class in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: # instrument, tempo, meter, key, expressions を使用
-        for item in part_to_humanize.getElementsByClass(el_class):
-            humanized_part.insert(item.offset, copy.deepcopy(item)) 
+    for el_class in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: 
+        for item_el in part_to_humanize.getElementsByClass(el_class): # item を item_el に変更
+            humanized_part.insert(item_el.offset, copy.deepcopy(item_el)) 
 
     elements_to_process = []
-    for element in part_to_humanize.recurse().notesAndRests: 
-        elements_to_process.append(element)
+    for element_item in part_to_humanize.recurse().notesAndRests:  # element を element_item に変更
+        elements_to_process.append(element_item)
     
-    elements_to_process.sort(key=lambda el: el.getOffsetInHierarchy(part_to_humanize))
+    elements_to_process.sort(key=lambda el_sort: el_sort.getOffsetInHierarchy(part_to_humanize)) # el を el_sort に変更
 
 
-    for element in elements_to_process:
-        original_hierarchical_offset = element.getOffsetInHierarchy(part_to_humanize)
+    for element_proc in elements_to_process: # element を element_proc に変更
+        original_hierarchical_offset = element_proc.getOffsetInHierarchy(part_to_humanize)
         
-        if isinstance(element, (note.Note, m21chord.Chord)): # note, m21chord を使用
-            humanized_element = apply_humanization_to_element(element, template_name, custom_params)
-            offset_shift_from_humanize = humanized_element.offset - element.offset 
+        if isinstance(element_proc, (note.Note, m21chord.Chord)): 
+            humanized_element = apply_humanization_to_element(element_proc, template_name, custom_params)
+            offset_shift_from_humanize = humanized_element.offset - element_proc.offset 
             final_insert_offset = original_hierarchical_offset + offset_shift_from_humanize
             if final_insert_offset < 0: final_insert_offset = 0.0
             
             humanized_part.insert(final_insert_offset, humanized_element)
-        elif isinstance(element, note.Rest): # note を使用
-            humanized_part.insert(original_hierarchical_offset, copy.deepcopy(element))
+        elif isinstance(element_proc, note.Rest): 
+            humanized_part.insert(original_hierarchical_offset, copy.deepcopy(element_proc))
         
     return humanized_part
 # --- END OF FILE utilities/humanizer.py ---
