@@ -1,293 +1,156 @@
-# --- START OF FILE generators/chord_voicer.py (修正案) ---
-from typing import List, Dict, Optional, Tuple, Any, Sequence
+# --- START OF FILE utilities/core_music_utils.py (役割特化版) ---
+# import music21 # 不要なため削除 (個別にインポートするため)
+import logging
+import re # re モジュールをインポート
+from typing import Optional, Dict, Any, List
 
-# music21 のサブモジュールを正しい形式でインポート
-import music21.stream as stream
-import music21.note as note
-import music21.harmony as harmony
-import music21.pitch as pitch
-import music21.meter as meter
-import music21.duration as duration
-import music21.instrument as m21instrument # コード内で使用されているため、正しい形式でインポート
-import music21.interval as interval
-import music21.tempo as tempo
-import music21.key as key
-import music21.chord as m21chord # check_imports.py の指摘に基づき修正
-import music21.volume as m21volume
-from music21 import expressions 
-# from music21 import dynamics # 元コードで使用箇所が見当たらないためコメントアウトのまま
-import re # sanitize_chord_label のフォールバックで使用 (元からあった)
-import random # 元からあった
-import logging # 元からあった
+# music21 のサブモジュールを個別にインポート
+from music21 import meter
+from music21 import harmony
+from music21 import pitch
+from music21 import chord as m21chord # エイリアスを m21chord に統一
 
 logger = logging.getLogger(__name__)
 
-# --- core_music_utils からのインポート試行 ---
-try:
-    from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label
-    logger.info("ChordVoicer: Successfully imported from utilities.core_music_utils.")
-except ImportError as e_import_core:
+MIN_NOTE_DURATION_QL: float = 0.125 # 音楽的意味を持つ最小の音価
+
+def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: # meter を使用
+    ts_str = ts_str or "4/4"
     try:
-        from core_music_utils import get_time_signature_object, sanitize_chord_label 
-        logger.info("ChordVoicer: Successfully imported core_music_utils (without relative path).")
-    except ImportError as e_import_direct:
-        logger.warning(f"ChordVoicer: Could not import from utilities.core_music_utils (Error: {e_import_core}) "
-                       f"nor directly from core_music_utils (Error: {e_import_direct}). "
-                       "Using basic fallbacks for get_time_signature_object and sanitize_chord_label.")
-        # --- フォールバック定義 ---
-        def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
-            if not ts_str: ts_str = "4/4"
-            try: return meter.TimeSignature(ts_str)
-            except meter.MeterException:
-                logger.warning(f"CV Fallback GTSO: Invalid TS '{ts_str}'. Default 4/4.")
-                return meter.TimeSignature("4/4")
-            except Exception as e_ts_fb:
-                 logger.error(f"CV Fallback GTSO: Unexpected error '{ts_str}': {e_ts_fb}. Defaulting to 4/4.", exc_info=True)
-                 return meter.TimeSignature("4/4")
+        return meter.TimeSignature(ts_str) # meter を使用
+    except meter.MeterException: # meter を使用
+        logger.warning(f"CoreUtils: Invalid TimeSignature string '{ts_str}'. Defaulting to 4/4.")
+        return meter.TimeSignature("4/4") # meter を使用
+    except Exception as e_ts:
+        logger.error(f"CoreUtils: Unexpected error creating TimeSignature from '{ts_str}': {e_ts}. Defaulting to 4/4.", exc_info=True)
+        return meter.TimeSignature("4/4") # meter を使用
 
-        def sanitize_chord_label(label: Optional[str]) -> Optional[str]: 
-            logger.warning(f"CV Fallback sanitize_chord_label used for '{label}'. This is a basic version.")
-            if label is None: return None
-            label_str = str(label)
-            label_str = label_str.replace('maj7', 'M7').replace('mi7', 'm7').replace('min7', 'm7')
-            label_str = label_str.replace('Maj7', 'M7').replace('Mi7', 'm7').replace('Min7', 'm7')
-            if len(label_str) > 1 and label_str[1] == 'b' and label_str[0] in 'ABCDEFGabcdefg':
-                 if not (len(label_str) > 2 and label_str[2].isalpha()):
-                    label_str = label_str[0] + '-' + label_str[2:]
-            if label_str.count('(') > label_str.count(')') and label_str.endswith('('):
-                label_str = label_str[:-1]
-            return label_str
-        # --- フォールバック定義ここまで ---
+def _expand_tension_block_core(seg: str) -> str: 
+    seg = seg.strip().lower()
+    if not seg: return ""
+    if seg.startswith(("#", "b")): return seg # Python 3.8以前では ("#", "b") のようにタプルにする
+    if seg.startswith("add"):
+        match_add_num = re.match(r'add(\d+)', seg)
+        if match_add_num: return f"add{match_add_num.group(1)}"
+        return "" 
+    if seg.isdigit(): return f"add{seg}"
+    if seg in ["omit3", "omit5", "omitroot"]: return seg
+    logger.debug(f"CoreUtils (_expand_tension_block_core): Unknown tension '{seg}', passing as is.")
+    return seg
 
-DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM: int = 3
-VOICING_STYLE_CLOSED = "closed"
-VOICING_STYLE_OPEN = "open"
-VOICING_STYLE_SEMI_CLOSED = "semi_closed" 
-VOICING_STYLE_DROP2 = "drop2"
-VOICING_STYLE_FOUR_WAY_CLOSE = "four_way_close" 
+def _addify_if_needed_core(match: re.Match) -> str: 
+    prefix = match.group(1) or ""
+    number = match.group(2)
+    if prefix.lower().endswith(('sus', 'add', 'maj', 'm', 'dim', 'aug', 'b5', 'ø', '7', '9', '11', '13')):
+        if not prefix or not prefix[-1].isdigit():
+             return f'{prefix}add{number}'
+        return match.group(0)
+    return f'{prefix}add{number}'
 
-class ChordVoicer:
-    def __init__(self,
-                 default_instrument=m21instrument.StringInstrument(),
-                 global_tempo: int = 120,
-                 global_time_signature: str = "4/4"):
-        self.default_instrument = default_instrument
-        self.global_tempo = global_tempo
-        try:
-            self.global_time_signature_obj = get_time_signature_object(global_time_signature)
-        except NameError: 
-             logger.critical("ChordVoicer __init__: CRITICAL - get_time_signature_object is not defined! Defaulting to basic 4/4.")
-             self.global_time_signature_obj = meter.TimeSignature("4/4")
-        except Exception as e_ts_init:
-            logger.error(f"ChordVoicer __init__: Error initializing time signature from '{global_time_signature}': {e_ts_init}. Defaulting to 4/4.", exc_info=True)
-            self.global_time_signature_obj = meter.TimeSignature("4/4")
+def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
+    if not label or not isinstance(label, str):
+        logger.debug(f"CoreUtils (sanitize): Label '{label}' is None or not a string. Returning None (Rest).")
+        return None
+    
+    original_label = label
+    sanitized = label.strip()
 
-    def _apply_voicing_style(
-            self,
-            cs_obj: Optional[harmony.ChordSymbol], 
-            style_name: str,
-            target_octave_for_bottom_note: Optional[int] = DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM,
-            num_voices_target: Optional[int] = None
-    ) -> List[pitch.Pitch]:
+    if not sanitized or sanitized.lower() in {"rest", "r", "nc", "n.c.", "silence", "-"}:
+        logger.debug(f"CoreUtils (sanitize): Label '{original_label}' matches a Rest keyword. Returning None.")
+        return None
 
-        if cs_obj is None:
-            logger.debug("CV._apply_style: ChordSymbol is None. Returning empty list.")
-            return []
-        if not cs_obj.pitches: 
-            logger.debug(f"CV._apply_style: ChordSymbol '{cs_obj.figure}' has no pitches. Returning empty list.")
-            return []
+    word_map = {
+        r'(?i)\b([A-Ga-g][#\-]*)\s+minor\b': r'\1m', r'(?i)\b([A-Ga-g][#\-]*)\s+major\b': r'\1maj',
+        r'(?i)\b([A-Ga-g][#\-]*)\s+dim\b':   r'\1dim', r'(?i)\b([A-Ga-g][#\-]*)\s+aug\b':   r'\1aug',
+    }
+    for pat, rep in word_map.items(): sanitized = re.sub(pat, rep, sanitized)
+    sanitized = re.sub(r'^([a-g])', lambda m: m.group(1).upper(), sanitized) 
 
-        voiced_pitches_list: List[pitch.Pitch] = []
-        # music21.chord.Chord オブジェクトの closedPosition メソッドを使用
-        temp_closed_chord = m21chord.Chord(cs_obj.pitches) # 一時的なChordオブジェクトを作成
-        original_closed_pitches = sorted(list(temp_closed_chord.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
+    sanitized = re.sub(r'^([A-G])bb', r'\1--', sanitized); sanitized = re.sub(r'^([A-G])b(?![#b])', r'\1-', sanitized)
+    sanitized = re.sub(r'/([A-G])bb', r'/\1--', sanitized); sanitized = re.sub(r'/([A-G])b(?![#b])', r'/\1-', sanitized)
+    
+    sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized)
+    sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized)
+    sanitized = re.sub(r'(?i)(?<!\d)(sus)(?![24])', 'sus4', sanitized) 
+    sanitized = re.sub(r'sus([24])\1$', r'sus\1', sanitized, flags=re.I) 
+
+    sanitized = re.sub(r'([A-Ga-g][#\-]?)(?:7)?alt', r'\g<1>7#9b13', sanitized, flags=re.I)
+    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13') 
+
+    if '(' in sanitized and ')' not in sanitized:
+        base_part, content_after = sanitized.split('(', 1) if '(' in sanitized else (sanitized, "")
+        if content_after.strip():
+            recovered = "".join(_expand_tension_block_core(p) for p in content_after.split(','))
+            sanitized = base_part + recovered if recovered else base_part
+        else: sanitized = base_part
+    
+    prev_sanitized = ""
+    for _ in range(5): 
+        if '(' not in sanitized or ')' not in sanitized or sanitized == prev_sanitized: break
+        prev_sanitized = sanitized
+        match = re.match(r'^(.*?)\(([^)]+)\)(.*)$', sanitized)
+        if match:
+            base, inner, suf = match.groups()
+            expanded_inner = "".join(_expand_tension_block_core(p) for p in inner.split(','))
+            sanitized = base + expanded_inner + suf
+        else: break 
+
+    qual_map = {r'(?i)ø7?\b': 'm7b5', r'(?i)half[- ]?dim\b': 'm7b5', 'dimished': 'dim',
+                r'(?i)diminished(?!7)': 'dim', r'(?i)diminished7': 'dim7', 'domant7': '7',
+                r'(?i)dominant7?\b': '7', r'(?i)major7': 'maj7', r'(?i)major9': 'maj9',
+                r'(?i)major13': 'maj13', r'(?i)minor7': 'm7', r'(?i)minor9': 'm9',
+                r'(?i)minor11': 'm11', r'(?i)minor13': 'm13', r'(?i)min(?!or\b|\.|m7b5)': 'm',
+                r'(?i)aug(?!mented)': 'aug', r'(?i)augmented': 'aug', r'(?i)major(?!7|9|13|\b)': 'maj'}
+    for pat, rep in qual_map.items(): sanitized = re.sub(pat, rep, sanitized)
+
+    try:
+        sanitized = re.sub(r'([A-Ga-g][#\-]?(?:m(?:aj)?\d*|maj\d*|dim\d*|aug\d*|ø\d*|sus\d*|add\d*|7th|6th|5th|m7b5)?)([1-9]\d)(?!add|\d|th|nd|rd|st)', _addify_if_needed_core, sanitized, flags=re.IGNORECASE)
+    except Exception as e_addify: logger.warning(f"CoreUtils (sanitize): Error during _addify call: {e_addify}. Label: {sanitized}")
+
+    sanitized = re.sub(r'(maj)9(#\d+)', r'\g<1>7\g<2>add9', sanitized, flags=re.IGNORECASE)
+    
+    sanitized = re.sub(r'addadd', 'add', sanitized, flags=re.I)
+    sanitized = re.sub(r'(add\d+)(?=.*\1)', '', sanitized, flags=re.I) 
+
+    sanitized = re.sub(r'[,\s]', '', sanitized)
+    sanitized = re.sub(r'[^a-zA-Z0-9#\-/\u00f8]+$', '', sanitized) 
+
+    if not sanitized: 
+        logger.info(f"CoreUtils (sanitize): Label '{original_label}' resulted in empty string. Returning None (Rest).")
+        return None
+
+    if sanitized != original_label: logger.info(f"CoreUtils (sanitize): '{original_label}' -> '{sanitized}'")
+    else: logger.debug(f"CoreUtils (sanitize): Label '{original_label}' no change.")
+
+    try:
+        cs_test = harmony.ChordSymbol(sanitized) # harmony を使用
+        if not cs_test.pitches: 
+            logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') parsed but has NO PITCHES. Fallback to None (Rest).")
+            return None
+    except Exception as e_final_parse:
+        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') could not be parsed by music21 ({type(e_final_parse).__name__}: {e_final_parse}). Fallback to None (Rest).")
+        return None 
+
+    if not re.match(r'^[A-G]', sanitized):
+        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' does not start with a note name. Fallback to None (Rest).")
+        return None
         
-        if not original_closed_pitches: 
-            logger.warning(f"CV._apply_style: ChordSymbol '{cs_obj.figure}' resulted in no pitches after closedPosition. Returning empty list.")
-            return []
+    return sanitized
 
-        current_pitches_for_voicing = list(original_closed_pitches) 
+def get_music21_chord_object(chord_label_str: Optional[str]) -> Optional[harmony.ChordSymbol]: # harmony を使用
+    sanitized_label = sanitize_chord_label(chord_label_str)
+    if not sanitized_label:
+        return None
+    try:
+        cs = harmony.ChordSymbol(sanitized_label) # harmony を使用
+        if not cs.pitches:
+            logger.info(f"CoreUtils (get_obj): Parsed '{sanitized_label}' but no pitches. Returning None.")
+            return None
+        return cs
+    except Exception as e:
+        logger.error(f"CoreUtils (get_obj): Exception for '{sanitized_label}': {e}. Returning None.")
+    return None
 
-        try:
-            if style_name == VOICING_STYLE_OPEN:
-                temp_chord_for_open = m21chord.Chord(current_pitches_for_voicing)
-                voiced_pitches_list = list(temp_chord_for_open.openPosition(inPlace=False).pitches)
-            elif style_name == VOICING_STYLE_SEMI_CLOSED: 
-                if len(current_pitches_for_voicing) >= 2:
-                    lowest_pitch = current_pitches_for_voicing[0]
-                    new_bass_p = lowest_pitch.transpose(-12)
-                    voiced_pitches_list = sorted([new_bass_p] + current_pitches_for_voicing[1:], key=lambda p: p.ps)
-                else:
-                    voiced_pitches_list = current_pitches_for_voicing
-            elif style_name == VOICING_STYLE_DROP2:
-                if len(current_pitches_for_voicing) >= 2:
-                    pitches_copy = list(current_pitches_for_voicing) 
-                    if len(pitches_copy) >= 4: 
-                        pitch_to_drop = pitches_copy.pop(-2) 
-                        dropped_pitch = pitch_to_drop.transpose(-12)
-                        voiced_pitches_list = sorted(pitches_copy + [dropped_pitch], key=lambda p: p.ps)
-                    elif len(pitches_copy) == 3: 
-                         pitch_to_drop = pitches_copy.pop(1)
-                         dropped_pitch = pitch_to_drop.transpose(-12)
-                         voiced_pitches_list = sorted(pitches_copy + [dropped_pitch], key=lambda p:p.ps)
-                    else: 
-                        voiced_pitches_list = current_pitches_for_voicing
-                else:
-                    voiced_pitches_list = current_pitches_for_voicing
-            elif style_name == VOICING_STYLE_FOUR_WAY_CLOSE:
-                temp_m21_chord_for_4way = m21chord.Chord(current_pitches_for_voicing)
-                if len(temp_m21_chord_for_4way.pitches) >= 4 :
-                    try:
-                        temp_m21_chord_for_4way.fourWayClose(inPlace=True) 
-                        voiced_pitches_list = list(temp_m21_chord_for_4way.pitches)
-                    except Exception as e_4way:
-                        logger.warning(f"CV: fourWayClose for '{cs_obj.figure}' failed: {e_4way}. Defaulting to closed.")
-                        voiced_pitches_list = current_pitches_for_voicing
-                else:
-                    logger.debug(f"CV: Not enough pitches ({len(temp_m21_chord_for_4way.pitches)}) for fourWayClose on {cs_obj.figure}. Using closed.")
-                    voiced_pitches_list = current_pitches_for_voicing
-            else: 
-                if style_name != VOICING_STYLE_CLOSED:
-                    logger.debug(f"CV: Unknown style '{style_name}'. Defaulting to closed for '{cs_obj.figure}'.")
-                voiced_pitches_list = current_pitches_for_voicing
-
-        except Exception as e_style_app:
-            logger.error(f"CV._apply_style: Error applying voicing style '{style_name}' to '{cs_obj.figure}': {e_style_app}. Defaulting to original closed pitches.", exc_info=True)
-            voiced_pitches_list = list(original_closed_pitches) 
-
-        if not voiced_pitches_list: 
-            logger.warning(f"CV._apply_style: Voicing style '{style_name}' resulted in empty pitches for '{cs_obj.figure}'. Using original closed pitches.")
-            voiced_pitches_list = list(original_closed_pitches)
-
-        if num_voices_target is not None and voiced_pitches_list:
-            if len(voiced_pitches_list) > num_voices_target:
-                voiced_pitches_list = sorted(voiced_pitches_list, key=lambda p: p.ps)[:num_voices_target]
-                logger.debug(f"CV: Reduced voices to {num_voices_target} for '{cs_obj.figure}' (from bottom).")
-
-        if voiced_pitches_list and target_octave_for_bottom_note is not None:
-            current_bottom_pitch_obj = min(voiced_pitches_list, key=lambda p: p.ps)
-            ref_pitch_name = cs_obj.root().name if cs_obj.root() else 'C'
-            try:
-                target_bottom_ref_pitch = pitch.Pitch(f"{ref_pitch_name}{target_octave_for_bottom_note}")
-                octave_difference = round((target_bottom_ref_pitch.ps - current_bottom_pitch_obj.ps) / 12.0)
-                semitones_to_shift = int(octave_difference * 12)
-
-                if semitones_to_shift != 0:
-                    logger.debug(f"CV: Shifting '{cs_obj.figure}' voiced as [{', '.join(p.nameWithOctave for p in voiced_pitches_list)}] by {semitones_to_shift} semitones for target bottom octave {target_octave_for_bottom_note} (ref root: {ref_pitch_name}).")
-                    voiced_pitches_list = [p.transpose(semitones_to_shift) for p in voiced_pitches_list]
-            except Exception as e_trans:
-                 logger.error(f"CV: Error in octave adjustment for '{cs_obj.figure}': {e_trans}", exc_info=True)
-        return voiced_pitches_list
-
-    def compose(self, processed_chord_stream: List[Dict]) -> stream.Part:
-        chord_part = stream.Part(id="ChordVoicerPart")
-        try:
-            chord_part.insert(0, self.default_instrument) 
-            chord_part.append(tempo.MetronomeMark(number=self.global_tempo))
-            chord_part.append(self.global_time_signature_obj)
-        except Exception as e_init_part:
-            logger.error(f"CV.compose: Error setting up initial part elements: {e_init_part}", exc_info=True)
-
-        if not processed_chord_stream:
-            logger.info("CV.compose: Received empty processed_chord_stream.")
-            return chord_part
-        logger.info(f"CV.compose: Processing {len(processed_chord_stream)} blocks.")
-
-        for blk_idx, blk_data in enumerate(processed_chord_stream):
-            offset_ql = float(blk_data.get("offset", 0.0))
-            duration_ql = float(blk_data.get("q_length", 4.0)) 
-            chord_label_original: Optional[str] = blk_data.get("chord_label", "C") 
-            
-            part_params: Dict[str, Any] = blk_data.get("chords_params", blk_data.get("chord_params", {}))
-            voicing_style: str = part_params.get("chord_voicing_style", VOICING_STYLE_CLOSED)
-            target_octave: Optional[int] = part_params.get("chord_target_octave") 
-            if target_octave is None : target_octave = DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM
-            num_voices: Optional[int] = part_params.get("chord_num_voices")
-            chord_velocity: int = int(part_params.get("chord_velocity", 64))
-
-            logger.debug(f"CV Block {blk_idx+1}: Offset:{offset_ql} QL:{duration_ql} OrigLabel='{chord_label_original}', Style:'{voicing_style}', Oct:{target_octave}, Voices:{num_voices}, Vel:{chord_velocity}")
-
-            cs_object_current: Optional[harmony.ChordSymbol] = None 
-            is_block_effectively_rest = False
-
-            if not chord_label_original or chord_label_original.strip().lower() in ["rest", "n.c.", "nc", ""]:
-                logger.info(f"CV Block {blk_idx+1} is explicitly a Rest due to label: '{chord_label_original}'.")
-                is_block_effectively_rest = True
-            else:
-                sanitized_label = sanitize_chord_label(chord_label_original) 
-                if sanitized_label is None:
-                    is_block_effectively_rest = True
-                    logger.info(f"CV Block {blk_idx+1}: Label '{chord_label_original}' sanitized to Rest.")
-                else:
-                    try:
-                        cs_object_current = harmony.ChordSymbol(sanitized_label)
-                        if not cs_object_current.pitches:
-                            logger.info(f"CV: ChordSymbol '{sanitized_label}' (orig: '{chord_label_original}') resulted in no pitches. Treating as Rest.")
-                            is_block_effectively_rest = True
-                    except harmony.HarmonyException as he: 
-                        logger.error(f"CV: HarmonyException creating ChordSymbol for '{sanitized_label}' (orig: '{chord_label_original}'): {he}. Treating as Rest.")
-                        is_block_effectively_rest = True
-                    except Exception as e_cs_create: 
-                        logger.error(f"CV: General Exception creating ChordSymbol for '{sanitized_label}' (orig: '{chord_label_original}'): {e_cs_create}. Treating as Rest.", exc_info=False) 
-                        is_block_effectively_rest = True
-            
-            if is_block_effectively_rest:
-                logger.debug(f"CV Block {blk_idx+1}: Handled as Rest. No chord added to part.")
-                continue
-
-            if cs_object_current is None: 
-                logger.error(f"CV Block {blk_idx+1}: cs_object_current is unexpectedly None for non-Rest label '{chord_label_original}'. Skipping.")
-                continue
-
-            tensions_to_add_list: List[str] = blk_data.get("tensions_to_add", [])
-            if tensions_to_add_list and cs_object_current is not None : # cs_object_current が None でないことを確認
-                logger.debug(f"CV: Attempting to add tensions {tensions_to_add_list} to {cs_object_current.figure}")
-                for tension_str in tensions_to_add_list:
-                    try:
-                        num_match = re.search(r'(\d+)', tension_str)
-                        if num_match:
-                            interval_num = int(num_match.group(1))
-                            cs_object_current.add(interval_num) 
-                            logger.debug(f"  CV: Added tension based on '{tension_str}' to {cs_object_current.figure}")
-                        else:
-                             logger.warning(f"  CV: Could not parse tension number from '{tension_str}' for {cs_object_current.figure}")
-                    except Exception as e_add_tension:
-                        logger.warning(f"  CV: Error adding tension '{tension_str}' to '{cs_object_current.figure}': {e_add_tension}")
-
-            if cs_object_current is None or not cs_object_current.pitches: # 再度Noneチェック
-                logger.warning(f"CV Block {blk_idx+1}: Chord has no pitches after tension additions (or was None). Treating as Rest.")
-                continue 
-
-            final_voiced_pitches = self._apply_voicing_style(
-                cs_object_current, 
-                voicing_style,
-                target_octave_for_bottom_note=target_octave,
-                num_voices_target=num_voices
-            )
-
-            if not final_voiced_pitches:
-                logger.warning(f"CV Block {blk_idx+1}: No pitches returned after voicing style for '{cs_object_current.figure}'. Skipping.")
-                continue
-            
-            new_chord_m21_obj = m21chord.Chord(final_voiced_pitches) 
-            new_chord_m21_obj.duration = duration.Duration(duration_ql) 
-            try:
-                vol_obj = m21volume.Volume(velocity=chord_velocity) 
-                notes_for_chord = []
-                for p_note_iter in final_voiced_pitches: 
-                    n_obj = note.Note(p_note_iter) 
-                    n_obj.volume = vol_obj 
-                    notes_for_chord.append(n_obj)
-                if notes_for_chord:
-                    new_chord_with_velocity = m21chord.Chord(notes_for_chord, quarterLength=duration_ql) 
-                    chord_part.insert(offset_ql, new_chord_with_velocity)
-                    logger.debug(f"  CV: Added chord {new_chord_with_velocity.pitchedCommonName} with vel {chord_velocity} at offset {offset_ql}")
-                else:
-                    logger.warning(f"CV Block {blk_idx+1}: notes_for_chord was empty after creating notes with velocity.")
-            except Exception as e_add_final:
-                logger.error(f"CV Block {blk_idx+1}: Error adding final chord for '{cs_object_current.figure if cs_object_current else 'N/A'}': {e_add_final}", exc_info=True)
-        
-        logger.info(f"CV.compose: Finished composition. Part contains {len(list(chord_part.flat.notesAndRests))} elements.") 
-        return chord_part
-
-# --- END OF FILE generators/chord_voicer.py ---
+# (if __name__ == '__main__': のテストコードはそのまま残してOK)
+# ... (前回提示のテストコード) ...
+# --- END OF FILE utilities/core_music_utils.py ---
