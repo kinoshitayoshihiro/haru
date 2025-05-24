@@ -1,7 +1,7 @@
 # --- START OF FILE utilities/core_music_utils.py (役割特化版) ---
 import music21
 import logging
-from music21 import meter, harmony, pitch, chord as m21chord# scale は scale_registry.py に移管
+from music21 import meter, harmony, pitch, chord as m21chord.Chord# scale は scale_registry.py に移管
 from typing import Optional, Dict, Any, List
 import re
 
