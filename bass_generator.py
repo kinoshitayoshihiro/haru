@@ -20,6 +20,7 @@ import music21.meter as meter
 import music21.instrument as m21instrument # 指摘された形式
 import music21.key as key
 import music21.pitch as pitch
+import music21.volume as m21volume # <<< MODIFICATION: volumeモジュールをインポート
 
 # ユーティリティのインポート
 try:
@@ -89,11 +90,8 @@ class BassGenerator:
         bass_part = stream.Part(id="Bass")
         bass_part.insert(0, self.default_instrument)
         bass_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
-        # --- MODIFICATION 1 START ---
-        # bass_part.insert(0, self.global_time_signature_obj.clone())
         ts_copy_init = meter.TimeSignature(self.global_time_signature_obj.ratioString)
         bass_part.insert(0, ts_copy_init)
-        # --- MODIFICATION 1 END ---
 
         first_block_tonic = processed_blocks[0].get("tonic_of_section", self.global_key_tonic) if processed_blocks else self.global_key_tonic
         first_block_mode = processed_blocks[0].get("mode", self.global_key_mode) if processed_blocks else self.global_key_mode
@@ -197,7 +195,9 @@ class BassGenerator:
                 n_bass = note.Note(current_pitch_obj)
                 n_bass.quarterLength = actual_event_duration
                 vel_factor = event_data.get("velocity_factor", 1.0)
-                n_bass.volume = m21instrument.Volume(velocity=int(base_velocity * vel_factor)) # ここは m21instrument.Volume ではなく music21.volume.Volume が正しいですが、元のコードに合わせています
+                # --- MODIFICATION: Use m21volume.Volume ---
+                n_bass.volume = m21volume.Volume(velocity=int(base_velocity * vel_factor))
+                # --- END MODIFICATION ---
                 bass_part.insert(current_total_offset + abs_event_offset_in_block, n_bass)
 
             current_total_offset += block_q_length
@@ -218,11 +218,8 @@ class BassGenerator:
             if not bass_part.getElementsByClass(m21instrument.Instrument).first(): bass_part.insert(0, self.default_instrument)
             if not bass_part.getElementsByClass(tempo.MetronomeMark).first(): bass_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
             if not bass_part.getElementsByClass(meter.TimeSignature).first():
-                # --- MODIFICATION 2 START ---
-                # bass_part.insert(0, self.global_time_signature_obj.clone())
                 ts_copy_humanize = meter.TimeSignature(self.global_time_signature_obj.ratioString)
                 bass_part.insert(0, ts_copy_humanize)
-                # --- MODIFICATION 2 END ---
             if not bass_part.getElementsByClass(key.Key).first(): bass_part.insert(0, key.Key(first_block_tonic, first_block_mode))
 
         return bass_part
