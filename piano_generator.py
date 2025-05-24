@@ -251,9 +251,9 @@ class PianoGenerator:
             rh_block_part = self._generate_piano_hand_part_for_block("RH", cs_or_rest_current, 0, block_dur, piano_params, self.rhythm_library)
             lh_block_part = self._generate_piano_hand_part_for_block("LH", cs_or_rest_current, 0, block_dur, piano_params, self.rhythm_library)
 
-            for el_rh_final in rh_block_part.flat.notesAndRests: 
+            for el_rh_final in rh_block_part.flatten().notesAndRests: 
                 piano_rh_part.insert(block_offset_abs + el_rh_final.offset, el_rh_final)
-            for el_lh_final in lh_block_part.flat.notesAndRests: 
+            for el_lh_final in lh_block_part.flatten().notesAndRests: 
                 piano_lh_part.insert(block_offset_abs + el_lh_final.offset, el_lh_final)
             
             if piano_params.get("piano_apply_pedal", True) and not isinstance(cs_or_rest_current, note.Rest):
@@ -274,7 +274,7 @@ class PianoGenerator:
             piano_lh_part = apply_humanization_to_part(piano_lh_part, template_name=lh_template, custom_params=lh_custom)
 
         piano_score.append(piano_rh_part); piano_score.append(piano_lh_part)
-        logger.info(f"PianoGen: Finished. RH notes: {len(list(piano_rh_part.flat.notesAndRests))}, LH notes: {len(list(piano_lh_part.flat.notesAndRests))}") 
+        logger.info(f"PianoGen: Finished. RH notes: {len(list(piano_rh_part.flatten().notesAndRests))}, LH notes: {len(list(piano_lh_part.flat.notesAndRests))}") 
         return piano_score
 
 # --- END OF FILE generators/piano_generator.py ---
