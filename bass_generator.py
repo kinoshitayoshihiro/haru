@@ -6,7 +6,7 @@ The heavy lifting (walking line, root-fifth, etc.) is delegated to
 generator.bass_utils.generate_bass_measure so that this class
 mainly decides **which style to use when**.
 """
-from typing import Sequence, Dict, Any, Optional, List, Union, cast # cast を追加
+from typing import Sequence, Dict, Any, Optional, List, Union, cast 
 
 import random
 import logging
@@ -19,7 +19,7 @@ import music21.tempo as tempo
 import music21.meter as meter
 import music21.instrument as m21instrument # 指摘された形式
 import music21.key as key
-import music21.pitch as pitch # bass_utils.py で使用されているため、ここでも必要になる可能性を考慮
+import music21.pitch as pitch 
 
 # ユーティリティのインポート
 try:
@@ -30,7 +30,7 @@ except ImportError as e:
     logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
     logger_fallback.error(f"BassGenerator: Failed to import required modules: {e}")
     def generate_bass_measure(*args, **kwargs) -> List[note.Note]: return []
-    def apply_humanization_to_part(part, *args, **kwargs) -> stream.Part: # stream.Part を返すように修正
+    def apply_humanization_to_part(part, *args, **kwargs) -> stream.Part: 
         if isinstance(part, stream.Part):
             return part
         return stream.Part()
@@ -55,7 +55,7 @@ class BassGenerator:
         global_key_mode: str = "major",
         rng: Optional[random.Random] = None,
     ) -> None:
-        self.rhythm_library = rhythm_library if rhythm_library else {}
+        self.rhythm_library = rhythm_library if rhythm_library is not None else {}
         self.default_instrument = default_instrument
         self.global_tempo = global_tempo
         self.global_time_signature_str = global_time_signature
@@ -109,7 +109,7 @@ class BassGenerator:
             
             selected_style = self._select_style(bass_params, musical_intent)
             
-            cs_now_obj: Optional[harmony.ChordSymbol] = None # 変数名を変更
+            cs_now_obj: Optional[harmony.ChordSymbol] = None 
             sanitized_label = sanitize_chord_label(chord_label_str)
             if sanitized_label:
                 try:
@@ -124,7 +124,7 @@ class BassGenerator:
                 current_total_offset += block_q_length
                 continue
 
-            cs_next_obj: Optional[harmony.ChordSymbol] = None # 変数名を変更
+            cs_next_obj: Optional[harmony.ChordSymbol] = None 
             if i + 1 < len(processed_blocks):
                 next_label_str = processed_blocks[i+1].get("chord_label")
                 sanitized_next_label = sanitize_chord_label(next_label_str)
@@ -176,7 +176,7 @@ class BassGenerator:
 
                 if actual_event_duration < MIN_NOTE_DURATION_QL / 2: continue
 
-                current_pitch_obj: Optional[pitch.Pitch] = None # 変数名を変更、初期化
+                current_pitch_obj: Optional[pitch.Pitch] = None 
                 if measure_pitches_template:
                     current_pitch_obj = measure_pitches_template[pitch_idx % len(measure_pitches_template)]
                     pitch_idx += 1
@@ -186,14 +186,14 @@ class BassGenerator:
                     else: 
                         current_pitch_obj = pitch.Pitch('C3') 
                 
-                if current_pitch_obj is None: # current_pitch_objがNoneでないことを保証
-                    logger.warning(f"BassGenerator: Could not determine pitch for event. Skipping.")
+                if current_pitch_obj is None: 
+                    logger.warning("BassGenerator: Could not determine pitch for event. Skipping.")
                     continue
 
-                n_bass = note.Note(current_pitch_obj) # 変数名を変更
+                n_bass = note.Note(current_pitch_obj) 
                 n_bass.quarterLength = actual_event_duration
                 vel_factor = event_data.get("velocity_factor", 1.0)
-                n_bass.volume = m21instrument.Volume(velocity=int(base_velocity * vel_factor)) 
+                n_bass.volume = m21instrument.Volume(velocity=int(base_velocity * vel_factor)) # m21instrument を使用
                 bass_part.insert(current_total_offset + abs_event_offset_in_block, n_bass)
 
             current_total_offset += block_q_length
