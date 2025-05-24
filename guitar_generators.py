@@ -9,15 +9,15 @@ from music21 import harmony
 from music21 import pitch
 from music21 import meter
 from music21 import duration
-from music21 import instrument as m21instrument
-from music21 import scale # update_imports.py の出力にはなかったが、元コードで使用
-from music21 import interval # update_imports.py の出力にはなかったが、元コードで使用
+from music21 import instrument as m21instrument # 指摘された通りエイリアスでインポート
+from music21 import scale
+from music21 import interval
 from music21 import tempo
-from music21 import key # update_imports.py の出力にはなかったが、元コードで使用
-from music21 import chord as m21chord
+from music21 import key
+from music21 import chord as m21chord # 指摘された通りエイリアスでインポート
 from music21 import articulations
-from music21 import volume as m21volume # update_imports.py の出力にはなかったが、元コードで使用 (m21volumeとして)
-from music21 import expressions # update_imports.py の出力にはなかったが、元コードで使用
+from music21 import volume as m21volume # 他のファイルとの整合性を考慮しエイリアスを維持
+from music21 import expressions
 
 import random
 import logging
@@ -27,7 +27,7 @@ import logging
 # ユーティリティのインポート
 try:
     from utilities.core_music_utils import MIN_NOTE_DURATION_QL, get_time_signature_object, sanitize_chord_label
-    from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES # パート全体への適用を想定
+    from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES 
 except ImportError:
     logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
     logger_fallback.warning("GuitarGen: Could not import from utilities. Using fallbacks.")
@@ -44,7 +44,7 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-# --- 定数 (変更なし) ---
+# --- 定数 ---
 DEFAULT_GUITAR_OCTAVE_RANGE: Tuple[int, int] = (2, 5)
 GUITAR_STRUM_DELAY_QL: float = 0.02
 MIN_STRUM_NOTE_DURATION_QL: float = 0.05
@@ -58,8 +58,7 @@ class GuitarGenerator:
                  default_instrument=m21instrument.AcousticGuitar(), # m21instrument を使用
                  global_tempo: int = 120,
                  global_time_signature: str = "4/4"):
-        # (初期化ロジックは変更なし)
-        self.rhythm_library = rhythm_library if rhythm_library else {}
+        self.rhythm_library = rhythm_library if rhythm_library is not None else {}
         if "guitar_default_quarters" not in self.rhythm_library:
              self.rhythm_library["guitar_default_quarters"] = {"description": "Default quarter note strums/hits", "pattern": [{"offset":i, "duration":1.0, "velocity_factor":0.8-(i%2*0.05)} for i in range(4)]}
              logger.info("GuitarGen: Added 'guitar_default_quarters' to rhythm_library.")
@@ -69,13 +68,12 @@ class GuitarGenerator:
         self.global_time_signature_obj = get_time_signature_object(global_time_signature)
 
     def _get_guitar_friendly_voicing(
-        self, m21_cs: harmony.ChordSymbol, num_strings: int = 6, # harmony を使用
+        self, cs: harmony.ChordSymbol, num_strings: int = 6, # m21_cs を cs に変更 (ローカル変数名)
         preferred_octave_bottom: int = 2, max_octave_top: int = 5,
         voicing_style: str = "standard"
     ) -> List[pitch.Pitch]: # pitch を使用
-        # (このメソッドのロジックは変更なし)
-        if not m21_cs or not m21_cs.pitches: return []
-        original_pitches = list(m21_cs.pitches); root = m21_cs.root()
+        if not cs or not cs.pitches: return []
+        original_pitches = list(cs.pitches); root = cs.root()
         voiced_pitches: List[pitch.Pitch] = [] # pitch を使用
         if voicing_style == "power_chord_root_fifth" and root:
             p_root = pitch.Pitch(root.name) # pitch を使用
@@ -87,7 +85,7 @@ class GuitarGenerator:
             if p_octave_root.ps <= pitch.Pitch(f"G{max_octave_top}").ps: voiced_pitches.append(p_octave_root) # pitch を使用
             return sorted(list(set(voiced_pitches)), key=lambda p: p.ps)[:num_strings]
         try:
-            temp_chord = m21_cs.semiClosedPosition(forceOctave=preferred_octave_bottom, inPlace=False) if voicing_style == "open" and hasattr(m21_cs, 'semiClosedPosition') else m21_cs.closedPosition(forceOctave=preferred_octave_bottom, inPlace=False)
+            temp_chord = cs.semiClosedPosition(forceOctave=preferred_octave_bottom, inPlace=False) if voicing_style == "open" and hasattr(cs, 'semiClosedPosition') else cs.closedPosition(forceOctave=preferred_octave_bottom, inPlace=False)
             candidate_pitches = sorted(list(temp_chord.pitches), key=lambda p: p.ps)
         except Exception: candidate_pitches = sorted(original_pitches, key=lambda p:p.ps)
         if not candidate_pitches: return []
@@ -104,7 +102,7 @@ class GuitarGenerator:
 
 
     def _create_notes_from_event(
-        self, m21_cs: harmony.ChordSymbol, guitar_params: Dict[str, Any], # harmony を使用
+        self, cs: harmony.ChordSymbol, guitar_params: Dict[str, Any], # m21_cs を cs に変更
         event_abs_offset: float, event_duration_ql: float, event_velocity: int
     ) -> List[Union[note.Note, m21chord.Chord]]: # note, m21chord を使用
         notes_for_event: List[Union[note.Note, m21chord.Chord]] = [] # note, m21chord を使用
@@ -113,12 +111,12 @@ class GuitarGenerator:
         num_strings = guitar_params.get("guitar_num_strings", 6)
         preferred_octave = guitar_params.get("guitar_target_octave", 3)
         voicing_style_name = guitar_params.get("guitar_voicing_style", "standard")
-        chord_pitches = self._get_guitar_friendly_voicing(m21_cs, num_strings, preferred_octave, voicing_style_name)
+        chord_pitches = self._get_guitar_friendly_voicing(cs, num_strings, preferred_octave, voicing_style_name)
         if not chord_pitches: return []
 
         if style == STYLE_BLOCK_CHORD:
             ch = m21chord.Chord(chord_pitches, quarterLength=event_duration_ql * 0.9) # m21chord を使用
-            for n_in_ch in ch.notes: n_in_ch.volume.velocity = event_velocity # volume を使用 (m21volume.Volumeではないので注意)
+            for n_in_ch in ch.notes: n_in_ch.volume.velocity = event_velocity # volume を使用 (m21volumeではない)
             ch.offset = event_abs_offset 
             notes_for_event.append(ch)
         elif style == STYLE_STRUM_BASIC:
@@ -132,28 +130,41 @@ class GuitarGenerator:
                 n.volume = m21volume.Volume(velocity=max(1, min(127, event_velocity + vel_adj))) # m21volume を使用
                 notes_for_event.append(n)
         elif style == STYLE_ARPEGGIO:
-            arp_pattern_type = guitar_params.get("arpeggio_type", "up")
+            arp_pattern_type = guitar_params.get("arpeggio_type", "up") # 文字列またはリストを想定
             arp_note_dur_ql = guitar_params.get("arpeggio_note_duration_ql", 0.5)
-            ordered_arp_pitches = [chord_pitches[idx % len(chord_pitches)] for idx in arp_pattern_type] if isinstance(arp_pattern_type, list) else (list(reversed(chord_pitches)) if arp_pattern_type == "down" else chord_pitches) 
+            
+            ordered_arp_pitches: List[pitch.Pitch] = [] # pitch を使用
+            if isinstance(arp_pattern_type, list): # インデックスのリストの場合
+                 ordered_arp_pitches = [chord_pitches[idx % len(chord_pitches)] for idx in arp_pattern_type if chord_pitches]
+            elif arp_pattern_type == "down":
+                ordered_arp_pitches = list(reversed(chord_pitches))
+            elif arp_pattern_type == "up_down" and len(chord_pitches) > 2 : # up_down を追加
+                ordered_arp_pitches = chord_pitches + list(reversed(chord_pitches[1:-1]))
+            else: # "up" またはデフォルト
+                ordered_arp_pitches = chord_pitches
+
             current_offset_in_event = 0.0; arp_idx = 0
             while current_offset_in_event < event_duration_ql and ordered_arp_pitches:
                 p_play = ordered_arp_pitches[arp_idx % len(ordered_arp_pitches)]
                 actual_arp_dur = min(arp_note_dur_ql, event_duration_ql - current_offset_in_event)
                 if actual_arp_dur < MIN_NOTE_DURATION_QL / 4: break
-                n = note.Note(p_play, quarterLength=actual_arp_dur * 0.95); n.volume.velocity = event_velocity # note, volume を使用
+                n = note.Note(p_play, quarterLength=actual_arp_dur * 0.95) # note を使用
+                n.volume.velocity = event_velocity # volume を使用 (m21volumeではない)
                 n.offset = event_abs_offset + current_offset_in_event 
                 notes_for_event.append(n)
                 current_offset_in_event += arp_note_dur_ql; arp_idx += 1
         elif style == STYLE_MUTED_RHYTHM:
             mute_note_dur = guitar_params.get("mute_note_duration_ql", 0.1)
             mute_interval = guitar_params.get("mute_interval_ql", 0.25)
-            t_mute = 0.0; root_mute = chord_pitches[0]
+            t_mute = 0.0
+            if not chord_pitches: return [] # chord_pitchesが空の場合は何もしない
+            root_mute = chord_pitches[0] # 少なくとも1音はあるはず
             while t_mute < event_duration_ql:
                 actual_mute_dur = min(mute_note_dur, event_duration_ql - t_mute)
                 if actual_mute_dur < MIN_NOTE_DURATION_QL / 8: break
                 n = note.Note(root_mute); n.articulations = [articulations.Staccatissimo()] # note, articulations を使用
                 n.duration.quarterLength = actual_mute_dur # duration を使用
-                n.volume.velocity = int(event_velocity * 0.6) + random.randint(-5,5) # volume を使用
+                n.volume.velocity = int(event_velocity * 0.6) + random.randint(-5,5) # volume を使用 (m21volumeではない)
                 n.offset = event_abs_offset + t_mute 
                 notes_for_event.append(n)
                 t_mute += mute_interval
@@ -179,11 +190,17 @@ class GuitarGenerator:
             if not guitar_params: continue
 
             sanitized_label = sanitize_chord_label(chord_label_str)
-            m21_cs: Optional[harmony.ChordSymbol] = None # harmony を使用
+            cs_obj: Optional[harmony.ChordSymbol] = None # harmony を使用
             if sanitized_label:
-                try: m21_cs = harmony.ChordSymbol(sanitized_label) # harmony を使用
-                except: m21_cs = None
-            if not m21_cs or not m21_cs.pitches: continue
+                try: 
+                    cs_obj = harmony.ChordSymbol(sanitized_label) # harmony を使用
+                    if not cs_obj.pitches: cs_obj = None # ピッチがない場合はNone扱い
+                except Exception: 
+                    cs_obj = None
+            if cs_obj is None: # None の場合はこのブロックをスキップ
+                logger.warning(f"GuitarGen: Skipping block {blk_idx+1} due to invalid chord label: '{chord_label_str}'")
+                continue
+
 
             rhythm_key = guitar_params.get("guitar_rhythm_key", "guitar_default_quarters")
             rhythm_details = self.rhythm_library.get(rhythm_key, self.rhythm_library.get("guitar_default_quarters"))
@@ -201,17 +218,19 @@ class GuitarGenerator:
                 event_base_velocity = int(guitar_params.get("guitar_velocity", 70) * event_velocity_factor)
 
                 generated_elements = self._create_notes_from_event(
-                    m21_cs, guitar_params, abs_event_start_offset, actual_event_dur, event_base_velocity
+                    cs_obj, guitar_params, abs_event_start_offset, actual_event_dur, event_base_velocity
                 )
                 all_generated_elements_for_part.extend(generated_elements)
         
         global_guitar_params = processed_chord_stream[0].get("part_params", {}).get("guitar", {}) if processed_chord_stream else {}
-        if global_guitar_params.get("guitar_humanize", False):
-            h_template = global_guitar_params.get("guitar_humanize_style_template", "default_guitar_subtle")
+        if global_guitar_params.get("guitar_humanize", global_guitar_params.get("humanize", False)): # humanizeキーも考慮
+            h_template = global_guitar_params.get("guitar_humanize_style_template", 
+                                                 global_guitar_params.get("humanize_style_template", "default_guitar_subtle")) # humanize_style_templateも考慮
             h_custom = {
-                k.replace("default_guitar_humanize_", "").replace("guitar_humanize_", ""): v
+                k.replace("default_guitar_humanize_", "").replace("guitar_humanize_", "").replace("humanize_", ""): v # humanize_も除去
                 for k, v in global_guitar_params.items()
-                if (k.startswith("guitar_humanize_") or k.startswith("default_guitar_humanize_")) and not k.endswith("_template") and not k.endswith("humanize")
+                if (k.startswith("guitar_humanize_") or k.startswith("default_guitar_humanize_") or k.startswith("humanize_")) 
+                   and not k.endswith("_template") and not k.endswith("humanize") and not k.endswith("_opt") # _optも除外
             }
             logger.info(f"GuitarGen: Humanizing guitar part (template: {h_template}, custom: {h_custom})")
             
@@ -227,7 +246,14 @@ class GuitarGenerator:
                 guitar_part.insert(0, tempo.MetronomeMark(number=self.global_tempo)) # tempo を使用
             if not guitar_part.getElementsByClass(meter.TimeSignature).first(): # meter を使用
                 guitar_part.insert(0, self.global_time_signature_obj.clone())
-            # key モジュールは直接使われていないが、TimeSignatureの隣にKeySignatureが来ることが多いので念のためKeyもインポートリストに追加しておく
+            # KeySignature は通常Scoreレベルで設定されるが、Partにあっても問題はない
+            # if not guitar_part.getElementsByClass(key.Key).first():
+            #     # 最初のブロックのキー情報を取得して設定するなどの処理
+            #     first_block_tonic = processed_chord_stream[0].get("tonic_of_section", "C") if processed_chord_stream else "C"
+            #     first_block_mode = processed_chord_stream[0].get("mode", "major") if processed_chord_stream else "major"
+            #     guitar_part.insert(0, key.Key(first_block_tonic, first_block_mode))
+
+
         else: 
             for el in all_generated_elements_for_part:
                 guitar_part.insert(el.offset, el)
@@ -235,5 +261,4 @@ class GuitarGenerator:
         logger.info(f"GuitarGen: Finished. Part has {len(guitar_part.flatten().notesAndRests)} elements.")
         return guitar_part
 
-# (guitar_generator.py 末尾の HUMANIZATION_TEMPLATES は削除)
 # --- END OF FILE generator/guitar_generator.py ---
