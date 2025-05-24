@@ -1,45 +1,41 @@
 # --- START OF FILE generator/piano_generator.py (ヒューマナイズ外部化版) ---
-from typing import cast, List, Dict, Optional, Tuple, Any, Sequence, Union # Union を追加
+from typing import cast, List, Dict, Optional, Tuple, Any, Sequence, Union
 
-# music21 のサブモジュールを個別にインポート
-from music21 import stream
-from music21 import note
-from music21 import harmony
-from music21 import pitch
-from music21 import meter
-from music21 import duration
-from music21 import instrument as m21instrument
-from music21 import scale
-from music21 import interval
-from music21 import tempo
-from music21 import key
-from music21 import chord as m21chord
-from music21 import expressions
-from music21 import volume as m21volume
-from music21 import exceptions21
+# music21 のサブモジュールを正しい形式でインポート
+import music21.stream as stream
+import music21.note as note
+import music21.harmony as harmony
+import music21.pitch as pitch
+import music21.meter as meter
+import music21.duration as duration
+import music21.instrument as m21instrument # 指摘された形式
+import music21.scale as scale # 元のコードで使用
+import music21.interval as interval # 元のコードで使用
+import music21.tempo as tempo
+import music21.key as key # 元のコードで使用
+import music21.chord as m21chord # 指摘された形式
+import music21.expressions as expressions
+import music21.volume as m21volume
+from music21 import exceptions21 # トップレベルからのインポート
 
 import random
 import logging
-# NumPy と copy は humanizer.py に移管されるため、ここでは不要になる可能性
-# import numpy as np
-# import copy
 
 # ユーティリティのインポート
 try:
     from utilities.core_music_utils import MIN_NOTE_DURATION_QL, get_time_signature_object, sanitize_chord_label
-    from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES # パート全体への適用を想定
+    from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES 
 except ImportError:
     logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
     logger_fallback.warning("PianoGen: Could not import from utilities. Using fallbacks.")
     MIN_NOTE_DURATION_QL = 0.125
-    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: # meter を使用
+    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
         if not ts_str: ts_str = "4/4"; return meter.TimeSignature(ts_str)
         try: return meter.TimeSignature(ts_str)
         except: return meter.TimeSignature("4/4")
     def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         if not label or label.strip().lower() in ["rest", "n.c.", "nc", "none"]: return None
         return label.strip()
-    # ダミーのヒューマナイズ関数
     def apply_humanization_to_part(part, template_name=None, custom_params=None): return part
     HUMANIZATION_TEMPLATES = {}
 
@@ -54,8 +50,8 @@ class PianoGenerator:
     def __init__(self,
                  rhythm_library: Optional[Dict[str, Dict]] = None,
                  chord_voicer_instance: Optional[Any] = None,
-                 default_instrument_rh=m21instrument.Piano(), # m21instrument を使用
-                 default_instrument_lh=m21instrument.Piano(), # m21instrument を使用
+                 default_instrument_rh=m21instrument.Piano(),
+                 default_instrument_lh=m21instrument.Piano(),
                  global_tempo: int = 120,
                  global_time_signature: str = "4/4"):
 
@@ -64,8 +60,8 @@ class PianoGenerator:
             "default_piano_quarters": {"pattern": [{"offset": i, "duration": 1.0, "velocity_factor": 0.75-(i%2*0.05)} for i in range(4)], "description": "Default quarter notes"},
             "piano_fallback_block": {"pattern": [{"offset":0.0, "duration": get_time_signature_object(global_time_signature).barDuration.quarterLength, "velocity_factor":0.7}], "description": "Fallback block chord"}
         }
-        for k, v in default_keys_to_add.items():
-            if k not in self.rhythm_library: self.rhythm_library[k] = v; logger.info(f"PianoGen: Added '{k}' to rhythm_lib.")
+        for k, v_item in default_keys_to_add.items(): # v を v_item に変更
+            if k not in self.rhythm_library: self.rhythm_library[k] = v_item; logger.info(f"PianoGen: Added '{k}' to rhythm_lib.")
 
         self.chord_voicer = chord_voicer_instance
         if not self.chord_voicer: logger.warning("PianoGen: No ChordVoicer. Using basic voicing.")
@@ -75,52 +71,51 @@ class PianoGenerator:
         self.global_time_signature_obj = get_time_signature_object(global_time_signature)
 
     def _get_piano_chord_pitches(
-            self, m21_cs: Optional[harmony.ChordSymbol], # harmony を使用
+            self, cs: Optional[harmony.ChordSymbol], # m21_cs を cs に変更
             num_voices_param: Optional[int],
             target_octave_param: int, voicing_style_name: str
-    ) -> List[pitch.Pitch]: # pitch を使用
-        if m21_cs is None or not m21_cs.pitches: return []
+    ) -> List[pitch.Pitch]:
+        if cs is None or not cs.pitches: return []
         final_num_voices = num_voices_param if num_voices_param is not None and num_voices_param > 0 else None
         if self.chord_voicer and hasattr(self.chord_voicer, '_apply_voicing_style'):
             try:
-                return self.chord_voicer._apply_voicing_style(m21_cs, voicing_style_name, target_octave_for_bottom_note=target_octave_param, num_voices_target=final_num_voices)
-            except Exception as e_cv: logger.warning(f"PianoGen: Error CV for '{m21_cs.figure}': {e_cv}. Simple voicing.", exc_info=True)
+                return self.chord_voicer._apply_voicing_style(cs, voicing_style_name, target_octave_for_bottom_note=target_octave_param, num_voices_target=final_num_voices)
+            except Exception as e_cv: logger.warning(f"PianoGen: Error CV for '{cs.figure}': {e_cv}. Simple voicing.", exc_info=True)
         
         try: 
-            temp_chord = m21_cs.closedPosition(inPlace=False)
-            if not temp_chord.pitches: return []
-            current_bottom = min(temp_chord.pitches, key=lambda p: p.ps)
-            root_name = m21_cs.root().name if m21_cs.root() else 'C'
-            target_bottom_ps = pitch.Pitch(f"{root_name}{target_octave_param}").ps # pitch を使用
+            temp_chord_obj = cs.closedPosition(inPlace=False) # temp_chord を temp_chord_obj に変更
+            if not temp_chord_obj.pitches: return []
+            current_bottom = min(temp_chord_obj.pitches, key=lambda p_sort: p_sort.ps) # p を p_sort に変更
+            root_name = cs.root().name if cs.root() else 'C'
+            target_bottom_ps = pitch.Pitch(f"{root_name}{target_octave_param}").ps
             oct_shift = round((target_bottom_ps - current_bottom.ps) / 12.0)
-            voiced_pitches = sorted([p.transpose(oct_shift * 12) for p in temp_chord.pitches], key=lambda p: p.ps)
+            voiced_pitches = sorted([p_transpose.transpose(oct_shift * 12) for p_transpose in temp_chord_obj.pitches], key=lambda p_sort: p_sort.ps) # p を p_transpose, p_sort に変更
             if final_num_voices is not None and len(voiced_pitches) > final_num_voices:
                 return voiced_pitches[:final_num_voices]
             return voiced_pitches
         except Exception as e_simple:
-            logger.warning(f"PianoGen: Simple voicing for '{m21_cs.figure}' failed: {e_simple}. Returning raw.", exc_info=True)
-            raw_p = sorted(list(m21_cs.pitches), key=lambda p: p.ps)
-            if final_num_voices is not None and raw_p: return raw_p[:final_num_voices]
-            return raw_p if raw_p else []
+            logger.warning(f"PianoGen: Simple voicing for '{cs.figure}' failed: {e_simple}. Returning raw.", exc_info=True)
+            raw_pitches = sorted(list(cs.pitches), key=lambda p_sort: p_sort.ps) # raw_p を raw_pitches, p を p_sort に変更
+            if final_num_voices is not None and raw_pitches: return raw_pitches[:final_num_voices]
+            return raw_pitches if raw_pitches else []
 
 
-    def _apply_pedal_to_part(self, part_to_apply_pedal: stream.Part, block_offset: float, block_duration: float): # stream, expressions を使用
+    def _apply_pedal_to_part(self, part_to_apply_pedal: stream.Part, block_offset: float, block_duration: float):
         if block_duration > 0.25:
-            pedal_on = expressions.TextExpression("Ped.") # expressions を使用
-            pedal_off = expressions.TextExpression("*") # expressions を使用
+            pedal_on = expressions.TextExpression("Ped."); pedal_off = expressions.TextExpression("*")
             on_time, off_time = block_offset + 0.01, block_offset + block_duration - 0.05
             if off_time > on_time:
                 part_to_apply_pedal.insert(on_time, pedal_on); part_to_apply_pedal.insert(off_time, pedal_off)
 
     def _generate_piano_hand_part_for_block(
             self, hand_LR: str,
-            m21_cs_or_rest: Optional[music21.Music21Object], # music21 を使用
+            cs_or_rest: Optional[music21.Music21Object], # m21_cs_or_rest を cs_or_rest に変更
             block_offset_ql: float, block_duration_ql: float,
             hand_specific_params: Dict[str, Any], 
             rhythm_patterns_for_piano: Dict[str, Any]
-    ) -> stream.Part: # stream を使用
+    ) -> stream.Part: 
         
-        hand_part = stream.Part(id=f"Piano{hand_LR}_temp") # stream を使用
+        hand_part_obj = stream.Part(id=f"Piano{hand_LR}_temp") # hand_part を hand_part_obj に変更
 
         rhythm_key = hand_specific_params.get(f"piano_{hand_LR.lower()}_rhythm_key")
         velocity = int(hand_specific_params.get(f"piano_velocity_{hand_LR.lower()}", 64))
@@ -130,22 +125,22 @@ class PianoGenerator:
         arp_note_ql = float(hand_specific_params.get("piano_arp_note_ql", 0.5))
         perform_style_keyword = hand_specific_params.get(f"piano_{hand_LR.lower()}_style_keyword", "simple_block")
 
-        if isinstance(m21_cs_or_rest, note.Rest): # note を使用
-            rest_obj = note.Rest(quarterLength=block_duration_ql) # note を使用
-            hand_part.insert(0, rest_obj) 
-            return hand_part
+        if isinstance(cs_or_rest, note.Rest):
+            rest_obj = note.Rest(quarterLength=block_duration_ql)
+            hand_part_obj.insert(0, rest_obj) 
+            return hand_part_obj
         
-        if not m21_cs_or_rest or not isinstance(m21_cs_or_rest, harmony.ChordSymbol) or not m21_cs_or_rest.pitches: # harmony を使用
-            rest_obj = note.Rest(quarterLength=block_duration_ql) # note を使用
-            hand_part.insert(0, rest_obj)
-            return hand_part
+        if not cs_or_rest or not isinstance(cs_or_rest, harmony.ChordSymbol) or not cs_or_rest.pitches:
+            rest_obj = note.Rest(quarterLength=block_duration_ql)
+            hand_part_obj.insert(0, rest_obj)
+            return hand_part_obj
         
-        m21_cs: harmony.ChordSymbol = cast(harmony.ChordSymbol, m21_cs_or_rest) # harmony を使用
-        base_voiced_pitches = self._get_piano_chord_pitches(m21_cs, num_voices, target_octave, voicing_style)
+        cs_current: harmony.ChordSymbol = cast(harmony.ChordSymbol, cs_or_rest) # m21_cs を cs_current に変更
+        base_voiced_pitches = self._get_piano_chord_pitches(cs_current, num_voices, target_octave, voicing_style)
         if not base_voiced_pitches:
-            rest_obj = note.Rest(quarterLength=block_duration_ql) # note を使用
-            hand_part.insert(0, rest_obj)
-            return hand_part
+            rest_obj = note.Rest(quarterLength=block_duration_ql)
+            hand_part_obj.insert(0, rest_obj)
+            return hand_part_obj
 
         rhythm_details = rhythm_patterns_for_piano.get(rhythm_key if rhythm_key else "")
         if not rhythm_details or "pattern" not in rhythm_details:
@@ -165,11 +160,11 @@ class PianoGenerator:
                 if not current_edm_pitches: continue
                 actual_edm_event_duration = min(edm_step, block_duration_ql - (i * edm_step))
                 if actual_edm_event_duration < MIN_NOTE_DURATION_QL / 4: continue
-                el_add = m21chord.Chord(current_edm_pitches) if len(current_edm_pitches) > 1 else note.Note(current_edm_pitches[0]) # m21chord, note を使用
-                el_add.quarterLength = actual_edm_event_duration * 0.9
-                el_add.volume = m21volume.Volume(velocity=velocity + random.randint(-5,5)) # m21volume を使用
-                hand_part.insert(i * edm_step, el_add) 
-            return hand_part 
+                el_add_edm = m21chord.Chord(current_edm_pitches) if len(current_edm_pitches) > 1 else note.Note(current_edm_pitches[0]) # el_add を el_add_edm に変更
+                el_add_edm.quarterLength = actual_edm_event_duration * 0.9
+                el_add_edm.volume = m21volume.Volume(velocity=velocity + random.randint(-5,5))
+                hand_part_obj.insert(i * edm_step, el_add_edm) 
+            return hand_part_obj 
 
         for event_params in pattern_events:
             event_offset = float(event_params.get("offset", 0.0))
@@ -186,37 +181,38 @@ class PianoGenerator:
                 ordered_arp_pitches = list(reversed(base_voiced_pitches)) if arp_type == "down" else (base_voiced_pitches + list(reversed(base_voiced_pitches[1:-1])) if arp_type == "up_down" and len(base_voiced_pitches)>2 else base_voiced_pitches)
                 current_offset_in_arp = 0.0; arp_idx = 0
                 while current_offset_in_arp < actual_event_duration and ordered_arp_pitches:
-                    p_arp = ordered_arp_pitches[arp_idx % len(ordered_arp_pitches)]
+                    p_arp_note = ordered_arp_pitches[arp_idx % len(ordered_arp_pitches)] # p_arp を p_arp_note に変更
                     single_arp_dur = min(arp_note_ql, actual_event_duration - current_offset_in_arp)
                     if single_arp_dur < MIN_NOTE_DURATION_QL / 4.0: break
-                    arp_note_obj = note.Note(p_arp, quarterLength=single_arp_dur * 0.95) # note を使用
-                    arp_note_obj.volume = m21volume.Volume(velocity=current_event_vel + random.randint(-3,3)) # m21volume を使用
-                    hand_part.insert(abs_event_start_offset_in_block + current_offset_in_arp, arp_note_obj)
+                    arp_note_created = note.Note(p_arp_note, quarterLength=single_arp_dur * 0.95) # arp_note_obj を arp_note_created に変更
+                    arp_note_created.volume = m21volume.Volume(velocity=current_event_vel + random.randint(-3,3))
+                    hand_part_obj.insert(abs_event_start_offset_in_block + current_offset_in_arp, arp_note_created)
                     current_offset_in_arp += arp_note_ql; arp_idx += 1
             else:
                 pitches_to_play = []
                 if hand_LR == "LH":
                     lh_event_type = event_params.get("type", "root").lower()
-                    lh_root = min(base_voiced_pitches, key=lambda p:p.ps) if base_voiced_pitches else (m21_cs.root() if m21_cs else pitch.Pitch(f"C{DEFAULT_PIANO_LH_OCTAVE}")) # pitch を使用
-                    if lh_event_type == "root" and lh_root: pitches_to_play.append(lh_root)
-                    elif lh_event_type == "octave_root" and lh_root: pitches_to_play.extend([lh_root, lh_root.transpose(12)])
+                    # cs_current はこのスコープにないため、cs_current を使用
+                    lh_root_pitch = min(base_voiced_pitches, key=lambda p:p.ps) if base_voiced_pitches else (cs_current.root() if cs_current else pitch.Pitch(f"C{DEFAULT_PIANO_LH_OCTAVE}")) # lh_root を lh_root_pitch に変更
+                    if lh_event_type == "root" and lh_root_pitch: pitches_to_play.append(lh_root_pitch)
+                    elif lh_event_type == "octave_root" and lh_root_pitch: pitches_to_play.extend([lh_root_pitch, lh_root_pitch.transpose(12)])
                     elif base_voiced_pitches: pitches_to_play.append(min(base_voiced_pitches, key=lambda p:p.ps))
                 else: pitches_to_play = base_voiced_pitches
                 
                 if pitches_to_play:
-                    el = m21chord.Chord(pitches_to_play) if len(pitches_to_play) > 1 else note.Note(pitches_to_play[0]) # m21chord, note を使用
-                    el.quarterLength = actual_event_duration * 0.9
-                    for n_chord_note in el.notes if isinstance(el, m21chord.Chord) else [el]: n_chord_note.volume = m21volume.Volume(velocity=current_event_vel) # m21chord, m21volume を使用
-                    hand_part.insert(abs_event_start_offset_in_block, el)
+                    el_play = m21chord.Chord(pitches_to_play) if len(pitches_to_play) > 1 else note.Note(pitches_to_play[0]) # el を el_play に変更
+                    el_play.quarterLength = actual_event_duration * 0.9
+                    for n_in_chord in el_play.notes if isinstance(el_play, m21chord.Chord) else [el_play]: n_in_chord.volume = m21volume.Volume(velocity=current_event_vel) # n_chord を n_in_chord に変更
+                    hand_part_obj.insert(abs_event_start_offset_in_block, el_play)
         
-        return hand_part
+        return hand_part_obj
 
 
-    def compose(self, processed_chord_stream: List[Dict]) -> stream.Score: # stream を使用
-        piano_score = stream.Score(id="PianoScore") # stream を使用
-        piano_rh_part = stream.Part(id="PianoRH"); piano_rh_part.insert(0, self.instrument_rh) # stream を使用
-        piano_lh_part = stream.Part(id="PianoLH"); piano_lh_part.insert(0, self.instrument_lh) # stream を使用
-        piano_score.insert(0, tempo.MetronomeMark(number=self.global_tempo)) # tempo を使用
+    def compose(self, processed_chord_stream: List[Dict]) -> stream.Score:
+        piano_score = stream.Score(id="PianoScore")
+        piano_rh_part = stream.Part(id="PianoRH"); piano_rh_part.insert(0, self.instrument_rh)
+        piano_lh_part = stream.Part(id="PianoLH"); piano_lh_part.insert(0, self.instrument_lh)
+        piano_score.insert(0, tempo.MetronomeMark(number=self.global_tempo))
         piano_score.insert(0, self.global_time_signature_obj.clone())
 
         if not processed_chord_stream:
@@ -233,42 +229,42 @@ class PianoGenerator:
             
             logger.debug(f"Piano Blk {blk_idx+1}: AbsOff={block_offset_abs}, Dur={block_dur}, Lbl='{chord_lbl_original}', Prms: {piano_params}")
 
-            cs_or_rest_obj: Optional[music21.Music21Object] = None # music21 を使用
+            cs_or_rest_current: Optional[music21.Music21Object] = None # cs_or_rest_obj を cs_or_rest_current に変更
             sanitized_label = sanitize_chord_label(chord_lbl_original)
-            if sanitized_label is None: cs_or_rest_obj = note.Rest(quarterLength=block_dur) # note を使用
+            if sanitized_label is None: cs_or_rest_current = note.Rest(quarterLength=block_dur)
             else:
                 try:
-                    cs_or_rest_obj = harmony.ChordSymbol(sanitized_label) # harmony を使用
-                    if not cs_or_rest_obj.pitches: cs_or_rest_obj = note.Rest(quarterLength=block_dur) # note を使用
-                except Exception: cs_or_rest_obj = note.Rest(quarterLength=block_dur) # note を使用
+                    cs_or_rest_current = harmony.ChordSymbol(sanitized_label)
+                    if not cs_or_rest_current.pitches: cs_or_rest_current = note.Rest(quarterLength=block_dur)
+                except Exception: cs_or_rest_current = note.Rest(quarterLength=block_dur)
             
-            rh_block_part = self._generate_piano_hand_part_for_block("RH", cs_or_rest_obj, 0, block_dur, piano_params, self.rhythm_library)
-            lh_block_part = self._generate_piano_hand_part_for_block("LH", cs_or_rest_obj, 0, block_dur, piano_params, self.rhythm_library)
+            rh_block_part = self._generate_piano_hand_part_for_block("RH", cs_or_rest_current, 0, block_dur, piano_params, self.rhythm_library)
+            lh_block_part = self._generate_piano_hand_part_for_block("LH", cs_or_rest_current, 0, block_dur, piano_params, self.rhythm_library)
 
-            for el_rh in rh_block_part.flatten().notesAndRests:
-                piano_rh_part.insert(block_offset_abs + el_rh.offset, el_rh)
-            for el_lh in lh_block_part.flatten().notesAndRests:
-                piano_lh_part.insert(block_offset_abs + el_lh.offset, el_lh)
+            for el_rh_final in rh_block_part.flat.notesAndRests: # el_rh を el_rh_final に変更, flatten() を flat に変更
+                piano_rh_part.insert(block_offset_abs + el_rh_final.offset, el_rh_final)
+            for el_lh_final in lh_block_part.flat.notesAndRests: # el_lh を el_lh_final に変更, flatten() を flat に変更
+                piano_lh_part.insert(block_offset_abs + el_lh_final.offset, el_lh_final)
             
-            if piano_params.get("piano_apply_pedal", True) and not isinstance(cs_or_rest_obj, note.Rest): # note を使用
+            if piano_params.get("piano_apply_pedal", True) and not isinstance(cs_or_rest_current, note.Rest):
                 self._apply_pedal_to_part(piano_lh_part, block_offset_abs, block_dur)
 
         global_piano_params = processed_chord_stream[0].get("part_params", {}).get("piano", {}) if processed_chord_stream else {}
         
-        if global_piano_params.get("piano_humanize_rh", global_piano_params.get("piano_humanize", False)):
+        if global_piano_params.get("piano_humanize_rh", global_piano_params.get("humanize", False)):
             rh_template = global_piano_params.get("piano_humanize_style_template", "piano_gentle_arpeggio")
-            rh_custom = {k.replace("piano_humanize_rh_", ""):v for k,v in global_piano_params.items() if k.startswith("piano_humanize_rh_") and not k.endswith("_template")}
+            rh_custom = {k.replace("piano_humanize_rh_", ""):v_val for k,v_val in global_piano_params.items() if k.startswith("piano_humanize_rh_") and not k.endswith("_template")} # v を v_val に変更
             logger.info(f"PianoGen: Humanizing RH part (template: {rh_template}, custom: {rh_custom})")
             piano_rh_part = apply_humanization_to_part(piano_rh_part, template_name=rh_template, custom_params=rh_custom)
 
         if global_piano_params.get("piano_humanize_lh", global_piano_params.get("piano_humanize", False)):
             lh_template = global_piano_params.get("piano_humanize_style_template", "piano_block_chord") 
-            lh_custom = {k.replace("piano_humanize_lh_", ""):v for k,v in global_piano_params.items() if k.startswith("piano_humanize_lh_") and not k.endswith("_template")}
+            lh_custom = {k.replace("piano_humanize_lh_", ""):v_val for k,v_val in global_piano_params.items() if k.startswith("piano_humanize_lh_") and not k.endswith("_template")} # v を v_val に変更
             logger.info(f"PianoGen: Humanizing LH part (template: {lh_template}, custom: {lh_custom})")
             piano_lh_part = apply_humanization_to_part(piano_lh_part, template_name=lh_template, custom_params=lh_custom)
 
         piano_score.append(piano_rh_part); piano_score.append(piano_lh_part)
-        logger.info(f"PianoGen: Finished. RH notes: {len(piano_rh_part.flatten().notesAndRests)}, LH notes: {len(piano_lh_part.flatten().notesAndRests)}")
+        logger.info(f"PianoGen: Finished. RH notes: {len(list(piano_rh_part.flat.notesAndRests))}, LH notes: {len(list(piano_lh_part.flat.notesAndRests))}") # flatten() を flat に変更
         return piano_score
 
 # --- END OF FILE generators/piano_generator.py ---
