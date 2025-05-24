@@ -16,11 +16,10 @@ import music21.key as key
 import music21.chord      as m21chord # check_imports.py の期待する形式 (スペースに注意)
 import music21.volume as m21volume
 from music21 import expressions 
-# from music21 import dynamics 
-
-import random
-import logging
+# from music21 import dynamics # 元コードで使用箇所が見当たらないためコメントアウトのまま
 import re 
+import random 
+import logging 
 
 logger = logging.getLogger(__name__)
 
@@ -100,7 +99,8 @@ class ChordVoicer:
             return []
 
         voiced_pitches_list: List[pitch.Pitch] = []
-        temp_closed_chord = m21chord.Chord(cs_obj.pitches) 
+        # music21.chord.Chord オブジェクトの closedPosition メソッドを使用
+        temp_closed_chord = m21chord.Chord(cs_obj.pitches) # 一時的なChordオブジェクトを作成
         original_closed_pitches = sorted(list(temp_closed_chord.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
         
         if not original_closed_pitches: 
