@@ -8,12 +8,12 @@ import music21.harmony as harmony
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # 指摘された形式
-import music21.scale as scale # 元のコードで使用
-import music21.interval as interval # 元のコードで使用
+import music21.instrument as m21instrument 
+import music21.scale as scale 
+import music21.interval as interval 
 import music21.tempo as tempo
-import music21.key as key # 元のコードで使用
-import music21.chord as m21chord # 指摘された形式
+import music21.key as key 
+import music21.chord as m21chord # check_imports.py の指摘に基づき修正
 import music21.articulations as articulations
 import music21.volume as m21volume
 import music21.expressions as expressions
@@ -81,21 +81,21 @@ class GuitarGenerator:
             p_octave_root = p_root.transpose(interval.PerfectOctave()) 
             voiced_pitches = [p_root, p_fifth]
             if p_octave_root.ps <= pitch.Pitch(f"G{max_octave_top}").ps: voiced_pitches.append(p_octave_root) 
-            return sorted(list(set(voiced_pitches)), key=lambda p_sort: p_sort.ps)[:num_strings] # p を p_sort に変更
+            return sorted(list(set(voiced_pitches)), key=lambda p_sort: p_sort.ps)[:num_strings]
         try:
             temp_chord = cs.semiClosedPosition(forceOctave=preferred_octave_bottom, inPlace=False) if voicing_style == "open" and hasattr(cs, 'semiClosedPosition') else cs.closedPosition(forceOctave=preferred_octave_bottom, inPlace=False)
-            candidate_pitches = sorted(list(temp_chord.pitches), key=lambda p_sort: p_sort.ps) # p を p_sort に変更
-        except Exception: candidate_pitches = sorted(original_pitches, key=lambda p_sort:p_sort.ps) # p を p_sort に変更
+            candidate_pitches = sorted(list(temp_chord.pitches), key=lambda p_sort: p_sort.ps)
+        except Exception: candidate_pitches = sorted(original_pitches, key=lambda p_sort:p_sort.ps)
         if not candidate_pitches: return []
         bottom_target_ps = pitch.Pitch(f"E{preferred_octave_bottom}").ps 
         if candidate_pitches[0].ps < bottom_target_ps - 6:
             oct_shift = round((bottom_target_ps - candidate_pitches[0].ps) / 12.0)
-            candidate_pitches = [p_cand.transpose(oct_shift * 12) for p_cand in candidate_pitches]; candidate_pitches.sort(key=lambda p_sort: p_sort.ps) # p を p_cand, p_sort に変更
+            candidate_pitches = [p_cand.transpose(oct_shift * 12) for p_cand in candidate_pitches]; candidate_pitches.sort(key=lambda p_sort: p_sort.ps)
         selected_dict: Dict[str, pitch.Pitch] = {} 
-        for p_cand_select in candidate_pitches: # p_cand を p_cand_select に変更
+        for p_cand_select in candidate_pitches: 
             if p_cand_select.name not in selected_dict and pitch.Pitch(f"E{DEFAULT_GUITAR_OCTAVE_RANGE[0]-1}").ps <= p_cand_select.ps <= pitch.Pitch(f"G{DEFAULT_GUITAR_OCTAVE_RANGE[1]+1}").ps: 
                 selected_dict[p_cand_select.name] = p_cand_select
-        voiced_pitches = sorted(list(selected_dict.values()), key=lambda p_sort:p_sort.ps) # p を p_sort に変更
+        voiced_pitches = sorted(list(selected_dict.values()), key=lambda p_sort:p_sort.ps)
         return voiced_pitches[:num_strings]
 
 
@@ -120,8 +120,8 @@ class GuitarGenerator:
         elif style == STYLE_STRUM_BASIC:
             is_down = guitar_params.get("strum_direction", "down").lower() == "down"
             play_order = list(reversed(chord_pitches)) if is_down else chord_pitches
-            for i, p_obj_strum in enumerate(play_order): # p_obj を p_obj_strum に変更
-                n_strum = note.Note(p_obj_strum) # n を n_strum に変更
+            for i, p_obj_strum in enumerate(play_order): 
+                n_strum = note.Note(p_obj_strum) 
                 n_strum.duration = duration.Duration(quarterLength=max(MIN_STRUM_NOTE_DURATION_QL, event_duration_ql * 0.9)) 
                 n_strum.offset = event_abs_offset + (i * GUITAR_STRUM_DELAY_QL) 
                 vel_adj = int(((len(play_order)-1-i)/(len(play_order)-1)*10)-5) if is_down and len(play_order)>1 else (int((i/(len(play_order)-1)*10)-5) if len(play_order)>1 else 0)
@@ -143,11 +143,12 @@ class GuitarGenerator:
 
             current_offset_in_event = 0.0; arp_idx = 0
             while current_offset_in_event < event_duration_ql and ordered_arp_pitches:
-                p_play_arp = ordered_arp_pitches[arp_idx % len(ordered_arp_pitches)] # p_play を p_play_arp に変更
+                p_play_arp = ordered_arp_pitches[arp_idx % len(ordered_arp_pitches)] 
                 actual_arp_dur = min(arp_note_dur_ql, event_duration_ql - current_offset_in_event)
                 if actual_arp_dur < MIN_NOTE_DURATION_QL / 4: break
-                n_arp = note.Note(p_play_arp, quarterLength=actual_arp_dur * 0.95) # n を n_arp に変更
-                n_arp.volume.velocity = event_velocity 
+                n_arp = note.Note(p_play_arp, quarterLength=actual_arp_dur * 0.95) 
+                # n_arp.volume.velocity = event_velocity # m21volume.Volume を使うべき
+                n_arp.volume = m21volume.Volume(velocity=event_velocity)
                 n_arp.offset = event_abs_offset + current_offset_in_event 
                 notes_for_event.append(n_arp)
                 current_offset_in_event += arp_note_dur_ql; arp_idx += 1
@@ -160,9 +161,10 @@ class GuitarGenerator:
             while t_mute < event_duration_ql:
                 actual_mute_dur = min(mute_note_dur, event_duration_ql - t_mute)
                 if actual_mute_dur < MIN_NOTE_DURATION_QL / 8: break
-                n_mute = note.Note(root_mute); n_mute.articulations = [articulations.Staccatissimo()] # n を n_mute に変更
+                n_mute = note.Note(root_mute); n_mute.articulations = [articulations.Staccatissimo()] 
                 n_mute.duration.quarterLength = actual_mute_dur 
-                n_mute.volume.velocity = int(event_velocity * 0.6) + random.randint(-5,5) 
+                # n_mute.volume.velocity = int(event_velocity * 0.6) + random.randint(-5,5) # m21volume.Volume を使うべき
+                n_mute.volume = m21volume.Volume(velocity=int(event_velocity * 0.6) + random.randint(-5,5))
                 n_mute.offset = event_abs_offset + t_mute 
                 notes_for_event.append(n_mute)
                 t_mute += mute_interval
@@ -188,7 +190,7 @@ class GuitarGenerator:
             if not guitar_params: continue
 
             sanitized_label = sanitize_chord_label(chord_label_str)
-            cs_object: Optional[harmony.ChordSymbol] = None # cs_obj を cs_object に変更
+            cs_object: Optional[harmony.ChordSymbol] = None 
             if sanitized_label:
                 try: 
                     cs_object = harmony.ChordSymbol(sanitized_label) 
@@ -233,7 +235,7 @@ class GuitarGenerator:
             logger.info(f"GuitarGen: Humanizing guitar part (template: {h_template}, custom: {h_custom})")
             
             temp_part_for_humanize = stream.Part() 
-            for el_item_guitar in all_generated_elements_for_part: # el を el_item_guitar に変更
+            for el_item_guitar in all_generated_elements_for_part: 
                 temp_part_for_humanize.insert(el_item_guitar.offset, el_item_guitar) 
             
             guitar_part = apply_humanization_to_part(temp_part_for_humanize, template_name=h_template, custom_params=h_custom)
@@ -245,10 +247,10 @@ class GuitarGenerator:
             if not guitar_part.getElementsByClass(meter.TimeSignature).first(): 
                 guitar_part.insert(0, self.global_time_signature_obj.clone())
         else: 
-            for el_item_guitar_final in all_generated_elements_for_part: # el を el_item_guitar_final に変更
+            for el_item_guitar_final in all_generated_elements_for_part: 
                 guitar_part.insert(el_item_guitar_final.offset, el_item_guitar_final)
 
-        logger.info(f"GuitarGen: Finished. Part has {len(list(guitar_part.flat.notesAndRests))} elements.") # flatten() を flat に変更
+        logger.info(f"GuitarGen: Finished. Part has {len(list(guitar_part.flat.notesAndRests))} elements.") 
         return guitar_part
 
 # --- END OF FILE generator/guitar_generator.py ---
