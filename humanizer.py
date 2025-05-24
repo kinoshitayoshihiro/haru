@@ -10,7 +10,7 @@ from music21 import note, chord as m21chord, volume, duration, pitch # m21chord 
 
 # core_music_utils から MIN_NOTE_DURATION_QL をインポートしたい場合
 try:
-    from .core_music_utils import MIN_NOTE_DURATION_QL
+    from utilities.core_music_utils import MIN_NOTE_DURATION_QL
 except ImportError:
     MIN_NOTE_DURATION_QL = 0.125 # フォールバック値
 
