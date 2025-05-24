@@ -544,8 +544,8 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts: 
-                        if sub_part.flat.notesAndRests: final_score.insert(0, sub_part) 
-                elif isinstance(part_obj, stream.Part) and part_obj.flat.notesAndRests: 
+                        if sub_part.flatten().notesAndRests: final_score.insert(0, sub_part) 
+                elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests: 
                     final_score.insert(0, part_obj) 
                 logger.info(f"{p_n} part generated.")
             except Exception as e_gen: logger.error(f"Error in {p_n} generation: {e_gen}", exc_info=True)
@@ -556,7 +556,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
     out_fpath = cli_args.output_dir / actual_out_fname
     out_fpath.parent.mkdir(parents=True,exist_ok=True)
     try:
-        if final_score.flat.notesAndRests: 
+        if final_score.flatten().notesAndRests: 
             final_score.write('midi',fp=str(out_fpath))
             logger.info(f"🎉 MIDI exported to {out_fpath}")
         else: 
