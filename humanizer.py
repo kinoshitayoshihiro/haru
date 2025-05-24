@@ -1,4 +1,5 @@
 # --- START OF FILE utilities/humanizer.py (役割特化版) ---
+import music21 # name 'music21' is not defined エラー対策
 import random
 import math
 import copy
@@ -6,7 +7,7 @@ from typing import List, Dict, Any, Union, Optional, cast
 
 # music21 のサブモジュールを正しい形式でインポート
 import music21.note as note 
-import music21.chord as m21chord # check_imports.py の期待する形式 (スペースに注意)
+import music21.chord      as m21chord # check_imports.py の期待する形式 (スペースに注意)
 import music21.volume as volume 
 import music21.duration as duration 
 import music21.pitch as pitch 
