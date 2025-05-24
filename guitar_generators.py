@@ -3,7 +3,7 @@ import music21
 from typing import List, Dict, Optional, Tuple, Any, Sequence, Union
 from music21 import (stream, note, harmony, pitch, meter, duration,
                      instrument as m21instrument, scale, interval, tempo, key,
-                     chord as m21chord.Chord, articulations, volume as m21volume, expressions)
+                     chord as m21chord, articulations, volume as m21volume, expressions)
 import random
 import logging
 # import numpy as np # humanizer.py に移管
