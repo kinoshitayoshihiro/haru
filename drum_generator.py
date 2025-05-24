@@ -1,7 +1,17 @@
 # --- START OF FILE generator/drum_generator.py (ヒューマナイズ外部化版) ---
-import music21
-from typing import List, Dict, Optional, Tuple, Any, Sequence, Union
-from music21 import stream, note, tempo, meter, instrument as m21instrument, volume, duration, pitch
+# import music21 # 不要なため削除
+from typing import List, Dict, Optional, Tuple, Any, Sequence, Union, cast # cast を追加
+
+# music21 のサブモジュールを個別にインポート
+from music21 import stream
+from music21 import note
+from music21 import tempo
+from music21 import meter
+from music21 import instrument as m21instrument # エイリアスを維持
+from music21 import volume
+from music21 import duration
+from music21 import pitch
+
 import random
 import logging
 # import numpy as np # humanizer.py に移管
@@ -16,7 +26,7 @@ except ImportError:
     logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
     logger_fallback.warning("DrumGen: Could not import from utilities. Using fallbacks.")
     MIN_NOTE_DURATION_QL = 0.125
-    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
+    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: # meterを直接使用
         if not ts_str: ts_str = "4/4"; return meter.TimeSignature(ts_str)
         try: return meter.TimeSignature(ts_str)
         except: return meter.TimeSignature("4/4")
@@ -35,7 +45,7 @@ DEFAULT_DRUM_PATTERNS_LIB = {"default_drum_pattern": {"description":"Default sim
 class DrumGenerator:
     def __init__(self,
                  drum_pattern_library: Optional[Dict[str, Dict[str, Any]]] = None,
-                 default_instrument=m21instrument.Percussion(),
+                 default_instrument=m21instrument.Percussion(), # m21instrumentを使用
                  global_tempo: int = 120,
                  global_time_signature: str = "4/4"):
         # (初期化ロジックは変更なし)
@@ -57,16 +67,18 @@ class DrumGenerator:
         midi_val = GM_DRUM_MAP.get(drum_sound_name.lower().replace(" ","_").replace("-","_"))
         if midi_val is None: logger.warning(f"DrumGen: Sound '{drum_sound_name}' not in GM_DRUM_MAP. Skip."); return None
         try:
-            hit = note.Note(); hit.pitch = pitch.Pitch(); hit.pitch.midi = midi_val
-            hit.duration = duration.Duration(quarterLength=max(MIN_NOTE_DURATION_QL/4, duration_ql_val))
-            hit.volume = volume.Volume(velocity=max(1,min(127,velocity_val)))
+            hit = note.Note() # noteを使用
+            hit.pitch = pitch.Pitch() # pitchを使用
+            hit.pitch.midi = midi_val
+            hit.duration = duration.Duration(quarterLength=max(MIN_NOTE_DURATION_QL/4, duration_ql_val)) # durationを使用
+            hit.volume = volume.Volume(velocity=max(1,min(127,velocity_val))) # volumeを使用
             return hit
         except Exception as e: logger.error(f"DrumGen: Error creating hit '{drum_sound_name}': {e}", exc_info=True); return None
 
     def _apply_drum_pattern_to_measure(
-        self, target_part: stream.Part, pattern_events: List[Dict[str, Any]],
+        self, target_part: stream.Part, pattern_events: List[Dict[str, Any]], # streamを使用
         measure_abs_start_offset: float, measure_duration_ql: float, base_velocity: int,
-        humanize_params_for_hit: Optional[Dict[str, Any]] = None # ★ ヒューマナイズパラメータを受け取る
+        humanize_params_for_hit: Optional[Dict[str, Any]] = None 
     ):
         # (このメソッドのロジックは変更なし、humanize_params_for_hit を apply_humanization_to_element に渡す)
         if not pattern_events: return
@@ -83,22 +95,17 @@ class DrumGenerator:
                 if actual_hit_duration_ql < MIN_NOTE_DURATION_QL / 8: continue
                 drum_hit = self._create_drum_hit(instrument_name, final_velocity, actual_hit_duration_ql)
                 if drum_hit:
-                    # ★ ヒットごとにヒューマナイズを適用 ★
                     if humanize_params_for_hit:
-                        # apply_humanization_to_element はテンプレート名も受け取れるが、
-                        # ここでは既に解決済みのパラメータ辞書を渡す
-                        drum_hit = cast(note.Note, apply_humanization_to_element(drum_hit, custom_params=humanize_params_for_hit))
+                        drum_hit = cast(note.Note, apply_humanization_to_element(drum_hit, custom_params=humanize_params_for_hit)) # note, castを使用
                     
-                    # オフセットはここで絶対値に設定
-                    drum_hit.offset = 0 # 一旦リセット（apply_humanization_to_elementが変更するため）
+                    drum_hit.offset = 0 
                     target_part.insert(measure_abs_start_offset + event_offset_in_pattern + drum_hit.offset, drum_hit)
 
 
-    def compose(self, processed_chord_stream: List[Dict]) -> stream.Part:
-        drum_part = stream.Part(id="Drums")
-        # (初期設定は変更なし)
+    def compose(self, processed_chord_stream: List[Dict]) -> stream.Part: # streamを使用
+        drum_part = stream.Part(id="Drums") # streamを使用
         drum_part.insert(0, self.default_instrument)
-        drum_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
+        drum_part.insert(0, tempo.MetronomeMark(number=self.global_tempo)) # tempoを使用
         drum_part.insert(0, self.global_time_signature_obj.clone())
 
         if not processed_chord_stream: return drum_part
@@ -106,25 +113,21 @@ class DrumGenerator:
         
         measures_since_last_fill = 0
         for blk_idx, blk_data in enumerate(processed_chord_stream):
-            # (パラメータ取得は変更なし)
             block_offset_ql = float(blk_data.get("offset", 0.0))
             block_duration_ql = float(blk_data.get("q_length", self.global_time_signature_obj.barDuration.quarterLength))
-            drum_params = blk_data.get("part_params", {}).get("drums", {}) # "drums" に修正
+            drum_params = blk_data.get("part_params", {}).get("drums", {}) 
             style_key = drum_params.get("drum_style_key", "default_drum_pattern")
-            base_velocity = int(drum_params.get("drum_base_velocity", 80)) # "drum_base_velocity" に修正
+            base_velocity = int(drum_params.get("drum_base_velocity", 80)) 
             fill_interval = drum_params.get("drum_fill_interval_bars", 0)
             fill_options = drum_params.get("drum_fill_keys", [])
             block_fill_key = drum_params.get("drum_fill_key_override")
 
-            # ★ ヒューマナイズ設定をここで解決 ★
-            humanize_this_block = drum_params.get("humanize", True) # modular_composerから渡される想定
+            humanize_this_block = drum_params.get("humanize", True) 
             humanize_params_for_hits_in_block: Optional[Dict[str, Any]] = None
             if humanize_this_block:
-                template_name = drum_params.get("humanize_style_template", "drum_loose_fbm") # ドラム用のテンプレート
-                # HUMANIZATION_TEMPLATES は utilities.humanizer からインポート済みと仮定
+                template_name = drum_params.get("humanize_style_template", "drum_loose_fbm") 
                 base_h_params = HUMANIZATION_TEMPLATES.get(template_name, HUMANIZATION_TEMPLATES.get("default_subtle", {}))
                 humanize_params_for_hits_in_block = base_h_params.copy()
-                # 個別パラメータで上書き
                 custom_h_overrides = {
                     k.replace("humanize_",""):v for k,v in drum_params.items() 
                     if k.startswith("humanize_") and not k.endswith("_template") and not k == "humanize"
@@ -167,7 +170,7 @@ class DrumGenerator:
                 self._apply_drum_pattern_to_measure(
                     drum_part, pattern_to_apply, measure_start_abs,
                     current_measure_iter_dur, base_velocity,
-                    humanize_params_for_hits_in_block # ★ ヒューマナイズパラメータを渡す
+                    humanize_params_for_hits_in_block 
                 )
                 
                 if applied_fill: measures_since_last_fill = 0
