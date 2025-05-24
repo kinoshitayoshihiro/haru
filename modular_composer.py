@@ -1,18 +1,19 @@
-# --- START OF FILE modular_composer.py (楽器名とインポート修正) ---
-import music21 # name 'music21' is not defined エラー対策
+# --- START OF FILE modular_composer.py (エラー修正版) ---
+import music21 
 import sys
 import os
 import json
 import argparse
 import logging
+
 # music21 のサブモジュールを正しい形式でインポート
 import music21.stream as stream
 import music21.tempo as tempo
 import music21.instrument as m21instrument
-import music21.midi as midi # midiモジュールもインポート
+import music21.midi as midi 
 import music21.meter as meter
 import music21.key as key
-from music21 import exceptions21 # exceptions21 をインポート
+from music21 import exceptions21 
 
 from pathlib import Path
 from typing import List, Dict, Optional, Any, cast, Sequence
@@ -38,7 +39,7 @@ logger = logging.getLogger("modular_composer")
 DEFAULT_CONFIG = {
     "global_tempo": 100, "global_time_signature": "4/4", "global_key_tonic": "C", "global_key_mode": "major",
     "parts_to_generate": {
-        "piano": True, "drums": True, "guitar": True, "bass": True,
+        "piano": True, "drums": True, "guitar": True, "bass": True, 
         "chords": True, "melody": False, "vocal": True
     },
     "default_part_parameters": {
@@ -58,7 +59,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.005, "default_humanize_fbm_hurst": 0.7
         },
         "drums": {
-            "instrument": "Percussion",
+            "instrument": "Percussion", # music21.instrument.Percussion() でオブジェクトが取れる
             "emotion_to_style_key": {"default_style": "default_drum_pattern", "quiet_pain_and_nascent_strength": "no_drums", "deep_regret_gratitude_and_realization": "ballad_soft_kick_snare_8th_hat", "acceptance_of_love_and_pain_hopeful_belief": "anthem_rock_chorus_16th_hat", "self_reproach_regret_deep_sadness": "no_drums_or_sparse_cymbal", "supported_light_longing_for_rebirth": "rock_ballad_build_up_8th_hat", "reflective_transition_instrumental_passage": "no_drums_or_gentle_cymbal_swell", "trial_cry_prayer_unbreakable_heart": "rock_ballad_build_up_8th_hat", "memory_unresolved_feelings_silence": "no_drums", "wavering_heart_gratitude_chosen_strength": "ballad_soft_kick_snare_8th_hat", "reaffirmed_strength_of_love_positive_determination": "anthem_rock_chorus_16th_hat", "hope_dawn_light_gentle_guidance": "no_drums_or_gentle_cymbal_swell", "nature_memory_floating_sensation_forgiveness": "no_drums_or_sparse_chimes", "future_cooperation_our_path_final_resolve_and_liberation": "anthem_rock_chorus_16th_hat"},
             "intensity_to_base_velocity": {"default": [70,80], "low": [55,65], "medium_low": [60,70], "medium": [70,80], "medium_high": [75,85], "high": [85,95], "high_to_very_high_then_fade": [90,105]},
             "default_fill_interval_bars": 4, "default_fill_keys": ["simple_snare_roll_half_bar", "chorus_end_fill"],
@@ -75,7 +76,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Vocalist",
+            "instrument": "Vocalist", # music21.instrument.fromString("Vocalist") で取得可能
             "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json", "lyrics_text_path": "data/kasi_rist.json", "lyrics_timeline_path": "data/lyrics_timeline.json"},
             "default_insert_breaths_opt": True, "default_breath_duration_ql_opt": 0.25,
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth", 
@@ -90,7 +91,7 @@ DEFAULT_CONFIG = {
             "default_humanize_time_var": 0.01, "default_humanize_dur_perc": 0.03, "default_humanize_vel_var": 5
         },
         "melody": {
-            "instrument": "Flute", 
+            "instrument": "Flute", # music21.instrument.Flute() でオブジェクトが取れる
             "default_rhythm_key": "default_melody_rhythm", 
             "default_octave_range": [4,5], 
             "default_density": 0.7, 
@@ -102,7 +103,7 @@ DEFAULT_CONFIG = {
             "default_humanize_vel_var": 4
         },
         "chords": {
-            "instrument": "StringEnsemble", # 例: "Violin", "Violoncello", "String Ensemble" など具体的な楽器名が良い場合も
+            "instrument": "String Ensemble", # ★★★ 修正: スペースを追加 ★★★ (例: "Violin", "Violoncello", "String Ensemble" など)
             "chord_voicing_style": "closed", 
             "chord_target_octave": 3, 
             "chord_num_voices": 4, 
@@ -367,7 +368,7 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
     logger.info(f"Prepared {len(processed_stream)} blocks. Total duration: {current_abs_offset:.2f} beats.")
     return processed_stream
 
-def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict, rhythm_lib_all: Dict):
+def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data: Dict, rhythm_lib_data: Dict): # 変数名を修正
     logger.info("=== Running Main Composition Workflow ===")
     final_score = stream.Score()
     final_score.insert(0, tempo.MetronomeMark(number=main_cfg["global_tempo"]))
@@ -377,7 +378,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
         else: final_score.insert(0, meter.TimeSignature("4/4")) 
 
         key_t, key_m = main_cfg["global_key_tonic"], main_cfg["global_key_mode"]
-        sections_data = chordmap.get("sections")
+        sections_data = chordmap_data.get("sections") # chordmap_data を使用
         if sections_data and isinstance(sections_data, dict) and sections_data: 
             try:
                 first_sec_name = sorted(sections_data.items(), key=lambda item: item[1].get("order", float('inf')) if isinstance(item[1], dict) else float('inf'))[0][0]
@@ -399,7 +400,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
             final_score.insert(0, key.Key(main_cfg.get("global_key_tonic","C"), main_cfg.get("global_key_mode","major")))
 
 
-    proc_blocks = prepare_processed_stream(chordmap, main_cfg, rhythm_lib_all)
+    proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data) # 変数名を修正
     if not proc_blocks: 
         logger.error("No blocks to process after preparation. Aborting composition.")
         return
@@ -416,7 +417,8 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
         part_default_cfg = main_cfg["default_part_parameters"].get(part_name, {})
         instrument_str = part_default_cfg.get("instrument", "Piano") 
         rhythm_category_key = f"{part_name}_patterns" 
-        rhythm_lib_for_instrument = rhythm_lib_all.get(rhythm_category_key, {})
+        rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {}) # rhythm_lib_data を使用
+
 
         instrument_obj = None
         try:
@@ -424,11 +426,12 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
         except exceptions21.InstrumentException: 
             logger.warning(f"Could not match string '{instrument_str}' with music21 instrument. Trying direct class instantiation.")
             try:
-                instrument_class = getattr(m21instrument, instrument_str.replace(" ", ""), None) # スペースを除去してクラス名として試す
+                instrument_class_name = instrument_str.replace(" ", "") # スペースを除去してクラス名として試す
+                instrument_class = getattr(m21instrument, instrument_class_name, None) 
                 if instrument_class and callable(instrument_class): 
                     instrument_obj = instrument_class()
                 else: 
-                    logger.warning(f"Could not find class '{instrument_str.replace(' ', '')}' in music21.instrument. Defaulting to Piano for {part_name}.")
+                    logger.warning(f"Could not find class '{instrument_class_name}' in music21.instrument. Defaulting to Piano for {part_name}.")
                     instrument_obj = m21instrument.Piano() 
             except Exception as e_getattr:
                 logger.error(f"Error instantiating instrument '{instrument_str}' directly: {e_getattr}. Defaulting to Piano for {part_name}.")
@@ -463,14 +466,14 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
             )
         elif part_name == "vocal":
             vocal_data_paths = part_default_cfg.get("data_paths", {})
-            midivocal_p_str = cli_args.vocal_mididata_path or chordmap.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-            lyrics_p_str = cli_args.vocal_lyrics_path or chordmap.get("global_settings",{}).get("vocal_lyrics_path", vocal_data_paths.get("lyrics_text_path"))
+            midivocal_p_str = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path")) # chordmap_data を使用
+            lyrics_p_str = cli_args.vocal_lyrics_path or chordmap_data.get("global_settings",{}).get("vocal_lyrics_path", vocal_data_paths.get("lyrics_text_path")) # chordmap_data を使用
             
             midivocal_d_local: Optional[List[Dict]] = None
             kasi_rist_d_local: Optional[Dict[str, List[str]]] = None
 
-            if midivocal_p_str: midivocal_d_local = load_json_file(Path(midivocal_p_str), "Vocal MIDI Data for instantiation")
-            if lyrics_p_str: kasi_rist_d_local = cast(Optional[Dict[str, List[str]]], load_json_file(Path(lyrics_p_str), "Lyrics List Data for instantiation"))
+            if midivocal_p_str: midivocal_d_local = load_json_file(Path(str(midivocal_p_str)), "Vocal MIDI Data for instantiation") # Pathオブジェクトに変換
+            if lyrics_p_str: kasi_rist_d_local = cast(Optional[Dict[str, List[str]]], load_json_file(Path(str(lyrics_p_str)), "Lyrics List Data for instantiation")) # Pathオブジェクトに変換
 
             if midivocal_d_local and kasi_rist_d_local:
                 gens[part_name] = VocalGenerator(
@@ -501,7 +504,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
             )
         elif part_name == "chords": 
             gens[part_name] = cv_inst 
-            if instrument_obj: # ChordVoicerにも楽器を設定する場合
+            if instrument_obj: 
                  cv_inst.default_instrument = instrument_obj
 
 
@@ -514,13 +517,13 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
                     vocal_params_for_compose = proc_blocks[0]["part_params"].get("vocal") if proc_blocks else main_cfg["default_part_parameters"].get("vocal", {})
                     
                     vocal_data_paths = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
-                    midivocal_p_str_compose = cli_args.vocal_mididata_path or chordmap.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-                    lyrics_p_str_compose = cli_args.vocal_lyrics_path or chordmap.get("global_settings",{}).get("vocal_lyrics_path", vocal_data_paths.get("lyrics_text_path"))
+                    midivocal_p_str_compose = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path")) # chordmap_data を使用
+                    lyrics_p_str_compose = cli_args.vocal_lyrics_path or chordmap_data.get("global_settings",{}).get("vocal_lyrics_path", vocal_data_paths.get("lyrics_text_path")) # chordmap_data を使用
 
                     midivocal_data_for_compose : Optional[List[Dict]] = None
                     kasi_rist_data_for_compose : Optional[Dict[str, List[str]]] = None
-                    if midivocal_p_str_compose: midivocal_data_for_compose = load_json_file(Path(midivocal_p_str_compose), "Vocal MIDI Data for compose")
-                    if lyrics_p_str_compose: kasi_rist_data_for_compose = cast(Optional[Dict[str, List[str]]], load_json_file(Path(lyrics_p_str_compose), "Lyrics List Data for compose"))
+                    if midivocal_p_str_compose: midivocal_data_for_compose = load_json_file(Path(str(midivocal_p_str_compose)), "Vocal MIDI Data for compose") # Pathオブジェクトに変換
+                    if lyrics_p_str_compose: kasi_rist_data_for_compose = cast(Optional[Dict[str, List[str]]], load_json_file(Path(str(lyrics_p_str_compose)), "Lyrics List Data for compose")) # Pathオブジェクトに変換
 
                     if midivocal_data_for_compose and kasi_rist_data_for_compose:
                         part_obj = p_g_inst.compose(
@@ -547,7 +550,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap: Dict
                 logger.info(f"{p_n} part generated.")
             except Exception as e_gen: logger.error(f"Error in {p_n} generation: {e_gen}", exc_info=True)
 
-    title = chordmap.get("project_title","untitled").replace(" ","_").lower()
+    title = chordmap_data.get("project_title","untitled").replace(" ","_").lower() # chordmap_data を使用
     out_fname_template = main_cfg.get("output_filename_template", "output_{song_title}.mid")
     actual_out_fname = cli_args.output_filename if cli_args.output_filename else out_fname_template.format(song_title=title)
     out_fpath = cli_args.output_dir / actual_out_fname
@@ -572,8 +575,8 @@ def main_cli():
     parser.add_argument("--output-filename", type=str, help="Custom filename for the output MIDI file.")
     parser.add_argument("--settings-file", type=Path, help="Path to a custom settings JSON file to override defaults.")
     parser.add_argument("--tempo", type=int, help="Override global tempo defined in chordmap or DEFAULT_CONFIG.")
-    parser.add_argument("--vocal-mididata-path", type=Path, help="Path to vocal MIDI data JSON (overrides config).")
-    parser.add_argument("--vocal-lyrics-path", type=Path, help="Path to lyrics list JSON (overrides config).")
+    parser.add_argument("--vocal-mididata-path", type=str, help="Path to vocal MIDI data JSON (overrides config).") # Path から str に変更
+    parser.add_argument("--vocal-lyrics-path", type=str, help="Path to lyrics list JSON (overrides config).") # Path から str に変更
     
     default_parts_cfg = DEFAULT_CONFIG.get("parts_to_generate", {})
     for part_key, default_enabled_status in default_parts_cfg.items():
@@ -610,17 +613,17 @@ def main_cli():
         effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["lyrics_text_path"] = str(args.vocal_lyrics_path)
     
     chordmap_data_loaded = load_json_file(args.chordmap_file, "Chordmap") 
-    rhythm_lib_data_loaded = load_json_file(args.rhythm_library_file, "Rhythm Library") 
+    rhythm_library_data_loaded = load_json_file(args.rhythm_library_file, "Rhythm Library") # 変数名を修正
 
-    if not chordmap_data_loaded or not rhythm_lib_data_loaded: 
+    if not chordmap_data_loaded or not rhythm_library_data_loaded: 
         logger.critical("Data files (chordmap or rhythm_library) missing. Exiting.")
         sys.exit(1)
     
     if not isinstance(chordmap_data_loaded, dict):
         logger.critical(f"Chordmap data is not a dictionary. Type: {type(chordmap_data_loaded)}. Exiting.")
         sys.exit(1)
-    if not isinstance(rhythm_lib_data_loaded, dict):
-        logger.critical(f"Rhythm library data is not a dictionary. Type: {type(rhythm_lib_data_loaded)}. Exiting.")
+    if not isinstance(rhythm_library_data_loaded, dict):
+        logger.critical(f"Rhythm library data is not a dictionary. Type: {type(rhythm_library_data_loaded)}. Exiting.")
         sys.exit(1)
 
     cm_globals_loaded = chordmap_data_loaded.get("global_settings", {}) 
@@ -633,7 +636,8 @@ def main_cli():
     logger.info(f"Final Effective Config: {json.dumps(effective_cfg, indent=2, ensure_ascii=False)}")
     
     try: 
-        run_composition(args, effective_cfg, chordmap_data_loaded, rhythm_lib_data_loaded)
+        # ★★★ 修正点: 正しい変数名を渡す ★★★
+        run_composition(args, effective_cfg, chordmap_data_loaded, rhythm_library_data_loaded)
     except SystemExit: 
         raise 
     except Exception as e_main_run: 
