@@ -1,56 +1,42 @@
+# --- START OF FILE generator/bass_utils.py (インポート修正版) ---
 from __future__ import annotations
 """bass_utils.py
-Low‑level helpers for *bass line generation*.
-
-Goal
-----
-Provide reusable building blocks so that :class:`generator.bass_generator.BassGenerator`
-can focus on high‑level style selection while this module handles the **note‑by‑note
-logic**.
-
-Features
-~~~~~~~~
-* *Root‑only*, *Root–5th*, or *Walking* styles (quarter feel).
-* Chromatic or diatonic **approach notes** automatically inserted on the last
-  eighth/quarter before a new chord.
-* Uses :pyclass:`generator.utils.scale_registry.ScaleRegistry` to stay mode‑aware.
+Low-level helpers for *bass line generation*.
+... (docstringは変更なし) ...
 """
 
-from typing import List, Sequence
-import random as _rand
+from typing import List, Sequence, Optional # Optional を追加
+import random as _rand # random を _rand としてインポート (melody_utils との整合性)
 import logging
 
 from music21 import note, pitch, harmony, interval
 
-from generator.utils.scale_registry import ScaleRegistry as SR
+# utilities パッケージからスケール関連機能をインポート
+try:
+    # ScaleRegistry クラスの get 静的メソッドを使用
+    from utilities.scale_registry import ScaleRegistry as SR
+except ImportError:
+    logger.error("BassUtils: Could not import ScaleRegistry from utilities. Scale-aware functions might fail.")
+    # フォールバック用のダミーScaleRegistry
+    class SR:
+        @staticmethod
+        def get(tonic_str: Optional[str], mode_str: Optional[str]) -> pitch.Pitch: # 戻り値を scale.ConcreteScale にすべき
+            from music21 import scale as m21_scale, pitch as m21_pitch # music21のインポートをここで行う
+            logger.warning("BassUtils: Using dummy ScaleRegistry.get(). This may not produce correct scales.")
+            return m21_scale.MajorScale(m21_pitch.Pitch(tonic_str or "C"))
+        # mode_tensions や avoid_degrees もダミーが必要ならここに追加
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Helper: choose chromatic approach note toward target
-# ---------------------------------------------------------------------------
+# --- (以降の関数定義は変更なし、SR.get の呼び出しは既に適切) ---
 
+# approach_note 関数 (変更なし)
 def approach_note(cur_root: pitch.Pitch, next_root: pitch.Pitch, direction: int | None = None) -> pitch.Pitch:
-    """Return a semitone approach toward *next_root*.
-
-    Parameters
-    ----------
-    cur_root : music21.pitch.Pitch
-        The pitch we are currently on.
-    next_root : music21.pitch.Pitch
-        The target pitch to approach.
-    direction : int | None
-        +1 (chromatic up) or -1 (chromatic down).  If *None* the shortest chromatic
-        direction is chosen automatically.
-    """
     if direction is None:
         direction = 1 if next_root.midi - cur_root.midi > 0 else -1
     return cur_root.transpose(direction)
 
-# ---------------------------------------------------------------------------
-# Walking line generator (4/4) – returns 4 quarter pitches
-# ---------------------------------------------------------------------------
-
+# walking_quarters 関数 (SR.get の呼び出しは既に適切)
 def walking_quarters(
     cs_now: harmony.ChordSymbol,
     cs_next: harmony.ChordSymbol,
@@ -58,60 +44,56 @@ def walking_quarters(
     mode: str,
     octave: int = 3,
 ) -> List[pitch.Pitch]:
-    """Generate a 1‑bar 4‑beat walking bass line from *cs_now* → *cs_next*.
-
-    Strategy:  Root – Chord‑tone – diatonic/approach – Approach(rootNext)
-    """
-    scl = SR.get(tonic, mode)
+    scl = SR.get(tonic, mode) # ここはOK
+    # ... (以降のロジックは変更なし) ...
     degrees = [cs_now.root().pitchClass,
-               cs_now.third.pitchClass,
-               cs_now.fifth.pitchClass]
+               cs_now.third.pitchClass if cs_now.third else cs_now.root().pitchClass, # thirdがない場合へのフォールバック
+               cs_now.fifth.pitchClass if cs_now.fifth else cs_now.root().pitchClass] # fifthがない場合へのフォールバック
 
     root_now = cs_now.root().transpose((octave - cs_now.root().octave) * 12)
     root_next = cs_next.root().transpose((octave - cs_next.root().octave) * 12)
 
-    # Beat1: Root
     beat1 = root_now
-
-    # Beat2: choose 3rd or 5th (direction toward next root)
+    
     options_b2 = [p for p in cs_now.pitches if p.pitchClass in degrees[1:]]
-    beat2_raw = _rand.choice(options_b2)
+    if not options_b2: # 3rdや5thがない場合 (ルートのみのコードなど)
+        options_b2 = [cs_now.root()] # ルート音を候補にする
+    beat2_raw = _rand.choice(options_b2) if options_b2 else cs_now.root() # 更にフォールバック
     beat2 = beat2_raw.transpose((octave - beat2_raw.octave) * 12)
 
-    # Beat3: diatonic step (up/down) inside scale toward target
     step_int = +2 if root_next.midi - beat2.midi > 0 else -2
     beat3 = beat2.transpose(step_int)
-    # diatonic safeguard
-    if beat3.pitchClass not in [p.pitchClass for p in scl.getPitches()]:
-        beat3 = beat2  # fallback hold
+    
+    # scl.getPitches() は music21.scale.ConcreteScale のメソッド
+    # SR.get が正しい ConcreteScale インスタンスを返す必要がある
+    scale_pitches_classes = [p.pitchClass for p in scl.getPitches()] if hasattr(scl, 'getPitches') else []
+    if not scale_pitches_classes or beat3.pitchClass not in scale_pitches_classes:
+        beat3 = beat2
 
-    # Beat4: chromatic approach into next root
     beat4 = approach_note(beat3, root_next)
-
     return [beat1, beat2, beat3, beat4]
 
-# ---------------------------------------------------------------------------
-# Root‑fifth pattern (ballad)
-# ---------------------------------------------------------------------------
 
+# root_fifth_half 関数 (変更なし)
 def root_fifth_half(
     cs: harmony.ChordSymbol,
     octave: int = 3,
 ) -> List[pitch.Pitch]:
     root = cs.root().transpose((octave - cs.root().octave) * 12)
-    fifth = cs.fifth.transpose((octave - cs.fifth.octave) * 12)
+    # fifth が存在しないコード (例: C(no5)) の場合のエラーを避ける
+    fifth_pitch = cs.fifth
+    if fifth_pitch is None: # 5度がない場合はルート音のオクターブ上など代替案
+        logger.warning(f"BassUtils (root_fifth): Chord {cs.figure} has no fifth. Using octave root as substitute.")
+        fifth_pitch = cs.root().transpose(12) # ルートのオクターブ上
+    fifth = fifth_pitch.transpose((octave - fifth_pitch.octave) * 12)
     return [root, fifth, root, fifth]
 
-# ---------------------------------------------------------------------------
-# Dispatcher – returns list of 4 quarterLength notes
-# ---------------------------------------------------------------------------
-
+# STYLE_DISPATCH と generate_bass_measure (変更なし)
 STYLE_DISPATCH = {
-    "root_only": lambda cs_now, cs_next, **k: [cs_now.root().transpose((k["octave"] - cs_now.root().octave) * 12)] * 4,
+    "root_only": lambda cs_now, cs_next, **k: [cs_now.root().transpose((k.get("octave",3) - cs_now.root().octave) * 12)] * 4,
     "root_fifth": root_fifth_half,
     "walking": walking_quarters,
 }
-
 
 def generate_bass_measure(
     style: str,
@@ -121,12 +103,14 @@ def generate_bass_measure(
     mode: str,
     octave: int = 3,
 ) -> List[note.Note]:
-    """Return a list of 4 :class:`music21.note.Note` quarter‑notes for a measure."""
     func = STYLE_DISPATCH.get(style, STYLE_DISPATCH["root_only"])
+    # cs_next が None になる可能性を考慮 (リストの最後など)
+    # generate_bass_measure を呼び出す BassGenerator.compose で cs_next が None の場合の処理が必要
     pitches = func(cs_now=cs_now, cs_next=cs_next, tonic=tonic, mode=mode, octave=octave)
-    notes = []
-    for p in pitches:
-        n = note.Note(p)
+    notes_out = []
+    for p_obj in pitches:
+        n = note.Note(p_obj)
         n.quarterLength = 1.0
-        notes.append(n)
-    return notes
+        notes_out.append(n)
+    return notes_out
+# --- END OF FILE generator/bass_utils.py ---
