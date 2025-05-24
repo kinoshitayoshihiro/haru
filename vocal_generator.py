@@ -1,4 +1,5 @@
-# --- START OF FILE generator/vocal_generator.py (インポート形式修正 v3) ---
+# --- START OF FILE generator/vocal_generator.py (インポート形式修正 v5) ---
+import music21 # name 'music21' is not defined エラー対策
 from typing import List, Dict, Optional, Any, Tuple, Union, cast 
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -7,7 +8,7 @@ import music21.note as note
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # check_imports.py の指摘に基づき修正
+import music21.instrument as m21instrument # check_imports.py の期待する形式
 import music21.tempo as tempo
 import music21.key as key
 import music21.expressions as expressions
@@ -22,7 +23,7 @@ import json
 import re
 import copy
 import random
-import math # For Gaussian fallback
+import math 
 
 # NumPy import attempt and flag
 NUMPY_AVAILABLE = False
@@ -44,7 +45,6 @@ MIN_DURATION_FOR_BREATH_AFTER_NOTE_QL: float = 1.0
 PUNCTUATION_FOR_BREATH: Tuple[str, ...] = ('、', '。', '！', '？', ',', '.', '!', '?')
 
 
-# ユーティリティのインポート (get_time_signature_objectなどが必要な場合)
 try:
     from utilities.core_music_utils import get_time_signature_object
 except ImportError:
@@ -247,8 +247,6 @@ class VocalGenerator:
         if humanize_opt:
             temp_humanized_elements = []
             try:
-                # utilities.humanizer の apply_humanization_to_element を使用
-                # この関数はファイル冒頭でインポートされている想定
                 for el_item in final_elements: 
                     if isinstance(el_item, note.Note): 
                         humanized_el = apply_humanization_to_element(el_item, template_name=humanize_template_name, custom_params=humanize_custom_params)
