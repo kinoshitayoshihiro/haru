@@ -3,7 +3,7 @@ import random
 import math
 import copy
 from typing import List, Dict, Any, Union, Optional # Optional を追加
-from music21 import note, chord as m21chord, volume, duration, pitch, stream, instrument, tempo, meter, key, expressions, exceptions21
+from music21 import note, chord as m21chord.Chord, volume, duration, pitch, stream, instrument, tempo, meter, key, expressions, exceptions21
 
 # MIN_NOTE_DURATION_QL は core_music_utils からインポートすることを推奨
 try:
