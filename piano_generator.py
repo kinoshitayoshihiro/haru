@@ -7,7 +7,7 @@ import music21.stream as stream
 import music21.note as note
 import music21.harmony as harmony
 import music21.pitch as pitch
-import music21.meter as meter
+import music21.meter as meter # meter をインポート
 import music21.duration as duration
 import music21.instrument as m21instrument 
 import music21.scale as scale 
@@ -69,6 +69,7 @@ class PianoGenerator:
         self.instrument_rh = default_instrument_rh
         self.instrument_lh = default_instrument_lh
         self.global_tempo = global_tempo
+        self.global_time_signature_str = global_time_signature # 文字列も保持
         self.global_time_signature_obj = get_time_signature_object(global_time_signature)
 
     def _get_piano_chord_pitches(
@@ -213,7 +214,16 @@ class PianoGenerator:
         piano_rh_part = stream.Part(id="PianoRH"); piano_rh_part.insert(0, self.instrument_rh)
         piano_lh_part = stream.Part(id="PianoLH"); piano_lh_part.insert(0, self.instrument_lh)
         piano_score.insert(0, tempo.MetronomeMark(number=self.global_tempo))
-        piano_score.insert(0, self.global_time_signature_obj.clone())
+        
+        # ★★★ 修正点: TimeSignature の .clone() を修正 ★★★
+        # self.global_time_signature_obj が None でないことを確認
+        if self.global_time_signature_obj:
+            ts_copy = meter.TimeSignature(self.global_time_signature_obj.ratioString)
+            piano_score.insert(0, ts_copy)
+        else:
+            logger.warning("PianoGen: global_time_signature_obj is None. Defaulting to 4/4 for piano_score.")
+            piano_score.insert(0, meter.TimeSignature("4/4"))
+
 
         if not processed_chord_stream:
             piano_score.append(piano_rh_part); piano_score.append(piano_lh_part)
