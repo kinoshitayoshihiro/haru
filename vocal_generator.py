@@ -1,4 +1,4 @@
-# --- START OF FILE generator/vocal_generator.py (インポート形式修正) ---
+# --- START OF FILE generator/vocal_generator.py (インポート形式修正 v3) ---
 from typing import List, Dict, Optional, Any, Tuple, Union, cast 
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -7,15 +7,15 @@ import music21.note as note
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # 指摘された形式
+import music21.instrument as m21instrument # check_imports.py の指摘に基づき修正
 import music21.tempo as tempo
 import music21.key as key
 import music21.expressions as expressions
 import music21.volume as m21volume
 import music21.articulations as articulations
 import music21.dynamics as dynamics
-import music21.chord as m21chord # 指摘された形式
-from music21 import exceptions21 # これはトップレベルからでOKな場合が多い
+# import music21.chord as m21chord # このファイルでは m21chord を直接使用していないため、一旦コメントアウト
+from music21 import exceptions21 
 
 import logging
 import json
@@ -73,9 +73,8 @@ class VocalGenerator:
         self.global_tempo = global_tempo
         self.global_time_signature_str = global_time_signature
         try:
-            # utilitiesからインポートした関数を使用
             self.global_time_signature_obj = get_time_signature_object(global_time_signature)
-        except NameError: # get_time_signature_objectがインポート失敗した場合のフォールバック
+        except NameError: 
              logger.error("VocalGen init: get_time_signature_object not available. Using music21.meter directly.")
              self.global_time_signature_obj = meter.TimeSignature(global_time_signature)
         except Exception as e_ts_init:
@@ -121,7 +120,7 @@ class VocalGenerator:
         
         output_elements: List[Union[note.Note, note.Rest]] = [] 
         
-        for i, current_note_obj in enumerate(notes_with_lyrics): # 変数名を変更
+        for i, current_note_obj in enumerate(notes_with_lyrics): 
             original_offset = current_note_obj.offset
             original_duration_ql = current_note_obj.duration.quarterLength
             
@@ -138,7 +137,7 @@ class VocalGenerator:
             
             if not insert_breath_flag and original_duration_ql >= MIN_DURATION_FOR_BREATH_AFTER_NOTE_QL:
                 if i + 1 < len(notes_with_lyrics):
-                    next_note_obj = notes_with_lyrics[i+1] # 変数名を変更
+                    next_note_obj = notes_with_lyrics[i+1] 
                     gap_to_next = next_note_obj.offset - (original_offset + original_duration_ql)
                     if gap_to_next < breath_duration_ql * 0.75: 
                         if original_duration_ql > breath_duration_ql + MIN_NOTE_DURATION_QL / 4:
@@ -201,7 +200,7 @@ class VocalGenerator:
         last_lyric_assigned_offset: float = -1.001
         LYRIC_OFFSET_THRESHOLD: float = 0.005
 
-        for note_data_item in parsed_vocal_notes_data: # 変数名を変更
+        for note_data_item in parsed_vocal_notes_data: 
             note_offset = note_data_item["offset"]
             note_pitch_str = note_data_item["pitch_str"]
             note_q_length = note_data_item["q_length"]
@@ -220,7 +219,7 @@ class VocalGenerator:
                 else: logger.warning(f"VocalGen: Note at offset {note_offset:.2f} has no section in processed_stream. Lyrics may be misaligned.")
 
             try:
-                m21_n_obj = note.Note(note_pitch_str, quarterLength=note_q_length) # 変数名を変更
+                m21_n_obj = note.Note(note_pitch_str, quarterLength=note_q_length) 
                 m21_n_obj.volume = m21volume.Volume(velocity=note_velocity) 
             except Exception as e:
                 logger.error(f"VocalGen: Failed to create Note for {note_pitch_str} at {note_offset}: {e}")
@@ -250,23 +249,23 @@ class VocalGenerator:
             try:
                 # utilities.humanizer の apply_humanization_to_element を使用
                 # この関数はファイル冒頭でインポートされている想定
-                for el_item in final_elements: # 変数名を変更
+                for el_item in final_elements: 
                     if isinstance(el_item, note.Note): 
                         humanized_el = apply_humanization_to_element(el_item, template_name=humanize_template_name, custom_params=humanize_custom_params)
                         temp_humanized_elements.append(humanized_el)
                     else: 
                         temp_humanized_elements.append(el_item)
                 final_elements = temp_humanized_elements
-            except NameError: # apply_humanization_to_element がインポート失敗した場合
+            except NameError: 
                  logger.warning("VocalGen: apply_humanization_to_element not available, skipping humanization for vocal notes.")
             except Exception as e_hum:
                  logger.error(f"VocalGen: Error during humanization: {e_hum}", exc_info=True)
 
 
-        for el_item_final in final_elements: # 変数名を変更
+        for el_item_final in final_elements: 
             vocal_part.insert(el_item_final.offset, el_item_final)
         
-        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flat.notesAndRests))} elements.") # flatten() を flat に変更 (music21 v7以降)
+        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flat.notesAndRests))} elements.") 
         return vocal_part
 
 # --- END OF FILE generator/vocal_generator.py ---
