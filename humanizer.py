@@ -5,23 +5,23 @@ import copy
 from typing import List, Dict, Any, Union, Optional, cast 
 
 # music21 のサブモジュールを正しい形式でインポート
-import music21.note as note # note を note としてインポート
+import music21.note as note 
 import music21.chord as m21chord # 指摘された形式
-import music21.volume as volume # volume を volume としてインポート
-import music21.duration as duration # duration を duration としてインポート
-import music21.pitch as pitch # pitch を pitch としてインポート
-import music21.stream as stream # stream を stream としてインポート
-import music21.instrument as instrument # instrument を instrument としてインポート (エイリアスなし)
-import music21.tempo as tempo # tempo を tempo としてインポート
-import music21.meter as meter # meter を meter としてインポート
-import music21.key as key # key を key としてインポート
-import music21.expressions as expressions # expressions を expressions としてインポート
-from music21 import exceptions21 # トップレベルからのインポート
+import music21.volume as volume 
+import music21.duration as duration 
+import music21.pitch as pitch 
+import music21.stream as stream 
+import music21.instrument as instrument 
+import music21.tempo as tempo 
+import music21.meter as meter 
+import music21.key as key 
+import music21.expressions as expressions 
+from music21 import exceptions21 
 
 # MIN_NOTE_DURATION_QL は core_music_utils からインポートすることを推奨
 try:
     from .core_music_utils import MIN_NOTE_DURATION_QL
-except ImportError: # フォールバック
+except ImportError: 
     MIN_NOTE_DURATION_QL = 0.125
 
 import logging
@@ -68,13 +68,13 @@ HUMANIZATION_TEMPLATES: Dict[str, Dict[str, Any]] = {
 }
 
 def apply_humanization_to_element(
-    m21_element: Union[note.Note, m21chord.Chord], 
+    m21_element_obj: Union[note.Note, m21chord.Chord], # m21_element を m21_element_obj に変更
     template_name: Optional[str] = None, 
     custom_params: Optional[Dict[str, Any]] = None
 ) -> Union[note.Note, m21chord.Chord]: 
-    if not isinstance(m21_element, (note.Note, m21chord.Chord)): 
-        logger.warning(f"Humanizer: apply_humanization_to_element received non-Note/Chord object: {type(m21_element)}")
-        return m21_element
+    if not isinstance(m21_element_obj, (note.Note, m21chord.Chord)): 
+        logger.warning(f"Humanizer: apply_humanization_to_element received non-Note/Chord object: {type(m21_element_obj)}")
+        return m21_element_obj
 
     actual_template_name = template_name if template_name and template_name in HUMANIZATION_TEMPLATES else "default_subtle"
     params = HUMANIZATION_TEMPLATES.get(actual_template_name, {}).copy()
@@ -82,7 +82,7 @@ def apply_humanization_to_element(
     if custom_params: 
         params.update(custom_params)
 
-    element_copy = copy.deepcopy(m21_element)
+    element_copy = copy.deepcopy(m21_element_obj)
     time_var = params.get('time_variation', 0.01)
     dur_perc = params.get('duration_percentage', 0.03)
     vel_var = params.get('velocity_variation', 5)
@@ -108,7 +108,7 @@ def apply_humanization_to_element(
         except exceptions21.DurationException as e: logger.warning(f"Humanizer: DurationException for {element_copy}: {e}. Skip dur change.") 
 
     notes_to_affect = element_copy.notes if isinstance(element_copy, m21chord.Chord) else [element_copy] 
-    for n_obj_affect in notes_to_affect: # n_obj を n_obj_affect に変更
+    for n_obj_affect in notes_to_affect: 
         if isinstance(n_obj_affect, note.Note): 
             base_vel = n_obj_affect.volume.velocity if hasattr(n_obj_affect, 'volume') and n_obj_affect.volume and n_obj_affect.volume.velocity is not None else 64 
             vel_change = random.randint(-vel_var, vel_var)
@@ -129,18 +129,18 @@ def apply_humanization_to_part(
 
     humanized_part = stream.Part(id=part_to_humanize.id + "_humanized" if part_to_humanize.id else "HumanizedPart") 
     
-    for el_class in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: 
-        for item_el in part_to_humanize.getElementsByClass(el_class): # item を item_el に変更
+    for el_class_item in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: # el_class を el_class_item に変更
+        for item_el in part_to_humanize.getElementsByClass(el_class_item): 
             humanized_part.insert(item_el.offset, copy.deepcopy(item_el)) 
 
     elements_to_process = []
-    for element_item in part_to_humanize.recurse().notesAndRests:  # element を element_item に変更
+    for element_item in part_to_humanize.recurse().notesAndRests:  
         elements_to_process.append(element_item)
     
-    elements_to_process.sort(key=lambda el_sort: el_sort.getOffsetInHierarchy(part_to_humanize)) # el を el_sort に変更
+    elements_to_process.sort(key=lambda el_sort: el_sort.getOffsetInHierarchy(part_to_humanize)) 
 
 
-    for element_proc in elements_to_process: # element を element_proc に変更
+    for element_proc in elements_to_process: 
         original_hierarchical_offset = element_proc.getOffsetInHierarchy(part_to_humanize)
         
         if isinstance(element_proc, (note.Note, m21chord.Chord)): 
