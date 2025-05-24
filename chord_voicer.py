@@ -1,4 +1,5 @@
 # --- START OF FILE generators/chord_voicer.py (修正案) ---
+import music21 # name 'music21' is not defined エラー対策
 from typing import List, Dict, Optional, Tuple, Any, Sequence
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -8,24 +9,25 @@ import music21.harmony as harmony
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # コード内で使用されているため、正しい形式でインポート
+import music21.instrument as m21instrument 
 import music21.interval as interval
 import music21.tempo as tempo
 import music21.key as key
-import music21.chord as m21chord # check_imports.py の指摘に基づき修正
+import music21.chord      as m21chord # check_imports.py の期待する形式 (スペースに注意)
 import music21.volume as m21volume
 from music21 import expressions 
-# from music21 import dynamics # 元コードで使用箇所が見当たらないためコメントアウトのまま
-import re # sanitize_chord_label のフォールバックで使用 (元からあった)
-import random # 元からあった
-import logging # 元からあった
+# from music21 import dynamics 
+
+import random
+import logging
+import re 
 
 logger = logging.getLogger(__name__)
 
 # --- core_music_utils からのインポート試行 ---
 try:
     from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label
-    logger.info("ChordVoicer: Successfully imported from utilities.core_music_utils.")
+    logger.info("ChordVoicer: Successfully imported from utilities.core_music_utils.") 
 except ImportError as e_import_core:
     try:
         from core_music_utils import get_time_signature_object, sanitize_chord_label 
@@ -98,8 +100,7 @@ class ChordVoicer:
             return []
 
         voiced_pitches_list: List[pitch.Pitch] = []
-        # music21.chord.Chord オブジェクトの closedPosition メソッドを使用
-        temp_closed_chord = m21chord.Chord(cs_obj.pitches) # 一時的なChordオブジェクトを作成
+        temp_closed_chord = m21chord.Chord(cs_obj.pitches) 
         original_closed_pitches = sorted(list(temp_closed_chord.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
         
         if not original_closed_pitches: 
@@ -240,7 +241,7 @@ class ChordVoicer:
                 continue
 
             tensions_to_add_list: List[str] = blk_data.get("tensions_to_add", [])
-            if tensions_to_add_list and cs_object_current is not None : # cs_object_current が None でないことを確認
+            if tensions_to_add_list and cs_object_current is not None : 
                 logger.debug(f"CV: Attempting to add tensions {tensions_to_add_list} to {cs_object_current.figure}")
                 for tension_str in tensions_to_add_list:
                     try:
@@ -254,7 +255,7 @@ class ChordVoicer:
                     except Exception as e_add_tension:
                         logger.warning(f"  CV: Error adding tension '{tension_str}' to '{cs_object_current.figure}': {e_add_tension}")
 
-            if cs_object_current is None or not cs_object_current.pitches: # 再度Noneチェック
+            if cs_object_current is None or not cs_object_current.pitches: 
                 logger.warning(f"CV Block {blk_idx+1}: Chord has no pitches after tension additions (or was None). Treating as Rest.")
                 continue 
 
