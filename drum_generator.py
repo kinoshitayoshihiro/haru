@@ -1,4 +1,5 @@
-# --- START OF FILE generator/drum_generator.py (ヒューマナイズ外部化・修正版) ---
+# --- START OF FILE generator/drum_generator.py (エラー修正版) ---
+import music21 # name 'music21' is not defined エラー対策
 from typing import List, Dict, Optional, Tuple, Any, Sequence, Union, cast 
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -6,17 +7,11 @@ import music21.stream as stream
 import music21.note as note
 import music21.tempo as tempo
 import music21.meter as meter
-import music21.instrument as m21instrument # 指摘された形式
+import music21.instrument as m21instrument # check_imports.py の期待する形式
 import music21.volume as m21volume
 import music21.duration as duration
 import music21.pitch as pitch
-import music21.chord as m21chord # 指摘された形式 (現コードでは未使用だが念のため)
-# from music21 import articulations # 現コードでは未使用のためコメントアウト
-# from music21 import dynamics # 現コードでは未使用のためコメントアウト
-# from music21 import key # 現コードでは未使用のためコメントアウト
-# from music21 import expressions # 現コードでは未使用のためコメントアウト
-# from music21 import exceptions21 # 現コードでは未使用のためコメントアウト
-
+import music21.chord      as m21chord # check_imports.py の期待する形式 (スペースに注意)
 
 import random
 import logging
@@ -58,7 +53,7 @@ class DrumGenerator:
         self.default_instrument = default_instrument
         if hasattr(self.default_instrument, 'midiChannel'): self.default_instrument.midiChannel = 9
         self.global_tempo = global_tempo
-        self.global_time_signature_str = global_time_signature
+        self.global_time_signature_str = global_time_signature # 文字列も保持
         self.global_time_signature_obj = get_time_signature_object(global_time_signature)
 
 
@@ -70,7 +65,7 @@ class DrumGenerator:
             hit.pitch = pitch.Pitch() 
             hit.pitch.midi = midi_val
             hit.duration = duration.Duration(quarterLength=max(MIN_NOTE_DURATION_QL/4, duration_ql_val)) 
-            hit.volume = m21volume.Volume(velocity=max(1,min(127,velocity_val))) # m21volume を使用
+            hit.volume = m21volume.Volume(velocity=max(1,min(127,velocity_val))) 
             return hit
         except Exception as e: logger.error(f"DrumGen: Error creating hit '{drum_sound_name}': {e}", exc_info=True); return None
 
@@ -104,7 +99,17 @@ class DrumGenerator:
         drum_part = stream.Part(id="Drums") 
         drum_part.insert(0, self.default_instrument)
         drum_part.insert(0, tempo.MetronomeMark(number=self.global_tempo)) 
-        drum_part.insert(0, self.global_time_signature_obj.clone())
+        
+        # ★★★ 修正点: TimeSignature の .clone() を修正 ★★★
+        if self.global_time_signature_obj:
+            # TimeSignature オブジェクトを ratioString から再生成する
+            ts_copy = meter.TimeSignature(self.global_time_signature_obj.ratioString)
+            drum_part.insert(0, ts_copy)
+        else:
+            # フォールバックとしてデフォルトの4/4拍子を設定
+            logger.warning("DrumGen: global_time_signature_obj is None. Defaulting to 4/4 for drum_part.")
+            drum_part.insert(0, meter.TimeSignature("4/4"))
+
 
         if not processed_chord_stream: return drum_part
         logger.info(f"DrumGen: Starting for {len(processed_chord_stream)} blocks.")
@@ -112,7 +117,7 @@ class DrumGenerator:
         measures_since_last_fill = 0
         for blk_idx, blk_data in enumerate(processed_chord_stream):
             block_offset_ql = float(blk_data.get("offset", 0.0))
-            block_duration_ql = float(blk_data.get("q_length", self.global_time_signature_obj.barDuration.quarterLength))
+            block_duration_ql = float(blk_data.get("q_length", self.global_time_signature_obj.barDuration.quarterLength if self.global_time_signature_obj else 4.0)) # フォールバック追加
             drum_params = blk_data.get("part_params", {}).get("drums", {}) 
             style_key = drum_params.get("drum_style_key", "default_drum_pattern")
             base_velocity = int(drum_params.get("drum_base_velocity", 80)) 
@@ -141,7 +146,7 @@ class DrumGenerator:
             main_pattern_events = style_def.get("pattern", [])
             pattern_ts_str = style_def.get("time_signature", self.global_time_signature_str)
             p_ts_obj = get_time_signature_object(pattern_ts_str)
-            p_bar_dur = p_ts_obj.barDuration.quarterLength
+            p_bar_dur = p_ts_obj.barDuration.quarterLength if p_ts_obj else 4.0 # フォールバック追加
             if p_bar_dur <= 0: continue
 
             current_block_time_ql = 0.0
@@ -175,6 +180,6 @@ class DrumGenerator:
                 elif current_measure_iter_dur >= p_bar_dur - MIN_NOTE_DURATION_QL/2: measures_since_last_fill +=1
                 current_block_time_ql += current_measure_iter_dur
         
-        logger.info(f"DrumGen: Finished. Part has {len(list(drum_part.flat.notesAndRests))} elements.") # flatten() を flat に変更
+        logger.info(f"DrumGen: Finished. Part has {len(list(drum_part.flat.notesAndRests))} elements.") 
         return drum_part
 # --- END OF FILE generator/drum_generator.py ---
