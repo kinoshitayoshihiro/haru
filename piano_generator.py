@@ -13,7 +13,7 @@ import music21.scale as scale
 import music21.interval as interval 
 import music21.tempo as tempo
 import music21.key as key 
-import music21.chord      as m21chord # check_imports.pyの期待する形式 (スペースに注意)
+import music21.chord as m21chord # check_imports.pyの期待する形式 (スペースに注意)
 import music21.expressions as expressions
 import music21.volume as m21volume
 from music21 import exceptions21 
