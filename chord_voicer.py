@@ -8,25 +8,24 @@ import music21.harmony as harmony
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # 指摘された形式
+import music21.instrument as m21instrument # コード内で使用されているため、正しい形式でインポート
 import music21.interval as interval
 import music21.tempo as tempo
 import music21.key as key
-import music21.chord as m21chord # 指摘された形式
+import music21.chord as m21chord # check_imports.py の指摘に基づき修正
 import music21.volume as m21volume
-from music21 import expressions # これはトップレベルからでOKな場合が多い
+from music21 import expressions 
 # from music21 import dynamics # 元コードで使用箇所が見当たらないためコメントアウトのまま
-
-import random
-import logging
-import re # sanitize_chord_label のフォールバックで使用
+import re # sanitize_chord_label のフォールバックで使用 (元からあった)
+import random # 元からあった
+import logging # 元からあった
 
 logger = logging.getLogger(__name__)
 
 # --- core_music_utils からのインポート試行 ---
 try:
     from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label
-    logger.info("ChordVoicer: Successfully imported from utilities.core_music_utils.") # utilitiesを追加
+    logger.info("ChordVoicer: Successfully imported from utilities.core_music_utils.")
 except ImportError as e_import_core:
     try:
         from core_music_utils import get_time_signature_object, sanitize_chord_label 
@@ -85,7 +84,7 @@ class ChordVoicer:
 
     def _apply_voicing_style(
             self,
-            cs_obj: Optional[harmony.ChordSymbol], # m21_cs を cs_obj に変更
+            cs_obj: Optional[harmony.ChordSymbol], 
             style_name: str,
             target_octave_for_bottom_note: Optional[int] = DEFAULT_CHORD_TARGET_OCTAVE_BOTTOM,
             num_voices_target: Optional[int] = None
@@ -99,7 +98,9 @@ class ChordVoicer:
             return []
 
         voiced_pitches_list: List[pitch.Pitch] = []
-        original_closed_pitches = sorted(list(cs_obj.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
+        # music21.chord.Chord オブジェクトの closedPosition メソッドを使用
+        temp_closed_chord = m21chord.Chord(cs_obj.pitches) # 一時的なChordオブジェクトを作成
+        original_closed_pitches = sorted(list(temp_closed_chord.closedPosition(inPlace=False).pitches), key=lambda p: p.ps)
         
         if not original_closed_pitches: 
             logger.warning(f"CV._apply_style: ChordSymbol '{cs_obj.figure}' resulted in no pitches after closedPosition. Returning empty list.")
@@ -137,7 +138,6 @@ class ChordVoicer:
                 temp_m21_chord_for_4way = m21chord.Chord(current_pitches_for_voicing)
                 if len(temp_m21_chord_for_4way.pitches) >= 4 :
                     try:
-                        # fourWayClose は music21.chord.Chord オブジェクトのメソッド
                         temp_m21_chord_for_4way.fourWayClose(inPlace=True) 
                         voiced_pitches_list = list(temp_m21_chord_for_4way.pitches)
                     except Exception as e_4way:
@@ -207,7 +207,7 @@ class ChordVoicer:
 
             logger.debug(f"CV Block {blk_idx+1}: Offset:{offset_ql} QL:{duration_ql} OrigLabel='{chord_label_original}', Style:'{voicing_style}', Oct:{target_octave}, Voices:{num_voices}, Vel:{chord_velocity}")
 
-            cs_object_current: Optional[harmony.ChordSymbol] = None # 変数名を変更
+            cs_object_current: Optional[harmony.ChordSymbol] = None 
             is_block_effectively_rest = False
 
             if not chord_label_original or chord_label_original.strip().lower() in ["rest", "n.c.", "nc", ""]:
@@ -224,7 +224,7 @@ class ChordVoicer:
                         if not cs_object_current.pitches:
                             logger.info(f"CV: ChordSymbol '{sanitized_label}' (orig: '{chord_label_original}') resulted in no pitches. Treating as Rest.")
                             is_block_effectively_rest = True
-                    except harmony.HarmonyException as he: # music21.harmony.HarmonyException を使用
+                    except harmony.HarmonyException as he: 
                         logger.error(f"CV: HarmonyException creating ChordSymbol for '{sanitized_label}' (orig: '{chord_label_original}'): {he}. Treating as Rest.")
                         is_block_effectively_rest = True
                     except Exception as e_cs_create: 
@@ -240,7 +240,7 @@ class ChordVoicer:
                 continue
 
             tensions_to_add_list: List[str] = blk_data.get("tensions_to_add", [])
-            if tensions_to_add_list:
+            if tensions_to_add_list and cs_object_current is not None : # cs_object_current が None でないことを確認
                 logger.debug(f"CV: Attempting to add tensions {tensions_to_add_list} to {cs_object_current.figure}")
                 for tension_str in tensions_to_add_list:
                     try:
@@ -254,8 +254,8 @@ class ChordVoicer:
                     except Exception as e_add_tension:
                         logger.warning(f"  CV: Error adding tension '{tension_str}' to '{cs_object_current.figure}': {e_add_tension}")
 
-            if not cs_object_current.pitches:
-                logger.warning(f"CV Block {blk_idx+1}: Chord '{cs_object_current.figure}' has no pitches after tension additions. Treating as Rest.")
+            if cs_object_current is None or not cs_object_current.pitches: # 再度Noneチェック
+                logger.warning(f"CV Block {blk_idx+1}: Chord has no pitches after tension additions (or was None). Treating as Rest.")
                 continue 
 
             final_voiced_pitches = self._apply_voicing_style(
@@ -269,17 +269,17 @@ class ChordVoicer:
                 logger.warning(f"CV Block {blk_idx+1}: No pitches returned after voicing style for '{cs_object_current.figure}'. Skipping.")
                 continue
             
-            new_chord_m21_obj = m21chord.Chord(final_voiced_pitches) # 変数名を変更、m21chord を使用
-            new_chord_m21_obj.duration = duration.Duration(duration_ql) # duration を使用
+            new_chord_m21_obj = m21chord.Chord(final_voiced_pitches) 
+            new_chord_m21_obj.duration = duration.Duration(duration_ql) 
             try:
-                vol_obj = m21volume.Volume(velocity=chord_velocity) # 変数名を変更、m21volume を使用
+                vol_obj = m21volume.Volume(velocity=chord_velocity) 
                 notes_for_chord = []
-                for p_note_iter in final_voiced_pitches: # 変数名を変更
-                    n_obj = note.Note(p_note_iter) # 変数名を変更、note を使用
+                for p_note_iter in final_voiced_pitches: 
+                    n_obj = note.Note(p_note_iter) 
                     n_obj.volume = vol_obj 
                     notes_for_chord.append(n_obj)
                 if notes_for_chord:
-                    new_chord_with_velocity = m21chord.Chord(notes_for_chord, quarterLength=duration_ql) # m21chord を使用
+                    new_chord_with_velocity = m21chord.Chord(notes_for_chord, quarterLength=duration_ql) 
                     chord_part.insert(offset_ql, new_chord_with_velocity)
                     logger.debug(f"  CV: Added chord {new_chord_with_velocity.pitchedCommonName} with vel {chord_velocity} at offset {offset_ql}")
                 else:
@@ -287,7 +287,7 @@ class ChordVoicer:
             except Exception as e_add_final:
                 logger.error(f"CV Block {blk_idx+1}: Error adding final chord for '{cs_object_current.figure if cs_object_current else 'N/A'}': {e_add_final}", exc_info=True)
         
-        logger.info(f"CV.compose: Finished composition. Part contains {len(list(chord_part.flat.notesAndRests))} elements.") # flatten() を flat に変更
+        logger.info(f"CV.compose: Finished composition. Part contains {len(list(chord_part.flat.notesAndRests))} elements.") 
         return chord_part
 
 # --- END OF FILE generators/chord_voicer.py ---
