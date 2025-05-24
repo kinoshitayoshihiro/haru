@@ -267,7 +267,7 @@ class VocalGenerator:
         for el_item_final in final_elements:
             vocal_part.insert(el_item_final.offset, el_item_final)
 
-        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flat.notesAndRests))} elements.")
+        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flatten().notesAndRests))} elements.")
         return vocal_part
 
 # --- END OF FILE generator/vocal_generator.py ---
