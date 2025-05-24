@@ -193,7 +193,7 @@ class BassGenerator:
                 n_bass = note.Note(current_pitch_obj) 
                 n_bass.quarterLength = actual_event_duration
                 vel_factor = event_data.get("velocity_factor", 1.0)
-                n_bass.volume = m21instrument.Volume(velocity=int(base_velocity * vel_factor)) # m21instrument を使用
+                n_bass.volume = m21instrument.Volume(velocity=int(base_velocity * vel_factor)) 
                 bass_part.insert(current_total_offset + abs_event_offset_in_block, n_bass)
 
             current_total_offset += block_q_length
