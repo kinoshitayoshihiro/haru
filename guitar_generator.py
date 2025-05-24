@@ -257,7 +257,7 @@ class GuitarGenerator:
             for el_item_guitar_final in all_generated_elements_for_part:
                 guitar_part.insert(el_item_guitar_final.offset, el_item_guitar_final)
 
-        logger.info(f"GuitarGen: Finished. Part has {len(list(guitar_part.flat.notesAndRests))} elements.")
+        logger.info(f"GuitarGen: Finished. Part has {len(list(guitar_part.flatten().notesAndRests))} elements.")
         return guitar_part
 
 # --- END OF FILE generator/guitar_generator.py ---
