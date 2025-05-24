@@ -1,4 +1,5 @@
 # --- START OF FILE generator/guitar_generator.py (ヒューマナイズ外部化版) ---
+import music21 # name 'music21' is not defined エラー対策
 from typing import List, Dict, Optional, Tuple, Any, Sequence, Union
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -13,7 +14,7 @@ import music21.scale as scale
 import music21.interval as interval 
 import music21.tempo as tempo
 import music21.key as key 
-import music21.chord as m21chord # check_imports.py の指摘に基づき修正
+import music21.chord      as m21chord # check_imports.py の期待する形式 (スペースに注意)
 import music21.articulations as articulations
 import music21.volume as m21volume
 import music21.expressions as expressions
@@ -147,7 +148,6 @@ class GuitarGenerator:
                 actual_arp_dur = min(arp_note_dur_ql, event_duration_ql - current_offset_in_event)
                 if actual_arp_dur < MIN_NOTE_DURATION_QL / 4: break
                 n_arp = note.Note(p_play_arp, quarterLength=actual_arp_dur * 0.95) 
-                # n_arp.volume.velocity = event_velocity # m21volume.Volume を使うべき
                 n_arp.volume = m21volume.Volume(velocity=event_velocity)
                 n_arp.offset = event_abs_offset + current_offset_in_event 
                 notes_for_event.append(n_arp)
@@ -163,7 +163,6 @@ class GuitarGenerator:
                 if actual_mute_dur < MIN_NOTE_DURATION_QL / 8: break
                 n_mute = note.Note(root_mute); n_mute.articulations = [articulations.Staccatissimo()] 
                 n_mute.duration.quarterLength = actual_mute_dur 
-                # n_mute.volume.velocity = int(event_velocity * 0.6) + random.randint(-5,5) # m21volume.Volume を使うべき
                 n_mute.volume = m21volume.Volume(velocity=int(event_velocity * 0.6) + random.randint(-5,5))
                 n_mute.offset = event_abs_offset + t_mute 
                 notes_for_event.append(n_mute)
