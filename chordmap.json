@@ -29,8 +29,15 @@
         "lyrics_end_actual_beats_from_section_start": 8.0
       },
       "chord_progression": [
-        {"label": "Dm7", "duration_beats": 4, "nuance": "add sus2 feeling", "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4}
+        {
+          "label": "Dm7",
+          "duration_beats": 4,
+          "nuance": "add sus2 feeling"
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        }
       ]
     },
     "Pre-Chorus 1": {
@@ -55,16 +62,47 @@
         "lyrics_end_actual_beats_from_section_start": 37.25
       },
       "chord_progression": [
-        {"label": "Am7(add11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "G13", "duration_beats": 4},
-        {"label": "Cmaj7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bo7", "duration_beats": 4, "nuance": "passing_diminished_tension"},
-        {"label": "E7(b9)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 5.25},
-        {"label": "Rest", "duration_beats": 2.75}
+        {
+          "label": "Am7add11", // tensions_to_add は label に統合済み
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "G13",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bo7",
+          "duration_beats": 4,
+          "nuance": "passing_diminished_tension"
+        },
+        {
+          "label": "E7b9",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 5.25
+        },
+        {
+          "label": "Rest",
+          "duration_beats": 2.75
+        }
       ]
     },
     "Chorus 1": {
@@ -89,26 +127,86 @@
         "lyrics_end_actual_beats_from_section_start": 77.25
       },
       "chord_progression": [
-        {"label": "Fmaj7(add9)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C/E", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 2},
-        {"label": "C7", "duration_beats": 2},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "F/A", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 5.25},
-        {"label": "Rest", "duration_beats": 2.75}
+        {
+          "label": "Fmaj7add9",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/E",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 2
+        },
+        {
+          "label": "C7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "F/A",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 5.25
+        },
+        {
+          "label": "Rest",
+          "duration_beats": 2.75
+        }
       ]
     },
     "Verse 2": {
@@ -133,23 +231,159 @@
         "lyrics_end_actual_beats_from_section_start": 112.5
       },
       "chord_progression": [
-        {"label": "Cm7", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Dbmaj7", "duration_beats": 4},
-        {"label": "Ebm7", "duration_beats": 4},
-        {"label": "Fm", "duration_beats": 4},
-        {"label": "Cm", "duration_beats": 4},
-        {"label": "Abmaj7", "duration_beats": 4},
-        {"label": "Gm7b5", "duration_beats": 2},
-        {"label": "C7(#9,b13)", "duration_beats": 2, "nuance": "phrygian_dominant_flavor", "tensions_to_add": []},
-        {"label": "Cm", "duration_beats": 4}, {"label": "Dbmaj7", "duration_beats": 4}, {"label": "Ebm7", "duration_beats": 4}, {"label": "Fm", "duration_beats": 4},
-        {"label": "Cm", "duration_beats": 4}, {"label": "Abmaj7", "duration_beats": 4}, {"label": "Gm7b5", "duration_beats": 4}, {"label": "Cm", "duration_beats": 4},
-        {"label": "Dm", "duration_beats": 4}, {"label": "Ebmaj7", "duration_beats": 4}, {"label": "Am", "duration_beats": 4}, {"label": "D7", "duration_beats": 4},
-        {"label": "Cm", "duration_beats": 4}, {"label": "Fm", "duration_beats": 4}, {"label": "Bbm7", "duration_beats": 4}, {"label": "Eb7", "duration_beats": 4},
-        {"label": "Abmaj7", "duration_beats": 4}, {"label": "Dbmaj7", "duration_beats": 4}, {"label": "Gm7b5", "duration_beats": 4}, {"label": "Cm", "duration_beats": 4},
-        {"label": "Fm", "duration_beats": 4}, {"label": "Bb7", "duration_beats": 4}, {"label": "Ebmaj7", "duration_beats": 4}, {"label": "Abmaj7", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4}, {"label": "G7sus4", "duration_beats": 2}, {"label": "G7", "duration_beats": 2}, {"label": "Cm", "duration_beats": 4},
-        {"label": "Cm", "duration_beats": 0.5},
-        {"label": "Rest", "duration_beats": 3.5}
+        {
+          "label": "Cm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Ebm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Abmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7b5",
+          "duration_beats": 2
+        },
+        {
+          "label": "C7#9b13",
+          "duration_beats": 2,
+          "nuance": "phrygian_dominant_flavor"
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Ebm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Abmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7b5",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Ebmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am",
+          "duration_beats": 4
+        },
+        {
+          "label": "D7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Eb7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Abmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7b5",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bb7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Ebmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Abmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "G7sus4",
+          "duration_beats": 2
+        },
+        {
+          "label": "G7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm",
+          "duration_beats": 0.5
+        },
+        {
+          "label": "Rest",
+          "duration_beats": 3.5
+        }
       ]
     },
     "Chorus 2": {
@@ -174,14 +408,38 @@
         "lyrics_end_actual_beats_from_section_start": 32.0
       },
       "chord_progression": [
-        {"label": "Dm7(add13)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "Em7b5", "duration_beats": 4},
-        {"label": "A7(b9)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Dm7", "duration_beats": 4}
+        {
+          "label": "Dm7add13",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Em7b5",
+          "duration_beats": 4
+        },
+        {
+          "label": "A7b9",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        }
       ]
     },
     "Interlude": {
@@ -206,12 +464,31 @@
         "lyrics_end_actual_beats_from_section_start": 24.0
       },
       "chord_progression": [
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4, "nuance": "leading_to_bridge"}
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4,
+          "nuance": "leading_to_bridge"
+        }
       ]
     },
     "Bridge 1": {
@@ -236,14 +513,39 @@
         "lyrics_end_actual_beats_from_section_start": 32.0
       },
       "chord_progression": [
-        {"label": "C13", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "F/A", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4, "nuance": "temporary_resolve_to_F"}
+        {
+          "label": "C13",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "F/A",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4,
+          "nuance": "temporary_resolve_to_F"
+        }
       ]
     },
     "Verse 3": {
@@ -268,14 +570,39 @@
         "lyrics_end_actual_beats_from_section_start": 32.0
       },
       "chord_progression": [
-        {"label": "Am7", "duration_beats": 4, "nuance": "add sus2 feeling", "tensions_to_add": []},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "G7", "duration_beats": 4},
-        {"label": "Cmaj7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "E7sus4", "duration_beats": 2},
-        {"label": "E7", "duration_beats": 2},
-        {"label": "Am7", "duration_beats": 8}
+        {
+          "label": "Am7",
+          "duration_beats": 4,
+          "nuance": "add sus2 feeling"
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "G7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "E7sus4",
+          "duration_beats": 2
+        },
+        {
+          "label": "E7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 8
+        }
       ]
     },
     "Pre-Chorus 2": {
@@ -300,19 +627,59 @@
         "lyrics_end_actual_beats_from_section_start": 46.0
       },
       "chord_progression": [
-        {"label": "Dm7(add11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "C/Bb", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "D7sus4", "duration_beats": 2, "nuance": "turnaround_to_Gm_or_Dm"},
-        {"label": "D7", "duration_beats": 2},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "A7", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 6},
-        {"label": "Rest", "duration_beats": 2}
+        {
+          "label": "Dm7add11",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/Bb",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "D7sus4",
+          "duration_beats": 2,
+          "nuance": "turnaround_to_Gm_or_Dm"
+        },
+        {
+          "label": "D7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "A7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 6
+        },
+        {
+          "label": "Rest",
+          "duration_beats": 2
+        }
       ]
     },
     "Chorus 3": {
@@ -338,18 +705,55 @@
         "drum_fill_at_end": "chorus_end_fill"
       },
       "chord_progression": [
-        {"label": "Fmaj7(add9,13)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C/E", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4, "nuance": "strong_dominant"},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4}
+        {
+          "label": "Fmaj7add9add13",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/E",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4,
+          "nuance": "strong_dominant"
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        }
       ]
     },
     "Bridge 2": {
@@ -374,14 +778,41 @@
         "lyrics_end_actual_beats_from_section_start": 32.0
       },
       "chord_progression": [
-        {"label": "Bbmaj9(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C/Bb", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4, "nuance": "contrast_to_lydian_brightness"},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4, "nuance": "return_to_global_tonic_area"},
-        {"label": "Bbmaj7(#11)", "duration_beats": 4, "nuance": "add sus2 feeling", "tensions_to_add": []}
+        {
+          "label": "Bbmaj9#11",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/Bb",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4,
+          "nuance": "contrast_to_lydian_brightness"
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4,
+          "nuance": "return_to_global_tonic_area"
+        },
+        {
+          "label": "Bbmaj7#11",
+          "duration_beats": 4,
+          "nuance": "add sus2 feeling"
+        }
       ]
     },
     "Verse 4": {
@@ -406,22 +837,73 @@
         "lyrics_end_actual_beats_from_section_start": 64.0
       },
       "chord_progression": [
-        {"label": "Bbmaj9(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "F/A", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 2, "nuance": "gentle_suspension"},
-        {"label": "C7", "duration_beats": 2},
-        {"label": "Fmaj7", "duration_beats": 4, "nuance": "momentary_grounding"},
-        {"label": "Ebmaj7(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Bbmaj7/D", "duration_beats": 4},
-        {"label": "Cm7", "duration_beats": 4},
-        {"label": "F7", "duration_beats": 4},
-        {"label": "Bbmaj7(#11)", "duration_beats": 8, "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "D7sus4", "duration_beats": 2, "nuance": "leading"},
-        {"label": "D7", "duration_beats": 2}
+        {
+          "label": "Bbmaj9#11",
+          "duration_beats": 4
+        },
+        {
+          "label": "F/A",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 2,
+          "nuance": "gentle_suspension"
+        },
+        {
+          "label": "C7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4,
+          "nuance": "momentary_grounding"
+        },
+        {
+          "label": "Ebmaj7(#11)",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7/D",
+          "duration_beats": 4
+        },
+        {
+          "label": "Cm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "F7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7#11",
+          "duration_beats": 8
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "D7sus4",
+          "duration_beats": 2,
+          "nuance": "leading"
+        },
+        {
+          "label": "D7",
+          "duration_beats": 2
+        }
       ]
     },
     "Chorus 4": {
@@ -447,39 +929,142 @@
         "mode_shift_to_lydian_beat_offset": 96.0
       },
       "chord_progression": [
-        {"label": "Fmaj7(add9)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C/E", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 4},
-        {"label": "Bbmaj7", "duration_beats": 4},
-        {"label": "F/A", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C7sus4", "duration_beats": 2},
-        {"label": "C7", "duration_beats": 2},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Dm7", "duration_beats": 4},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "Bbm6", "duration_beats": 4, "nuance": "minor_subdominant_color"},
-        {"label": "F/C", "duration_beats": 4},
-        {"label": "C7", "duration_beats": 4},
-        {"label": "Fmaj7", "duration_beats": 8},
-        {"label": "Fmaj9(#11)", "duration_beats": 4, "nuance": "lydian_transition_starts", "tensions_to_add": []},
-        {"label": "G7/F", "duration_beats": 4},
-        {"label": "Cmaj7/F", "duration_beats": 4},
-        {"label": "Fmaj9(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "Am7", "duration_beats": 4},
-        {"label": "Bbmaj9(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C7sus4", "duration_beats": 4},
-        {"label": "Fmaj9(#11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "C/E", "duration_beats": 4},
-        {"label": "Dm7(add11)", "duration_beats": 4, "tensions_to_add": []},
-        {"label": "Gm7", "duration_beats": 4},
-        {"label": "C13", "duration_beats": 4},
-        {"label": "Fmaj9(#11)", "duration_beats": 1.5, "nuance": "final_grand_chord", "tensions_to_add": []},
-        {"label": "Rest", "duration_beats": 2.5}
+        {
+          "label": "Fmaj7add9",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/E",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj7",
+          "duration_beats": 4
+        },
+        {
+          "label": "F/A",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 2
+        },
+        {
+          "label": "C7",
+          "duration_beats": 2
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbm6",
+          "duration_beats": 4,
+          "nuance": "minor_subdominant_color"
+        },
+        {
+          "label": "F/C",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj7",
+          "duration_beats": 8
+        },
+        {
+          "label": "Fmaj9#11",	"label": "Fmaj9#1
+          "duration_beats": 4,	
+          "nuance": "lydian_transition_starts",	
+          "tensions_to_add": []	
+        },	
+        {	
+          "label": "G7/F",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Cmaj7/F",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Fmaj9#11",	
+          "duration_beats": 4
+        },	
+        {	
+          "label": "Gm7",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Am7",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Bbmaj9#11",	
+          "duration_beats": 4
+        },	
+        {	
+          "label": "C7sus4",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Fmaj9#11",	
+          "duration_beats": 4
+        },	
+        {	
+          "label": "C/E",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Dm7(add11)",	
+          "duration_beats": 4
+        },	
+        {	
+          "label": "Gm7",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "C13",	
+          "duration_beats": 4	
+        },	
+        {	
+          "label": "Fmaj9#11",	
+          "duration_beats": 1.5,	
+          "nuance": "final_grand_chord"
+        },
+        {
+          "label": "Rest",
+          "duration_beats": 2.5
+        }
       ]
     }
   }
