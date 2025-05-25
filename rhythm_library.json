@@ -109,7 +109,7 @@
       ]
     }
   },
-  "drum_patterns": {
+ "drum_patterns": {
     "default_drum_pattern": {
       "description": "Default simple kick and snare (Global Fallback).",
       "time_signature": "4/4",
@@ -121,96 +121,88 @@
       ]
     },
     "ballad_soft_kick_snare_8th_hat": {
-      "description": "Soft ballad beat with kick, snare, and 8th note hi-hat.",
+      "description": "Refined soft ballad with subtle ghost snare and expressive hats.",
       "time_signature": "4/4",
       "pattern": [
-        {"instrument": "kick", "offset": 0.0, "velocity": 70, "duration": 0.2},
+        {"instrument": "kick", "offset": 0.0, "velocity": 75, "duration": 0.2},
         {"instrument": "chh", "offset": 0.0, "velocity": 60, "duration": 0.1},
-        {"instrument": "chh", "offset": 0.5, "velocity": 55, "duration": 0.1},
-        {"instrument": "snare", "offset": 1.0, "velocity": 75, "duration": 0.2},
-        {"instrument": "chh", "offset": 1.0, "velocity": 60, "duration": 0.1},
-        {"instrument": "chh", "offset": 1.5, "velocity": 55, "duration": 0.1},
-        {"instrument": "kick", "offset": 2.0, "velocity": 70, "duration": 0.2},
+        {"instrument": "chh", "offset": 0.48, "velocity": 50, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 78, "duration": 0.2},
+        {"instrument": "chh", "offset": 1.0, "velocity": 58, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.52, "velocity": 53, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.0, "velocity": 72, "duration": 0.2},
+        {"instrument": "ghost_snare", "offset": 2.25, "velocity": 40, "duration": 0.1},
         {"instrument": "chh", "offset": 2.0, "velocity": 60, "duration": 0.1},
-        {"instrument": "chh", "offset": 2.5, "velocity": 55, "duration": 0.1},
-        {"instrument": "snare", "offset": 3.0, "velocity": 75, "duration": 0.2},
+        {"instrument": "chh", "offset": 2.48, "velocity": 52, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 78, "duration": 0.2},
         {"instrument": "chh", "offset": 3.0, "velocity": 60, "duration": 0.1},
         {"instrument": "chh", "offset": 3.5, "velocity": 55, "duration": 0.1}
       ]
     },
     "rock_ballad_build_up_8th_hat": {
-      "description": "Rock ballad beat building up, 8th note hi-hat.",
+      "description": "Rock ballad with dynamic crescendos and ghost textures.",
       "time_signature": "4/4",
       "pattern": [
-        {"instrument": "kick", "offset": 0.0, "velocity": 85, "duration": 0.1},
+        {"instrument": "kick", "offset": 0.0, "velocity": 88, "duration": 0.1},
         {"instrument": "chh", "offset": 0.0, "velocity": 70, "duration": 0.1},
         {"instrument": "kick", "offset": 0.75, "velocity": 80, "duration": 0.1},
-        {"instrument": "chh", "offset": 0.5, "velocity": 65, "duration": 0.1},
-        {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
-        {"instrument": "chh", "offset": 1.0, "velocity": 70, "duration": 0.1},
-        {"instrument": "chh", "offset": 1.5, "velocity": 65, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
+        {"instrument": "chh", "offset": 0.5, "velocity": 63, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 92, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.0, "velocity": 68, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.5, "velocity": 64, "duration": 0.1},
         {"instrument": "kick", "offset": 2.0, "velocity": 85, "duration": 0.1},
         {"instrument": "chh", "offset": 2.0, "velocity": 70, "duration": 0.1},
         {"instrument": "kick", "offset": 2.5, "velocity": 80, "duration": 0.1},
         {"instrument": "chh", "offset": 2.5, "velocity": 65, "duration": 0.1},
-        {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 93, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 3.25, "velocity": 35, "duration": 0.1},
         {"instrument": "chh", "offset": 3.0, "velocity": 70, "duration": 0.1},
-        {"instrument": "kick", "offset": 3.25, "velocity": 80, "duration": 0.1},
-        {"instrument": "chh", "offset": 3.5, "velocity": 65, "duration": 0.1},
-        {"instrument": "kick", "offset": 3.75, "velocity": 80, "duration": 0.1}
+        {"instrument": "chh", "offset": 3.5, "velocity": 65, "duration": 0.1}
       ],
       "fill_ins": {
-        "simple_snare_roll_half_bar": [
-          {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
-          {"instrument": "sd", "offset": 0.125, "velocity": 105, "duration": 0.125},
-          {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
-          {"instrument": "sd", "offset": 0.375, "velocity": 115, "duration": 0.125}
-        ],
-        "chorus_end_fill": [
-          {"instrument": "sd", "offset": 0.0, "velocity": 100, "duration": 0.125},
-          {"instrument": "sd", "offset": 0.25, "velocity": 110, "duration": 0.125},
-          {"instrument": "mt", "offset": 0.5, "velocity": 120, "duration": 0.125},
-          {"instrument": "lt", "offset": 0.75, "velocity": 127, "duration": 0.125},
-          {"instrument": "crash", "offset": 1.0, "velocity": 115, "duration": 1.0}
+        "expressive_fill": [
+          {"instrument": "tom1", "offset": 0.0, "velocity": 95, "duration": 0.125},
+          {"instrument": "tom2", "offset": 0.25, "velocity": 105, "duration": 0.125},
+          {"instrument": "tom3", "offset": 0.5, "velocity": 115, "duration": 0.125},
+          {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
         ]
       }
     },
     "anthem_rock_chorus_16th_hat": {
-      "description": "Anthem rock chorus with 16th note hi-hat.",
+      "description": "Pro-style anthem rock chorus with nuanced 16th hats and ghost notes.",
       "time_signature": "4/4",
       "pattern": [
         {"instrument": "kick", "offset": 0.0, "velocity": 110, "duration": 0.1},
         {"instrument": "chh", "offset": 0.0, "velocity": 85, "duration": 0.05},
-        {"instrument": "chh", "offset": 0.25, "velocity": 75, "duration": 0.05},
-        {"instrument": "chh", "offset": 0.5, "velocity": 80, "duration": 0.05},
-        {"instrument": "chh", "offset": 0.75, "velocity": 75, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.72, "velocity": 65, "duration": 0.05},
+        {"instrument": "snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
         {"instrument": "snare", "offset": 1.0, "velocity": 105, "duration": 0.1},
         {"instrument": "chh", "offset": 1.0, "velocity": 85, "duration": 0.05},
-        {"instrument": "chh", "offset": 1.25, "velocity": 75, "duration": 0.05},
-        {"instrument": "chh", "offset": 1.5, "velocity": 80, "duration": 0.05},
-        {"instrument": "chh", "offset": 1.75, "velocity": 75, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.72, "velocity": 65, "duration": 0.05},
         {"instrument": "kick", "offset": 2.0, "velocity": 110, "duration": 0.1},
         {"instrument": "crash", "offset": 2.0, "velocity": 100, "duration": 0.5},
         {"instrument": "chh", "offset": 2.0, "velocity": 85, "duration": 0.05},
-        {"instrument": "chh", "offset": 2.25, "velocity": 75, "duration": 0.05},
-        {"instrument": "chh", "offset": 2.5, "velocity": 80, "duration": 0.05},
-        {"instrument": "chh", "offset": 2.75, "velocity": 75, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.72, "velocity": 65, "duration": 0.05},
+        {"instrument": "snare", "offset": 2.9, "velocity": 45, "duration": 0.1},
         {"instrument": "snare", "offset": 3.0, "velocity": 105, "duration": 0.1},
         {"instrument": "chh", "offset": 3.0, "velocity": 85, "duration": 0.05},
-        {"instrument": "chh", "offset": 3.25, "velocity": 75, "duration": 0.05},
-        {"instrument": "chh", "offset": 3.5, "velocity": 80, "duration": 0.05},
-        {"instrument": "chh", "offset": 3.75, "velocity": 75, "duration": 0.05}
+        {"instrument": "chh", "offset": 3.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 3.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 3.72, "velocity": 65, "duration": 0.05}
       ],
       "fill_ins": {
-        "crescendo_roll": [
-          {"instrument": "snare", "offset": 0.0, "velocity": 70, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.125, "velocity": 80, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.25, "velocity": 90, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.375, "velocity": 100, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.5, "velocity": 110, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.625, "velocity": 120, "duration": 0.125},
-          {"instrument": "snare", "offset": 0.75, "velocity": 127, "duration": 0.125},
-          {"instrument": "crash", "offset": 0.75, "velocity": 110, "duration": 1.0}
+        "soulful_tom_roll": [
+          {"instrument": "tom1", "offset": 0.0, "velocity": 90, "duration": 0.125},
+          {"instrument": "tom2", "offset": 0.25, "velocity": 100, "duration": 0.125},
+          {"instrument": "tom3", "offset": 0.5, "velocity": 115, "duration": 0.125},
+          {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
         ]
       }
     },
@@ -234,7 +226,9 @@
       "time_signature": "4/4",
       "pattern": []
     }
-  },
+  }
+}
+
   "melody_rhythms": {
     "default_melody_rhythm": {
       "description": "Default melody rhythm - simple quarter notes.",
