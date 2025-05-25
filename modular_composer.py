@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (tensions_to_add 削除 & コードラベル検証強化版) ---
+# --- START OF FILE modular_composer.py (tensions_to_add 削除 & コードラベル検証強化 & .flat修正版) ---
 import music21
 import sys
 import os
@@ -312,18 +312,18 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             c_def: Dict[str, Any] = c_def_any
 
             # --- コードラベル検証強化 ---
-            original_chord_label = c_def.get("label", "C") # 元のラベルを保持
-            sanitized_chord_label_for_block: Optional[str] = None # このブロックで使用する最終的なラベル
+            original_chord_label = c_def.get("label", "C")
+            sanitized_chord_label_for_block: Optional[str] = None
             is_valid_chord_label_for_block = False
 
             if not original_chord_label or original_chord_label.strip().lower() in ["rest", "r", "nc", "n.c.", "silence", "-"]:
                 logger.info(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' is a rest.")
-                sanitized_chord_label_for_block = "Rest" # "Rest" として処理
+                sanitized_chord_label_for_block = "Rest"
                 is_valid_chord_label_for_block = True
             else:
                 temp_sanitized_label = sanitize_chord_label(original_chord_label)
 
-                if temp_sanitized_label is None: # sanitize_chord_label が Rest と判断した場合
+                if temp_sanitized_label is None:
                     logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' was sanitized to Rest by sanitize_chord_label. Treating as Rest.")
                     sanitized_chord_label_for_block = "Rest"
                     is_valid_chord_label_for_block = True
@@ -343,9 +343,9 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
 
             if not is_valid_chord_label_for_block:
                 logger.error(f"Section '{sec_name}', Chord {c_idx+1}: Due to parsing issues, invalid chord label '{original_chord_label}' will be treated as 'C'. Please review chordmap.json.")
-                c_lbl = "C" # フォールバック
+                c_lbl = "C"
             else:
-                c_lbl = cast(str, sanitized_chord_label_for_block) # Noneではないことが保証されている
+                c_lbl = cast(str, sanitized_chord_label_for_block)
             # --- コードラベル検証強化ここまで ---
 
 
@@ -377,11 +377,10 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             blk_data = {
                 "offset": current_abs_offset,
                 "q_length": dur_b,
-                "chord_label": c_lbl, # 検証済みのラベルを使用
+                "chord_label": c_lbl,
                 "section_name": sec_name,
                 "tonic_of_section": sec_t,
                 "mode": current_block_mode,
-                # "tensions_to_add": c_def.get("tensions_to_add",[]), # この行は削除済み
                 "is_first_in_section":(c_idx==0),
                 "is_last_in_section":(c_idx==len(chord_prog)-1),
                 "part_params":{}
@@ -455,6 +454,11 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         part_default_cfg = main_cfg["default_part_parameters"].get(part_name, {})
         instrument_str = part_default_cfg.get("instrument", "Piano")
         rhythm_category_key = f"{part_name}_patterns"
+        if part_name == "bass": # BassGenerator uses 'bass_lines'
+             rhythm_category_key = "bass_lines"
+        elif part_name == "melody": # MelodyGenerator uses 'melody_rhythms'
+            rhythm_category_key = "melody_rhythms"
+
         rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
 
 
@@ -582,8 +586,9 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
 
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts:
-                        if sub_part.flat.notesAndRests: final_score.insert(0, sub_part)
-                elif isinstance(part_obj, stream.Part) and part_obj.flat.notesAndRests:
+                        if sub_part.flatten().notesAndRests: # .flat -> .flatten()
+                            final_score.insert(0, sub_part)
+                elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests: # .flat -> .flatten()
                     final_score.insert(0, part_obj)
                 logger.info(f"{p_n} part generated.")
             except Exception as e_gen: logger.error(f"Error in {p_n} generation: {e_gen}", exc_info=True)
@@ -594,7 +599,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
     out_fpath = cli_args.output_dir / actual_out_fname
     out_fpath.parent.mkdir(parents=True,exist_ok=True)
     try:
-        if final_score.flat.notesAndRests:
+        if final_score.flatten().notesAndRests: # .flat -> .flatten()
             final_score.write('midi',fp=str(out_fpath))
             logger.info(f"🎉 MIDI exported to {out_fpath}")
         else:
