@@ -1,4 +1,4 @@
-# --- START OF FILE generator/drum_generator.py (エラー修正・.clone()修正版) ---
+# --- START OF FILE generator/drum_generator.py (デバッグログ追加・エラー修正・.clone()修正版) ---
 import music21
 from typing import List, Dict, Optional, Tuple, Any, Sequence, Union, cast
 
@@ -45,11 +45,30 @@ class DrumGenerator:
                  global_tempo: int = 120,
                  global_time_signature: str = "4/4"):
         self.drum_pattern_library = drum_pattern_library if drum_pattern_library is not None else {}
-        if "default_drum_pattern" not in self.drum_pattern_library: self.drum_pattern_library["default_drum_pattern"] = DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"]; logger.info("DrumGen: Added 'default_drum_pattern'.")
-        if "no_drums" not in self.drum_pattern_library: self.drum_pattern_library["no_drums"] = DEFAULT_DRUM_PATTERNS_LIB["no_drums"]; logger.info("DrumGen: Added 'no_drums'.")
-        custom_styles = ["no_drums_or_sparse_cymbal", "no_drums_or_gentle_cymbal_swell", "no_drums_or_sparse_chimes"]
-        for cds in custom_styles:
-            if cds not in self.drum_pattern_library: self.drum_pattern_library[cds] = {"description":f"{cds} (auto-added)","time_signature":"4/4","pattern":[]}; logger.info(f"DrumGen: Added placeholder for '{cds}'.")
+        # ★★★ デバッグログ追加 ★★★
+        logger.info(f"DrumGen __init__: Received drum_pattern_library with keys: {list(self.drum_pattern_library.keys())}")
+        if not self.drum_pattern_library:
+            logger.warning("DrumGen __init__: Received an EMPTY drum_pattern_library!")
+
+        if "default_drum_pattern" not in self.drum_pattern_library:
+            self.drum_pattern_library["default_drum_pattern"] = DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"]
+            logger.info("DrumGen: Added 'default_drum_pattern' to internal library.")
+        if "no_drums" not in self.drum_pattern_library:
+            self.drum_pattern_library["no_drums"] = DEFAULT_DRUM_PATTERNS_LIB["no_drums"]
+            logger.info("DrumGen: Added 'no_drums' to internal library.")
+
+        # chordmap で使用されるが rhythm_library に定義がない可能性のあるプレースホルダーを追加
+        # これにより、これらのキーが指定された場合にエラーではなく空のパターンが使用される
+        placeholder_styles = ["no_drums_or_sparse_cymbal", "no_drums_or_gentle_cymbal_swell", "no_drums_or_sparse_chimes"]
+        for style_key in placeholder_styles:
+            if style_key not in self.drum_pattern_library:
+                self.drum_pattern_library[style_key] = {
+                    "description": f"Placeholder for '{style_key}' (auto-added). Should be defined in rhythm_library.json if used.",
+                    "time_signature": "4/4",
+                    "pattern": []
+                }
+                logger.info(f"DrumGen: Added placeholder for '{style_key}' to internal library.")
+
         self.default_instrument = default_instrument
         if hasattr(self.default_instrument, 'midiChannel'): self.default_instrument.midiChannel = 9
         self.global_tempo = global_tempo
@@ -58,8 +77,20 @@ class DrumGenerator:
 
 
     def _create_drum_hit(self, drum_sound_name: str, velocity_val: int, duration_ql_val: float = 0.125) -> Optional[note.Note]:
-        midi_val = GM_DRUM_MAP.get(drum_sound_name.lower().replace(" ","_").replace("-","_"))
-        if midi_val is None: logger.warning(f"DrumGen: Sound '{drum_sound_name}' not in GM_DRUM_MAP. Skip."); return None
+        # GM_DRUM_MAP に "ghost_snare" がないため、通常の "snare" として扱うか、新しいMIDIノート番号を割り当てる必要あり
+        actual_sound_name = drum_sound_name.lower().replace(" ","_").replace("-","_")
+        if actual_sound_name == "ghost_snare":
+            actual_sound_name = "snare" # ghost_snare は snare として扱う (ベロシティで区別)
+            logger.debug(f"DrumGen: Treating 'ghost_snare' as 'snare' for MIDI mapping.")
+        
+        # 新しい rhythm_library で tom1, tom2, tom3 が使われているため、GM_DRUM_MAP に追加
+        # これらの値は一般的なGMマッピングの例。必要に応じて調整。
+        extended_gm_drum_map = GM_DRUM_MAP.copy()
+        extended_gm_drum_map.update({"tom1": 48, "tom2": 47, "tom3": 45, "tom_hi":50, "tom_mid":47, "tom_low":45})
+
+
+        midi_val = extended_gm_drum_map.get(actual_sound_name)
+        if midi_val is None: logger.warning(f"DrumGen: Sound '{drum_sound_name}' (mapped to '{actual_sound_name}') not in GM_DRUM_MAP. Skip."); return None
         try:
             hit = note.Note()
             hit.pitch = pitch.Pitch()
@@ -92,10 +123,9 @@ class DrumGenerator:
                         drum_hit = cast(note.Note, apply_humanization_to_element(drum_hit, custom_params=humanize_params_for_hit))
 
                     insert_at_offset = measure_abs_start_offset + event_offset_in_pattern
-                    # apply_humanization_to_element がオフセットを変更する場合、ここで加味する
-                    if hasattr(drum_hit, 'offset') and drum_hit.offset != 0.0: # Humanizerがオフセットを付加した場合
+                    if hasattr(drum_hit, 'offset') and drum_hit.offset != 0.0:
                         insert_at_offset += drum_hit.offset
-                        drum_hit.offset = 0 # Partへinsertする前に要素自体のオフセットは0にリセット
+                        drum_hit.offset = 0
                     target_part.insert(insert_at_offset, drum_hit)
 
 
@@ -146,7 +176,7 @@ class DrumGenerator:
 
 
             style_def = self.drum_pattern_library.get(style_key)
-            if not style_def or "pattern" not in style_def:
+            if not style_def or "pattern" not in style_def: # パターン自体、またはパターン内の "pattern" リストがない場合
                 logger.warning(f"DrumGen: Style key '{style_key}' not found or invalid in drum_pattern_library. Using default_drum_pattern.")
                 style_def = self.drum_pattern_library.get("default_drum_pattern", DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"])
 
@@ -171,13 +201,14 @@ class DrumGenerator:
 
 
                 if block_fill_key and is_eff_last_measure_of_block:
-                    fill_def = style_def.get("fill_ins", {}).get(block_fill_key)
+                    # fill_ins キーが存在するか確認
+                    fill_def = style_def.get("fill_ins", {}).get(block_fill_key) if isinstance(style_def, dict) else None
                     if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying override fill '{block_fill_key}' at {measure_start_abs:.2f}")
                 elif not applied_fill and fill_interval > 0 and fill_options and \
                      (measures_since_last_fill + (current_measure_iter_dur / p_bar_dur if p_bar_dur > 0 else 1) >= fill_interval) and \
                      is_eff_last_measure_of_block :
                     chosen_f_key = random.choice(fill_options)
-                    fill_def = style_def.get("fill_ins", {}).get(chosen_f_key)
+                    fill_def = style_def.get("fill_ins", {}).get(chosen_f_key) if isinstance(style_def, dict) else None
                     if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying scheduled fill '{chosen_f_key}' at {measure_start_abs:.2f}")
 
                 self._apply_drum_pattern_to_measure(
