@@ -77,7 +77,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Vocalist", # music21.instrument.fromString("Vocalist") で取得可能
+            "instrument": "Voice", # music21.instrument.fromString("Vocalist") で取得可能
             "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"},
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
