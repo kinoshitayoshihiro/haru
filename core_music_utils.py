@@ -39,7 +39,7 @@ def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> sca
         "melodicminor": scale.MelodicMinorScale,
     }
     scl_cls = mode_map.get(mode_key, scale.MajorScale)
-    if scl_cls is scale.MajorScale and mode_key not in mode_map :
+    if scl_cls is scale.MajorScale and mode_key not in mode_map:
         logger.warning(f"CoreUtils (BuildScale): Unknown mode '{mode_key}'. Using MajorScale with {tonic_p.name}.")
     try:
         return scl_cls(tonic_p)
@@ -83,17 +83,16 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         logger.debug(f"CoreUtils (sanitize): '{original_label}' -> None (Rest direct match).")
         return None
 
-    # 0a. ルート音の先頭文字を大文字化 (o3さん提案)
+    # 0a. capitalize root
     sanitized = re.sub(r'^([a-g])', lambda m: m.group(1).upper(), sanitized)
-    
-    # 0b. ワードベースの品質変換
+    # 0b. word-based quality conversions
     word_map = {
         r'(?i)\b([A-G][#\-]*)\s+minor\b': r'\1m', r'(?i)\b([A-G][#\-]*)\s+major\b': r'\1maj',
         r'(?i)\b([A-G][#\-]*)\s+dim\b':   r'\1dim', r'(?i)\b([A-G][#\-]*)\s+aug\b':   r'\1aug',
     }
     for pat, rep in word_map.items(): sanitized = re.sub(pat, rep, sanitized)
 
-    # 1. フラット正規化 & SUS正規化
+    # 1. flat & sus normalization
     sanitized = re.sub(r'^([A-G])bb', r'\1--', sanitized)
     sanitized = re.sub(r'^([A-G])b(?![#b])', r'\1-', sanitized)
     sanitized = re.sub(r'/([A-G])bb', r'/\1--', sanitized)
@@ -101,38 +100,31 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
     sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized)
     sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized)
 
-    # 2. 括弧の不均衡修正
+    # 2. fix unbalanced parens
     if '(' in sanitized and ')' not in sanitized:
-        logger.info(f"CoreUtils (sanitize): Detected unclosed parenthesis in '{original_label}'.")
-        base_part = sanitized.split('(')[0]
-        content_after = sanitized.split('(', 1)[1] if len(sanitized.split('(', 1)) > 1 else ""
-        if content_after.strip():
-            recovered = "".join(_expand_tension_block_final_v3(p) for p in content_after.split(','))
-            if recovered:
-                sanitized = base_part + recovered
-                logger.info(f"CoreUtils (sanitize): Recovered from unclosed: '{recovered}' -> '{sanitized}'")
-            else:
-                sanitized = base_part; logger.info(f"CoreUtils (sanitize): No valid tensions from unclosed, kept -> '{sanitized}'")
-        else:
-            sanitized = base_part; logger.info(f"CoreUtils (sanitize): Empty after unclosed, kept -> '{sanitized}'")
+        base_part, content = sanitized.split('(',1)
+        recovered = "".join(_expand_tension_block_final_v3(p) for p in content.split(','))
+        sanitized = base_part + (recovered or '')
+        logger.info(f"CoreUtils (sanitize): Recovered from unclosed -> '{sanitized}'")
 
-    # 3. altコード展開
+    # 3. alt expansion: include both #9 and b13 correctly
     sanitized = re.sub(r'([A-Ga-g][#\-]?)(?:7)?alt', r'\g<1>7#9b13', sanitized, flags=re.IGNORECASE)
-    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13')
 
-    # 4. 括弧の平坦化
+    # correct erroneous 'badd13' patterns to 'b13add13'
+    sanitized = sanitized.replace('badd13', 'b13add13')
+
+    # 4. flatten parens
     prev = ""; count = 0
     while '(' in sanitized and ')' in sanitized and sanitized != prev and count < 5:
         prev = sanitized; count += 1
-        match = re.match(r'^(.*?)\(([^)]+)\)(.*)$', sanitized)
-        if match:
-            base, inner, suf = match.groups()
+        m = re.match(r'^(.*?)\(([^)]+)\)(.*)$', sanitized)
+        if m:
+            base, inner, suf = m.groups()
             expanded = "".join(_expand_tension_block_final_v3(p) for p in inner.split(','))
             sanitized = base + expanded + suf
-        else:
-            break
+        else: break
 
-    # 5. 品質関連の正規化
+    # 5. quality mapping
     qual_map = {
         r'(?i)ø7?\b': 'm7b5', r'(?i)half[- ]?dim\b': 'm7b5', 'dimished': 'dim',
         r'(?i)diminished(?!7)': 'dim', r'(?i)diminished7': 'dim7', r'(?i)domant7?': '7',
@@ -142,71 +134,58 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         r'(?i)aug(?!mented)': 'aug', r'(?i)augmented': 'aug', r'(?i)major(?!7|9|13|\b)': 'maj'
     }
     for pat, rep in qual_map.items(): sanitized = re.sub(pat, rep, sanitized)
-                                                       
-    # 6. 'add'補完
+
+    # 6. addify two-digit tensions
     try:
-        sanitized = re.sub(r'([A-Ga-z][#\-]?(?:[mM](?:aj)?\d*|[dD]im\d*|[aA]ug\d*|ø\d*|[sS]us\d*|[aA]dd\d*|7th|6th|5th|m7b5)?)(\d{2,})(?!add|\d|th|nd|rd|st)', _addify_if_needed_final_v3, sanitized, flags=re.IGNORECASE)
-    except Exception as e_addify:
-        logger.warning(f"CoreUtils (sanitize): Error during _addify call: {e_addify}. Label: {sanitized}")
+        sanitized = re.sub(
+            r'([A-Ga-z][#\-]?(?:[mM](?:aj)?\d*|[dD]im\d*|[aA]ug\d*|ø\d*|[sS]us\d*|[aA]dd\d*|7th|6th|5th|m7b5)?)(\d{2,})(?!add|\d|th|nd|rd|st)',
+            _addify_if_needed_final_v3, sanitized, flags=re.IGNORECASE)
+    except Exception as e:
+        logger.warning(f"CoreUtils (sanitize): _addify error: {e}. Label: {sanitized}")
 
-    # 7. maj9(#...) -> maj7(#...)add9
-    sanitized = re.sub(r'(maj)9(#\d+)', r'\g<1>7\g<2>add9', sanitized, flags=re.IGNORECASE)
+    # 7. handle maj9 followed by alterations
+    sanitized = re.sub(r'(maj9)(#\d+)', r'\1\2add9', sanitized, flags=re.IGNORECASE)
 
-    # 8. susコードの最終修正
+    # 8. final sus cleanup
     sanitized = re.sub(r'(?i)sus44$', 'sus4', sanitized)
     sanitized = re.sub(r'(?i)sus22$', 'sus2', sanitized)
-    sanitized = re.sub(r'(add\d+)(\1)+', r'\1', sanitized, flags=re.IGNORECASE)
+    sanitized = re.sub(r'(add\d+)*add\d+', r'add\g<1>', sanitized, flags=re.IGNORECASE)
 
-    # 9. 全体のスペース・カンマ除去
+    # 9 & 10. strip spaces, commas, trailing junk
     sanitized = re.sub(r'[,\s]', '', sanitized)
-
-    # 10. 不要末尾文字除去
     sanitized = re.sub(r'[^a-zA-Z0-9#\-/\u00f8]+$', '', sanitized)
 
     if not sanitized:
-        logger.info(f"CoreUtils (sanitize): Label '{original_label}' resulted in empty string. Returning None (Rest).")
+        logger.info(f"CoreUtils (sanitize): '{original_label}' -> empty -> Rest")
         return None
-
     if sanitized != original_label:
         logger.info(f"CoreUtils (sanitize): '{original_label}' -> '{sanitized}'")
 
-    # 11. 最終パース試行
+    # 11. final parse test
     try:
         cs_test = harmony.ChordSymbol(sanitized)
         if not cs_test.pitches:
-            logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') parsed but has NO PITCHES. Fallback to None (Rest).")
+            logger.warning(f"CoreUtils (sanitize): '{sanitized}' has no pitches -> Rest")
             return None
-    except Exception as e_final_parse:
-        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') could not be parsed by music21 ({type(e_final_parse).__name__}: {e_final_parse}). Fallback to None (Rest).")
+    except Exception as e:
+        logger.warning(f"CoreUtils (sanitize): Could not parse '{sanitized}': {e} -> Rest")
         return None
-
     if not re.match(r'^[A-G]', sanitized):
-        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' does not start with a valid note name. Fallback to None (Rest).")
+        logger.warning(f"CoreUtils (sanitize): '{sanitized}' invalid root -> Rest")
         return None
-        
     return sanitized
 
 
 def get_music21_chord_object(chord_label_str: Optional[str], current_key: Optional[scale.ConcreteScale] = None) -> Optional[harmony.ChordSymbol]:
     if not isinstance(chord_label_str, str) or not chord_label_str.strip():
-        logger.debug(f"CoreUtils (get_obj): Input '{chord_label_str}' empty/not str. As Rest (None).")
         return None
     sanitized_label = sanitize_chord_label(chord_label_str)
     if not sanitized_label:
-        logger.debug(f"CoreUtils (get_obj): sanitize_chord_label returned None for '{chord_label_str}'. As Rest.")
         return None
     try:
         cs = harmony.ChordSymbol(sanitized_label)
         if not cs.pitches:
-            logger.info(f"CoreUtils (get_obj): Parsed '{sanitized_label}' (orig:'{chord_label_str}') but no pitches (fig: {cs.figure}). As Rest (None).")
             return None
-        logger.info(f"CoreUtils (get_obj): Successfully parsed '{sanitized_label}' (orig:'{chord_label_str}') as {cs.figure}")
         return cs
-    except Exception as e:
-        logger.error(f"CoreUtils (get_obj): Exception for '{sanitized_label}' (orig:'{chord_label_str}'): {type(e).__name__}: {e}. As Rest (None).")
-    return None
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s')
-    # Test harness omitted for brevity
+    except:
+        return None
