@@ -63,7 +63,7 @@
       },
       "chord_progression": [
         {
-          "label": "Am7add11", // tensions_to_add は label に統合済み
+          "label": "Am7add11"
           "duration_beats": 4
         },
         {
