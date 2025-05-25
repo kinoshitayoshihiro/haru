@@ -1,4 +1,4 @@
-# --- START OF FILE utilities/core_music_utils.py (vMasterpiece 改) ---
+# --- START OF FILE utilities/core_music_utils.py (Masterpiece Edition - Final Polish) ---
 import music21
 import logging
 from music21 import meter, harmony, pitch, scale
@@ -47,23 +47,24 @@ def build_scale_object(mode_str: Optional[str], tonic_str: Optional[str]) -> sca
         logger.error(f"CoreUtils (BuildScale): Error creating '{scl_cls.__name__}' for {tonic_p.name}: {e_create}. Fallback C Major.", exc_info=True)
         return scale.MajorScale(pitch.Pitch("C"))
 
-def _expand_tension_block_master(seg: str) -> str: # o3さん最新版ベース
+def _expand_tension_block_final_polish(seg: str) -> str: # o3さん最新版ベース
     seg = seg.strip().lower()
     if not seg: return ""
-    if seg.startswith(("#", "b")): return seg
+    if seg.startswith(("#", "b")): return seg 
     if seg.startswith("add"):
         match_add_num = re.match(r'add(\d+)', seg)
         if match_add_num: return f"add{match_add_num.group(1)}"
         logger.debug(f"CoreUtils (_ETB): Invalid 'add' format '{seg}', treating as empty.")
         return "" 
-    if seg.isdigit(): return f"add{seg}"
+    if seg.isdigit(): return f"add{seg}" 
     if seg in ["omit3", "omit5", "omitroot"]: return seg
     logger.debug(f"CoreUtils (_ETB): Unknown tension '{seg}', passing as is.")
     return seg
 
-def _addify_callback_master(match: re.Match) -> str: # o3さん提案コールバック
+def _addify_callback_final_polish(match: re.Match) -> str: # o3さん提案コールバック
     prefix = match.group(1) or ""
     number = match.group(2)
+    # 品質やテンションキーワードで終わる場合は add を付けない
     if prefix.lower().endswith(('sus', 'sus4', 'sus2', 'add', 'maj', 'm', 'dim', 'aug', 'ø', '7', '9', '11', '13', 'b5', '#', 'b')):
         return match.group(0) 
     return f'{prefix}add{number}'
@@ -80,15 +81,18 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         logger.debug(f"CoreUtils (sanitize): '{original_label}' -> None (Rest direct match).")
         return None
 
-    # 0a. ルート音の先頭文字を大文字化
-    sanitized = re.sub(r'^([a-g])', lambda m: m.group(1).upper(), sanitized)
-    
-    # 0b. ワードベースの品質変換
+    # 0a. ワードベースの品質変換 (o3さん提案)
     word_map = {
-        r'(?i)\b([A-G][#\-]*)\s+minor\b': r'\1m', r'(?i)\b([A-G][#\-]*)\s+major\b': r'\1maj',
-        r'(?i)\b([A-G][#\-]*)\s+dim\b':   r'\1dim', r'(?i)\b([A-G][#\-]*)\s+aug\b':   r'\1aug',
+        r'(?i)\b([A-Ga-g][#\-]*)\s+minor\b': r'\1m',
+        r'(?i)\b([A-Ga-g][#\-]*)\s+major\b': r'\1maj',
+        r'(?i)\b([A-Ga-g][#\-]*)\s+dim\b':   r'\1dim',
+        r'(?i)\b([A-Ga-g][#\-]*)\s+aug\b':   r'\1aug',
     }
     for pat, rep in word_map.items(): sanitized = re.sub(pat, rep, sanitized)
+    
+    # 0b. ルート音の先頭文字を大文字化 (o3さん提案❶)
+    sanitized = re.sub(r'^([a-g])', lambda m: m.group(1).upper(), sanitized)
+
 
     # 1. フラット正規化 & SUS正規化
     sanitized = re.sub(r'^([A-G])bb', r'\1--', sanitized)
@@ -96,8 +100,8 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
     sanitized = re.sub(r'/([A-G])bb', r'/\1--', sanitized)
     sanitized = re.sub(r'/([A-G])b(?![#b])', r'/\1-', sanitized)
     
-    sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized)
-    sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized)
+    sanitized = re.sub(r'(?i)([A-G][#\-]?(?:\d+)?)(sus)(?![24\d])', r'\g<1>sus4', sanitized) # G7SUS -> G7sus4
+    sanitized = re.sub(r'(?i)(sus)([24])', r'sus\2', sanitized) # SUS2 -> sus2
 
     # 2. 括弧の不均衡修正
     if '(' in sanitized and ')' not in sanitized:
@@ -105,7 +109,7 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         base_part = sanitized.split('(')[0]
         content_after_paren = sanitized.split('(', 1)[1] if len(sanitized.split('(', 1)) > 1 else ""
         if content_after_paren.strip():
-            recovered_tensions = "".join(_expand_tension_block_master(p) for p in content_after_paren.split(','))
+            recovered_tensions = "".join(_expand_tension_block_final_polish(p) for p in content_after_paren.split(','))
             if recovered_tensions:
                 sanitized = base_part + recovered_tensions
                 logger.info(f"CoreUtils (sanitize): Recovered from unclosed: '{recovered_tensions}' -> '{sanitized}'")
@@ -114,7 +118,7 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
 
     # 3. altコード展開
     sanitized = re.sub(r'([A-Ga-g][#\-]?)(?:7)?alt', r'\g<1>7#9b13', sanitized, flags=re.IGNORECASE)
-    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13') # alt展開後の冗長add除去
+    sanitized = sanitized.replace('badd13', 'b13').replace('#add13', '#13')
 
     # 4. 括弧の平坦化
     prev_sanitized = "" ; loop_count = 0
@@ -123,28 +127,24 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
         match = re.match(r'^(.*?)\(([^)]+)\)(.*)$', sanitized)
         if match:
             base, inner, suf = match.groups()
-            expanded_inner = "".join(_expand_tension_block_master(p) for p in inner.split(','))
+            expanded_inner = "".join(_expand_tension_block_final_polish(p) for p in inner.split(','))
             sanitized = base + expanded_inner + suf
         else: break
 
-    # 5. 品質関連の正規化 (SyntaxError修正のため、辞書定義を修正)
+    # 5. 品質関連の正規化
     qual_map = {
-        r'(?i)ø7?\b': 'm7b5', r'(?i)half[- ]?dim\b': 'm7b5', 
-        'dimished': 'dim', # typo
-        r'(?i)diminished(?!7)': 'dim', r'(?i)diminished7': 'dim7', 
-        'domant7': '7', # typo
-        r'(?i)dominant7?\b': '7', 
-        r'(?i)major7': 'maj7', r'(?i)major9': 'maj9', r'(?i)major13': 'maj13', 
-        r'(?i)minor7': 'm7', r'(?i)minor9': 'm9', r'(?i)minor11': 'm11', r'(?i)minor13': 'm13', 
-        r'(?i)min(?!or\b|\.|m7b5)': 'm',
-        r'(?i)aug(?!mented)': 'aug', r'(?i)augmented': 'aug', 
-        r'(?i)major(?!7|9|13|\b)': 'maj'
+        r'(?i)ø7?\b': 'm7b5', r'(?i)half[- ]?dim\b': 'm7b5', 'dimished': 'dim',
+        r'(?i)diminished(?!7)': 'dim', r'(?i)diminished7': 'dim7', 'domant7': '7',
+        r'(?i)dominant7?\b': '7', r'(?i)major7': 'maj7', r'(?i)major9': 'maj9',
+        r'(?i)major13': 'maj13', r'(?i)minor7': 'm7', r'(?i)minor9': 'm9',
+        r'(?i)minor11': 'm11', r'(?i)minor13': 'm13', r'(?i)min(?!or\b|\.|m7b5)': 'm',
+        r'(?i)aug(?!mented)': 'aug', r'(?i)augmented': 'aug', r'(?i)major(?!7|9|13|\b)': 'maj',
     }
     for pat, rep in qual_map.items(): sanitized = re.sub(pat, rep, sanitized)
                                                        
     # 6. "add"補完 (o3さんコールバック方式)
     try:
-      sanitized = re.sub(r'([A-Ga-z][#\-]?(?:[mM](?:aj)?\d*|[dD]im\d*|[aA]ug\d*|ø\d*|[sS]us\d*|[aA]dd\d*|7th|6th|5th|m7b5)?)(\d{2,})(?!add|\d|th|nd|rd|st)', _addify_callback_master, sanitized, flags=re.IGNORECASE)
+      sanitized = re.sub(r'([A-Ga-z][#\-]?(?:[mM](?:aj)?\d*|[dD]im\d*|[aA]ug\d*|ø\d*|[sS]us\d*|[aA]dd\d*|7th|6th|5th|m7b5)?)(\d{2,})(?!add|\d|th|nd|rd|st)', _addify_callback_final_polish, sanitized, flags=re.IGNORECASE)
     except Exception as e_addify: 
         logger.warning(f"CoreUtils (sanitize): Error during _addify call: {e_addify}. Label: {sanitized}")
 
@@ -155,38 +155,38 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
     sanitized = re.sub(r'(?i)sus44$', 'sus4', sanitized)
     sanitized = re.sub(r'(?i)sus22$', 'sus2', sanitized)
     
-    # 8b. 重複addの圧縮 (より強力に "addadd" -> "add")
-    sanitized = re.sub(r'(?i)(add)+', 'add', sanitized) # "addadd" や "addaddadd" を "add" に
+    # 8b. 重複addの圧縮
+    sanitized = re.sub(r'(?i)(add)+', 'add', sanitized) 
 
     # 9. 全体的なスペース・カンマの最終除去
     sanitized = re.sub(r'[,\s]', '', sanitized)
     
-    # 10. 末尾に残った可能性のある不要な文字の除去 ("add"で終わる場合など)
+    # 10. 末尾に残った可能性のある不要な文字の除去
     sanitized = re.sub(r'[^a-zA-Z0-9#\-/\u00f8]+$', '', sanitized)
-    if sanitized.lower().endswith("add"): # "Cadd" のようなケース
+    if sanitized.lower().endswith("add"): 
         logger.info(f"CoreUtils (sanitize): Removing trailing 'add' from '{sanitized}' (orig: '{original_label}')")
         sanitized = sanitized[:-3]
 
-
-    if not sanitized: # 全て除去されて空になった場合
-        logger.info(f"CoreUtils (sanitize): Label '{original_label}' resulted in empty string after all processing. Returning None (Rest).")
+    if not sanitized: 
+        logger.info(f"CoreUtils (sanitize): Label '{original_label}' resulted in empty string. Returning None (Rest).")
         return None
 
     if sanitized != original_label: 
         logger.info(f"CoreUtils (sanitize): '{original_label}' -> '{sanitized}'")
 
-    # 11. 最終パース試行
+    # 11. 最終パース試行 (o3さん提案❷)
     try:
         cs_test = harmony.ChordSymbol(sanitized)
-        if not cs_test.pitches:
+        if not cs_test.pitches: # パースは成功したが音がない (例: "Rest"という名前のChordSymbol)
             logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') parsed but has NO PITCHES. Fallback to None (Rest).")
             return None
     except Exception as e_final_parse:
         logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' (from '{original_label}') could not be parsed by music21 ({type(e_final_parse).__name__}: {e_final_parse}). Fallback to None (Rest).")
         return None 
 
-    if not re.match(r'^[A-G]', sanitized):
-        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' does not start with a valid note name. Fallback to None (Rest).")
+    # music21がパースできても、ルート音で始まらないものは無効とみなす
+    if not re.match(r'^[A-G]', sanitized): 
+        logger.warning(f"CoreUtils (sanitize): Final form '{sanitized}' does not start with valid note name. Fallback None (Rest).")
         return None
         
     return sanitized
@@ -195,8 +195,8 @@ def get_music21_chord_object(chord_label_str: Optional[str], current_key: Option
     if not isinstance(chord_label_str, str) or not chord_label_str.strip():
         logger.debug(f"CoreUtils (get_obj): Input '{chord_label_str}' empty/not str. As Rest (None).")
         return None
-    sanitized_label = sanitize_chord_label(chord_label_str)
-    if not sanitized_label: # sanitize_chord_labelがNone (Rest) を返した場合
+    sanitized_label = sanitize_chord_label(chord_label_str) # これが None を返す可能性あり
+    if not sanitized_label: 
         logger.debug(f"CoreUtils (get_obj): sanitize_chord_label returned None for '{chord_label_str}'. As Rest.")
         return None
     cs = None
@@ -214,8 +214,8 @@ def get_music21_chord_object(chord_label_str: Optional[str], current_key: Option
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - [%(levelname)s] - %(module)s.%(funcName)s: %(message)s')
     
-    # 最新ロジックでの期待値
-    final_expected_outcomes_vMasterpiece = {
+    # 「Masterpiece Edition - Final Polish」の期待値
+    final_expected_outcomes_masterpiece_final_polish = {
         "E7(b9)": "E7b9", "C7(#9,b13)": "C7#9b13", "C7(b9,#11,add13)": "C7b9#11add13",
         "C7alt": "C7#9b13", "Fmaj7(add9)": "Fmaj7add9", "Fmaj7(add9,13)": "Fmaj7add9add13", 
         "Bbmaj7(#11)": "B-maj7#11", 
@@ -232,64 +232,63 @@ if __name__ == '__main__':
         "GM7(": "GM7", "G diminished": "Gdim", 
         "C/Bb": "C/B-", "CbbM7": "C--M7", "C##M7": "C##M7", 
         "C(omit3)": "Comit3", "Fmaj7(add9": "Fmaj7add9",
-        # ログで問題があったケースの期待値
         "Am7addadd11": "Am7add11", 
-        "Gadd": "Gadd", # _addify_callback_master がどう処理するか次第だが、現状はそのままか？
-        "Fmaj7add": "Fmaj7", # 末尾addは削除
+        "Gadd": "Gadd", 
+        "Fmaj7add": "Fmaj7", 
         "Dm7addadd13": "Dm7add13",
         "Cadd": "Cadd",
         "Fmaj7addaddadd13": "Fmaj7add13",
-        "B-maj9#11add": "B-maj7#11add9", # 末尾add削除
+        "B-maj9#11add": "B-maj7#11add9", 
     }
     
-    other_tests_masterpiece = [ "Rest" ]
+    other_tests_masterpiece_final_polish = [ "Rest" ]
     
-    all_labels_to_test_masterpiece = sorted(list(set(list(final_expected_outcomes_masterpiece.keys()) + other_tests_masterpiece)))
+    all_labels_to_test_masterpiece_final_polish = sorted(list(set(list(final_expected_outcomes_masterpiece_final_polish.keys()) + other_tests_masterpiece_final_polish)))
 
     print("\n--- Running sanitize_chord_label Test Cases (Harugoro x o3 Masterpiece Final Polish) ---")
-    s_parses_mp = 0; f_parses_mp = 0; r_count_mp = 0; exp_match_mp = 0; exp_mismatch_mp = 0
+    s_parses_mfp = 0; f_parses_mfp = 0; r_count_mfp = 0; exp_match_mfp = 0; exp_mismatch_mfp = 0
 
-    for label_orig in all_labels_to_test_masterpiece:
-        expected_val = final_expected_outcomes_masterpiece.get(label_orig)
+    for label_orig in all_labels_to_test_masterpiece_final_polish:
+        expected_val = final_expected_outcomes_masterpiece_final_polish.get(label_orig)
         sanitized_res = sanitize_chord_label(label_orig) 
         
         eval_str = ""
         if expected_val is None:
-            if sanitized_res is None: eval_str = "✔ (Exp OK, None as Rest)"; exp_match_mp +=1
-            else: eval_str = f"✘ (Exp: None, Got: '{sanitized_res}')"; exp_mismatch_mp +=1
+            if sanitized_res is None: eval_str = "✔ (Exp OK, None as Rest)"; exp_match_mfp +=1
+            else: eval_str = f"✘ (Exp: None, Got: '{sanitized_res}')"; exp_mismatch_mfp +=1
         elif sanitized_res == expected_val:
-            eval_str = "✔ (Exp OK)"; exp_match_mp +=1
+            eval_str = "✔ (Exp OK)"; exp_match_mfp +=1
         else: 
-            eval_str = f"✘ (Exp: '{expected_val}')"; exp_mismatch_mp +=1
+            eval_str = f"✘ (Exp: '{expected_val}')"; exp_mismatch_mfp +=1
         
         print(f"Original: '{label_orig:<18}' -> Sanitized: '{str(sanitized_res):<25}' {eval_str}")
 
-        cs_obj_mp = get_music21_chord_object(label_orig) 
+        cs_obj_mfp = get_music21_chord_object(label_orig) 
         
-        if cs_obj_mp:
-            try: fig_disp = cs_obj_mp.figure
+        if cs_obj_mfp:
+            try: fig_disp = cs_obj_mfp.figure
             except: fig_disp = "[ErrFig]"
-            print(f"  music21 obj: {fig_disp:<25} (Pitches: {[p.name for p in cs_obj_mp.pitches]})"); s_parses_mp += 1
+            print(f"  music21 obj: {fig_disp:<25} (Pitches: {[p.name for p in cs_obj_mfp.pitches]})"); s_parses_mfp += 1
         elif sanitize_chord_label(label_orig) is None : 
             print(f"  Interpreted as Rest (sanitize returned None).")
-            r_count_mp += 1
+            r_count_mfp += 1
         else:
             print(f"  music21 FAILED or NO PITCHES for sanitized '{sanitized_res}'")
-            f_parses_mp += 1
+            f_parses_mfp += 1
 
     print(f"\n--- Test Summary (Harugoro x o3 Masterpiece Final Polish) ---")
-    total_labels_mp = len(all_labels_to_test_masterpiece)
-    attempted_to_parse_mp = total_labels_mp - r_count_mp
+    total_labels_mfp = len(all_labels_to_test_masterpiece_final_polish)
+    attempted_to_parse_mfp = total_labels_mfp - r_count_mfp
 
-    print(f"Total unique labels processed: {total_labels_mp}")
-    if exp_match_mp + exp_mismatch_mp > 0:
-      print(f"Matches with expected sanitization: {exp_match_mp}")
-      print(f"Mismatches with expected sanitization: {exp_mismatch_mp}")
-    print(f"Successfully parsed by music21 (Chord obj with pitches): {s_parses_mp} / {attempted_to_parse_mp} non-Rest attempts")
-    print(f"Failed to parse or no pitches by music21: {f_parses_mp}")
-    print(f"Interpreted as 'Rest' (sanitize returned None): {r_count_mp}")
+    print(f"Total unique labels processed: {total_labels_mfp}")
+    if exp_match_mfp + exp_mismatch_mfp > 0:
+      print(f"Matches with expected sanitization: {exp_match_mfp}")
+      print(f"Mismatches with expected sanitization: {exp_mismatch_mfp}")
+    print(f"Successfully parsed by music21 (Chord obj with pitches): {s_parses_mfp} / {attempted_to_parse_mfp} non-Rest attempts")
+    print(f"Failed to parse or no pitches by music21: {f_parses_mfp}")
+    print(f"Interpreted as 'Rest' (sanitize returned None): {r_count_mfp}")
     
-    overall_success_rate_mp = ((s_parses_mp + r_count_mp) / total_labels_mp * 100) if total_labels_mp > 0 else 0
-    print(f"Estimated overall functional success (incl. Rests): {overall_success_rate_mp:.2f}%")
+    overall_success_rate_mfp = ((s_parses_mfp + r_count_mfp) / total_labels_mfp * 100) if total_labels_mfp > 0 else 0
+    print(f"Estimated overall functional success (incl. Rests): {overall_success_rate_mfp:.2f}%")
 
 # --- END OF FILE utilities/core_music_utils.py ---
