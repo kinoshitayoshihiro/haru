@@ -1,5 +1,5 @@
-# --- START OF FILE generator/vocal_generator.py (インポート形式修正 v5) ---
-import music21 # name 'music21' is not defined エラー対策
+# --- START OF FILE generator/vocal_generator.py (同期特化・歌詞処理削除版 v6) ---
+import music21
 from typing import List, Dict, Optional, Any, Tuple, Union, cast
 
 # music21 のサブモジュールを正しい形式でインポート
@@ -8,22 +8,21 @@ import music21.note as note
 import music21.pitch as pitch
 import music21.meter as meter
 import music21.duration as duration
-import music21.instrument as m21instrument # check_imports.py の期待する形式
+import music21.instrument as m21instrument
 import music21.tempo as tempo
-import music21.key as key
-import music21.expressions as expressions
+# import music21.key as key # このファイルでは直接使用していないためコメントアウト
+# import music21.expressions as expressions # このファイルでは直接使用していないためコメントアウト
 import music21.volume as m21volume
-import music21.articulations as articulations
-import music21.dynamics as dynamics
-# import music21.chord as m21chord # このファイルでは m21chord を直接使用していないため、一旦コメントアウト
+# import music21.articulations as articulations # このファイルでは直接使用していないためコメントアウト
+# import music21.dynamics as dynamics # このファイルでは直接使用していないためコメントアウト
 from music21 import exceptions21
 
 import logging
 import json
-import re
+# import re # 正規表現は歌詞処理で主に使用していたため不要に
 import copy
 import random
-import math
+# import math # mathモジュールも現在のロジックでは不要に
 
 # NumPy import attempt and flag
 NUMPY_AVAILABLE = False
@@ -40,9 +39,9 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 MIN_NOTE_DURATION_QL = 0.125
-DEFAULT_BREATH_DURATION_QL: float = 0.25
-MIN_DURATION_FOR_BREATH_AFTER_NOTE_QL: float = 1.0
-PUNCTUATION_FOR_BREATH: Tuple[str, ...] = ('、', '。', '！', '？', ',', '.', '!', '?')
+# DEFAULT_BREATH_DURATION_QL: float = 0.25 # 歌詞ベースのブレス挿入削除のため不要
+# MIN_DURATION_FOR_BREATH_AFTER_NOTE_QL: float = 1.0 # 同上
+# PUNCTUATION_FOR_BREATH: Tuple[str, ...] = ('、', '。', '！', '？', ',', '.', '!', '?') # 同上
 
 
 try:
@@ -106,78 +105,26 @@ class VocalGenerator:
         return parsed_notes
 
     def _get_section_for_note_offset(self, note_offset: float, processed_stream: List[Dict]) -> Optional[str]:
+        """
+        指定された音符オフセットがどのセクションに属するかを返します。
+        processed_stream は modular_composer.py で生成されるブロック情報のリストです。
+        """
         for block in processed_stream:
             block_start = block.get("offset", 0.0)
             block_end = block_start + block.get("q_length", 0.0)
+            # 厳密な比較 (< block_end) を行う
             if block_start <= note_offset < block_end:
                 return block.get("section_name")
-        logger.warning(f"VocalGen: No section found in processed_stream for note offset {note_offset:.2f}")
+        logger.debug(f"VocalGen: No section found in processed_stream for note offset {note_offset:.2f}") # ログレベルをdebugに変更
         return None
-
-    def _insert_breaths(self, notes_with_lyrics: List[note.Note], breath_duration_ql: float) -> List[Union[note.Note, note.Rest]]:
-        if not notes_with_lyrics: return []
-        logger.info(f"Inserting breaths (duration: {breath_duration_ql}qL).")
-
-        output_elements: List[Union[note.Note, note.Rest]] = []
-
-        for i, current_note_obj in enumerate(notes_with_lyrics):
-            original_offset = current_note_obj.offset
-            original_duration_ql = current_note_obj.duration.quarterLength
-
-            insert_breath_flag = False
-            shorten_note_for_breath = False
-
-            if current_note_obj.lyric and any(punc in current_note_obj.lyric for punc in PUNCTUATION_FOR_BREATH):
-                if original_duration_ql > breath_duration_ql + MIN_NOTE_DURATION_QL / 4:
-                    shorten_note_for_breath = True
-                    insert_breath_flag = True
-                    logger.debug(f"Breath planned after note (punctuation): {current_note_obj.pitch} at {original_offset:.2f}")
-                else:
-                    logger.debug(f"Note {current_note_obj.pitch} at {original_offset:.2f} too short for breath (punctuation).")
-
-            if not insert_breath_flag and original_duration_ql >= MIN_DURATION_FOR_BREATH_AFTER_NOTE_QL:
-                if i + 1 < len(notes_with_lyrics):
-                    next_note_obj = notes_with_lyrics[i+1]
-                    gap_to_next = next_note_obj.offset - (original_offset + original_duration_ql)
-                    if gap_to_next < breath_duration_ql * 0.75:
-                        if original_duration_ql > breath_duration_ql + MIN_NOTE_DURATION_QL / 4:
-                            shorten_note_for_breath = True
-                            insert_breath_flag = True
-                            logger.debug(f"Breath planned after note (long note, small gap): {current_note_obj.pitch} at {original_offset:.2f}")
-                        else:
-                            logger.debug(f"Note {current_note_obj.pitch} at {original_offset:.2f} too short for breath (long note).")
-                else:
-                    insert_breath_flag = True
-                    shorten_note_for_breath = False
-                    logger.debug(f"Breath planned after last note: {current_note_obj.pitch} at {original_offset:.2f}")
-
-            if shorten_note_for_breath:
-                current_note_obj.duration.quarterLength = original_duration_ql - breath_duration_ql
-            output_elements.append(current_note_obj)
-
-            if insert_breath_flag:
-                breath_offset = current_note_obj.offset + current_note_obj.duration.quarterLength
-                can_add_breath = True
-                if i + 1 < len(notes_with_lyrics):
-                    if breath_offset + breath_duration_ql > notes_with_lyrics[i+1].offset + 0.001:
-                        can_add_breath = False
-                        logger.debug(f"Breath at {breath_offset:.2f} would overlap next note at {notes_with_lyrics[i+1].offset:.2f}. Skipping.")
-
-                if can_add_breath:
-                    breath_rest = note.Rest(quarterLength=breath_duration_ql)
-                    breath_rest.offset = breath_offset
-                    output_elements.append(breath_rest)
-                    logger.info(f"Breath scheduled at {breath_offset:.2f} for {breath_duration_ql:.2f}qL.")
-
-        return output_elements
 
 
     def compose(self,
                 midivocal_data: List[Dict],
-                kasi_rist_data: Dict[str, List[str]],
-                processed_chord_stream: List[Dict],
-                insert_breaths_opt: bool = True,
-                breath_duration_ql_opt: float = DEFAULT_BREATH_DURATION_QL,
+                # kasi_rist_data: Dict[str, List[str]], # 歌詞データは不要に
+                processed_chord_stream: List[Dict], # 将来的な拡張のため、引数としては残す
+                # insert_breaths_opt: bool = True, # ブレス挿入オプションは削除
+                # breath_duration_ql_opt: float = DEFAULT_BREATH_DURATION_QL, # 同上
                 humanize_opt: bool = True,
                 humanize_template_name: Optional[str] = "vocal_ballad_smooth",
                 humanize_custom_params: Optional[Dict[str, Any]] = None
@@ -186,23 +133,21 @@ class VocalGenerator:
         vocal_part = stream.Part(id="Vocal")
         vocal_part.insert(0, self.default_instrument)
         vocal_part.append(tempo.MetronomeMark(number=self.global_tempo))
-        # --- MODIFICATION 1 START ---
-        # vocal_part.append(self.global_time_signature_obj.clone())
-        ts_copy = meter.TimeSignature(self.global_time_signature_obj.ratioString)
-        vocal_part.append(ts_copy)
-        # --- MODIFICATION 1 END ---
+        
+        if self.global_time_signature_obj:
+            ts_copy = meter.TimeSignature(self.global_time_signature_obj.ratioString)
+            vocal_part.append(ts_copy)
+        else:
+            logger.warning("VocalGen compose: global_time_signature_obj is None. Defaulting to 4/4.")
+            vocal_part.append(meter.TimeSignature("4/4"))
+
 
         parsed_vocal_notes_data = self._parse_midivocal_data(midivocal_data)
         if not parsed_vocal_notes_data:
             logger.warning("VocalGen: No valid notes parsed from midivocal_data. Returning empty part.")
             return vocal_part
 
-        notes_with_lyrics: List[note.Note] = []
-        current_section_name: Optional[str] = None
-        current_lyrics_for_section: List[str] = []
-        current_lyric_idx: int = 0
-        last_lyric_assigned_offset: float = -1.001
-        LYRIC_OFFSET_THRESHOLD: float = 0.005
+        final_elements: List[Union[note.Note, note.Rest]] = [] # note.Restも型ヒントに残すが、現状はNoteのみ
 
         for note_data_item in parsed_vocal_notes_data:
             note_offset = note_data_item["offset"]
@@ -210,64 +155,37 @@ class VocalGenerator:
             note_q_length = note_data_item["q_length"]
             note_velocity = note_data_item.get("velocity", 70)
 
-            section_for_this_note = self._get_section_for_note_offset(note_offset, processed_chord_stream)
-
-            if section_for_this_note != current_section_name:
-                if current_section_name and current_lyric_idx < len(current_lyrics_for_section):
-                     logger.warning(f"{len(current_lyrics_for_section) - current_lyric_idx} lyrics unused in section '{current_section_name}'.")
-                current_section_name = section_for_this_note
-                current_lyrics_for_section = kasi_rist_data.get(current_section_name, []) if current_section_name else []
-                current_lyric_idx = 0
-                last_lyric_assigned_offset = -1.001
-                if current_section_name: logger.info(f"VocalGen: Switched to lyric section: '{current_section_name}' ({len(current_lyrics_for_section)} syllables).")
-                else: logger.warning(f"VocalGen: Note at offset {note_offset:.2f} has no section in processed_stream. Lyrics may be misaligned.")
+            # section_for_this_note = self._get_section_for_note_offset(note_offset, processed_chord_stream) # 歌詞割り当てには不要
 
             try:
                 m21_n_obj = note.Note(note_pitch_str, quarterLength=note_q_length)
                 m21_n_obj.volume = m21volume.Volume(velocity=note_velocity)
+                m21_n_obj.offset = note_offset # オフセットを設定
+                final_elements.append(m21_n_obj) # 直接 final_elements に追加
             except Exception as e:
                 logger.error(f"VocalGen: Failed to create Note for {note_pitch_str} at {note_offset}: {e}")
                 continue
 
-            if current_section_name and current_lyric_idx < len(current_lyrics_for_section):
-                if abs(note_offset - last_lyric_assigned_offset) > LYRIC_OFFSET_THRESHOLD:
-                    m21_n_obj.lyric = current_lyrics_for_section[current_lyric_idx]
-                    logger.debug(f"Lyric '{m21_n_obj.lyric}' to note {m21_n_obj.nameWithOctave} at {note_offset:.2f} (Sec: {current_section_name})")
-                    current_lyric_idx += 1
-                    last_lyric_assigned_offset = note_offset
-                else:
-                    logger.debug(f"Skipped lyric for note {m21_n_obj.nameWithOctave} at same offset {note_offset:.2f} as previous.")
-
-            m21_n_obj.offset = note_offset
-            notes_with_lyrics.append(m21_n_obj)
-
-        final_elements: List[Union[note.Note, note.Rest]] = []
-
-        if insert_breaths_opt:
-            final_elements = self._insert_breaths(notes_with_lyrics, breath_duration_ql_opt)
-        else:
-            final_elements = cast(List[Union[note.Note, note.Rest]], notes_with_lyrics)
-
         if humanize_opt:
             temp_humanized_elements = []
             try:
-                for el_item in final_elements:
+                for el_item in final_elements: # この時点ではfinal_elementsはNoteオブジェクトのみのはず
                     if isinstance(el_item, note.Note):
                         humanized_el = apply_humanization_to_element(el_item, template_name=humanize_template_name, custom_params=humanize_custom_params)
                         temp_humanized_elements.append(humanized_el)
-                    else:
-                        temp_humanized_elements.append(el_item)
+                    # else: # Rest の場合はそのまま追加するが、現状はRestはfinal_elementsに入らない
+                    #     temp_humanized_elements.append(el_item)
                 final_elements = temp_humanized_elements
-            except NameError:
+            except NameError: # apply_humanization_to_element がインポート失敗した場合のフォールバック
                  logger.warning("VocalGen: apply_humanization_to_element not available, skipping humanization for vocal notes.")
             except Exception as e_hum:
-                 logger.error(f"VocalGen: Error during humanization: {e_hum}", exc_info=True)
+                 logger.error(f"VocalGen: Error during vocal note humanization: {e_hum}", exc_info=True)
 
 
         for el_item_final in final_elements:
             vocal_part.insert(el_item_final.offset, el_item_final)
 
-        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flatten().notesAndRests))} elements.")
+        logger.info(f"VocalGen: Finished. Final part has {len(list(vocal_part.flatten().notesAndRests))} elements.") # .flat -> .flatten()
         return vocal_part
 
 # --- END OF FILE generator/vocal_generator.py ---
