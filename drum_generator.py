@@ -91,18 +91,11 @@ class DrumGenerator:
                     if humanize_params_for_hit:
                         drum_hit = cast(note.Note, apply_humanization_to_element(drum_hit, custom_params=humanize_params_for_hit))
 
-                    # drum_hit.offset = 0 # This line was problematic if apply_humanization_to_element changes offset
-                    # The offset should be relative to measure_abs_start_offset + event_offset_in_pattern
-                    # And apply_humanization_to_element already adds its time_shift to the element's .offset
-                    # So, the insertion offset needs to account for this.
-                    # Let's assume apply_humanization_to_element returns an element with offset relative to its original position.
-                    # The `drum_hit.offset` from `apply_humanization_to_element` will be a small humanized shift.
-                    
                     insert_at_offset = measure_abs_start_offset + event_offset_in_pattern
-                    if hasattr(drum_hit, 'offset') and drum_hit.offset != 0.0: # If humanizer added an offset
+                    # apply_humanization_to_element がオフセットを変更する場合、ここで加味する
+                    if hasattr(drum_hit, 'offset') and drum_hit.offset != 0.0: # Humanizerがオフセットを付加した場合
                         insert_at_offset += drum_hit.offset
-                        drum_hit.offset = 0 # Reset to 0 before inserting into part at calculated offset
-
+                        drum_hit.offset = 0 # Partへinsertする前に要素自体のオフセットは0にリセット
                     target_part.insert(insert_at_offset, drum_hit)
 
 
@@ -133,20 +126,17 @@ class DrumGenerator:
             fill_options = drum_params.get("drum_fill_keys", [])
             block_fill_key = drum_params.get("drum_fill_key_override")
 
-            # chord_label_for_block = blk_data.get("chord_label", "C") # Drums usually don't react to chords directly
-
-            humanize_this_block = drum_params.get("humanize_opt", drum_params.get("humanize", True)) # Check humanize_opt first
+            humanize_this_block = drum_params.get("humanize_opt", drum_params.get("humanize", True))
             humanize_params_for_hits_in_block: Optional[Dict[str, Any]] = None
             if humanize_this_block:
                 template_name = drum_params.get("template_name", drum_params.get("humanize_style_template", "drum_loose_fbm"))
                 base_h_params = HUMANIZATION_TEMPLATES.get(template_name, HUMANIZATION_TEMPLATES.get("default_subtle", {}))
                 humanize_params_for_hits_in_block = base_h_params.copy()
-                
-                # Use humanize_custom_params if available, otherwise build from individual keys
+
                 custom_h_from_translate = drum_params.get("custom_params")
                 if isinstance(custom_h_from_translate, dict):
                     humanize_params_for_hits_in_block.update(custom_h_from_translate)
-                else: # Fallback to individual keys if custom_params is not a dict
+                else:
                     custom_h_overrides = {
                         k.replace("humanize_",""):v for k,v in drum_params.items()
                         if k.startswith("humanize_") and not k.endswith("_template") and not k == "humanize" and not k == "humanize_opt"
@@ -157,7 +147,7 @@ class DrumGenerator:
 
             style_def = self.drum_pattern_library.get(style_key)
             if not style_def or "pattern" not in style_def:
-                logger.warning(f"DrumGen: Style key '{style_key}' not found or invalid. Using default.")
+                logger.warning(f"DrumGen: Style key '{style_key}' not found or invalid in drum_pattern_library. Using default_drum_pattern.")
                 style_def = self.drum_pattern_library.get("default_drum_pattern", DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"])
 
             main_pattern_events = style_def.get("pattern", [])
@@ -165,7 +155,7 @@ class DrumGenerator:
             p_ts_obj = get_time_signature_object(pattern_ts_str)
             p_bar_dur = p_ts_obj.barDuration.quarterLength if p_ts_obj else 4.0
             if p_bar_dur <= 0:
-                logger.warning(f"DrumGen: Pattern time signature for '{style_key}' results in non-positive bar duration. Skipping block.")
+                logger.warning(f"DrumGen: Pattern time signature for '{style_key}' results in non-positive bar duration ({p_bar_dur}). Skipping block.")
                 continue
 
             current_block_time_ql = 0.0
@@ -185,7 +175,7 @@ class DrumGenerator:
                     if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying override fill '{block_fill_key}' at {measure_start_abs:.2f}")
                 elif not applied_fill and fill_interval > 0 and fill_options and \
                      (measures_since_last_fill + (current_measure_iter_dur / p_bar_dur if p_bar_dur > 0 else 1) >= fill_interval) and \
-                     is_eff_last_measure_of_block : # フィルはブロックの最後の小節に試みる
+                     is_eff_last_measure_of_block :
                     chosen_f_key = random.choice(fill_options)
                     fill_def = style_def.get("fill_ins", {}).get(chosen_f_key)
                     if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying scheduled fill '{chosen_f_key}' at {measure_start_abs:.2f}")
@@ -197,8 +187,7 @@ class DrumGenerator:
                 )
 
                 if applied_fill: measures_since_last_fill = 0
-                # measures_since_last_fill は小節単位でカウントするため、p_bar_dur 単位で加算
-                if current_measure_iter_dur >= p_bar_dur - MIN_NOTE_DURATION_QL / 8 : # ほぼ1小節分処理した場合
+                if current_measure_iter_dur >= p_bar_dur - MIN_NOTE_DURATION_QL / 8 :
                     measures_since_last_fill +=1
 
                 current_block_time_ql += current_measure_iter_dur
