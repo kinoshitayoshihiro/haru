@@ -1,171 +1,236 @@
-# --- START OF FILE generator/bass_utils.py (インポート修正版) ---
+# --- START OF FILE generator/bass_generator.py (ヒューマナイズ外部化・修正・Rest対応版) ---
 from __future__ import annotations
-"""bass_utils.py
-Low-level helpers for *bass line generation*.
-... (docstringは変更なし) ...
+"""bass_generator.py – streamlined rewrite
+Generates a **bass part** for the modular composer pipeline.
+The heavy lifting (walking line, root-fifth, etc.) is delegated to
+generator.bass_utils.generate_bass_measure so that this class
+mainly decides **which style to use when**.
 """
+from typing import Sequence, Dict, Any, Optional, List, Union, cast
 
-from typing import List, Sequence, Optional, Any # Any を追加 (STYLE_DISPATCH のラムダの戻り値のため)
-import random as _rand 
+import random
 import logging
 
-# music21 のサブモジュールを個別にインポート
-from music21 import note
-from music21 import pitch
-from music21 import harmony
-from music21 import interval
-# from music21 import scale # scale_registry を経由して使用するため、ここでは直接不要
+# music21 のサブモジュールを正しい形式でインポート
+import music21.stream as stream
+import music21.harmony as harmony
+import music21.note as note
+import music21.tempo as tempo
+import music21.meter as meter
+import music21.instrument as m21instrument
+import music21.key as key
+import music21.pitch as pitch
+import music21.volume as m21volume
 
-# utilities パッケージからスケール関連機能をインポート
+# ユーティリティのインポート
 try:
-    from utilities.scale_registry import ScaleRegistry as SR
-except ImportError:
-    logger_fallback_sr_bass = logging.getLogger(__name__ + ".fallback_sr_bass") # logger名を変更
-    logger_fallback_sr_bass.error("BassUtils: Could not import ScaleRegistry from utilities. Scale-aware functions might fail.")
-    # music21.scale をインポートしてダミークラスで使用
-    from music21 import scale as m21_scale # ここでインポート
+    from .bass_utils import generate_bass_measure
+    from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL
+    from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES
+except ImportError as e:
+    logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
+    logger_fallback.error(f"BassGenerator: Failed to import required modules: {e}")
+    def generate_bass_measure(*args, **kwargs) -> List[note.Note]: return []
+    def apply_humanization_to_part(part, *args, **kwargs) -> stream.Part:
+        if isinstance(part, stream.Part):
+            return part
+        return stream.Part()
+    def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature("4/4")
+    def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
+        if not label or label.strip().lower() in ["rest", "n.c.", "nc", "none"]: return None
+        return label.strip()
+    MIN_NOTE_DURATION_QL = 0.125
+    HUMANIZATION_TEMPLATES = {}
 
-    class SR: # Dummy
-        @staticmethod
-        def get(tonic_str: Optional[str], mode_str: Optional[str]) -> m21_scale.ConcreteScale: # pitch.Pitch から m21_scale.ConcreteScale に変更
-            logger_fallback_sr_bass.warning("BassUtils: Using dummy ScaleRegistry.get(). This may not produce correct scales.")
-            return m21_scale.MajorScale(pitch.Pitch(tonic_str or "C"))
-        # mode_tensions や avoid_degrees は bass_utils では直接使用されていないため、ダミーは不要
 
 logger = logging.getLogger(__name__)
 
+class BassGenerator:
+    def __init__(
+        self,
+        rhythm_library: Optional[Dict[str, Dict]] = None,
+        default_instrument = m21instrument.AcousticBass(),
+        global_tempo: int = 100,
+        global_time_signature: str = "4/4",
+        global_key_tonic: str = "C",
+        global_key_mode: str = "major",
+        rng: Optional[random.Random] = None,
+    ) -> None:
+        self.rhythm_library = rhythm_library if rhythm_library is not None else {}
+        self.default_instrument = default_instrument
+        self.global_tempo = global_tempo
+        self.global_time_signature_str = global_time_signature
+        self.global_time_signature_obj = get_time_signature_object(global_time_signature)
+        self.global_key_tonic = global_key_tonic
+        self.global_key_mode = global_key_mode
+        self.rng = rng or random.Random()
 
-def approach_note(cur_root: pitch.Pitch, next_root: pitch.Pitch, direction: Optional[int] = None) -> pitch.Pitch: # direction の型ヒントを Optional[int] に変更
-    if direction is None:
-        direction = 1 if next_root.midi > cur_root.midi else -1 # next_root.midi と cur_root.midi を比較
-    return cur_root.transpose(direction)
-
-
-def walking_quarters(
-    cs_now: harmony.ChordSymbol, # harmony を使用
-    cs_next: harmony.ChordSymbol, # harmony を使用
-    tonic: str,
-    mode: str,
-    octave: int = 3,
-) -> List[pitch.Pitch]: # pitch を使用
-    scl = SR.get(tonic, mode) 
-    
-    # degrees の取得前に cs_now.third と cs_now.fifth が None でないか確認
-    third_pc = cs_now.third.pitchClass if cs_now.third else cs_now.root().pitchClass
-    fifth_pc = cs_now.fifth.pitchClass if cs_now.fifth else cs_now.root().pitchClass
-    degrees = [cs_now.root().pitchClass, third_pc, fifth_pc]
-
-    root_now = cs_now.root().transpose((octave - cs_now.root().octave) * 12)
-    # cs_next.root() も None でないか確認
-    root_next_pitch = cs_next.root()
-    if root_next_pitch is None: # 万が一 cs_next のルートがない場合 (通常はありえない)
-        logger.warning(f"BassUtils (walking_quarters): cs_next '{cs_next.figure}' has no root. Using cs_now's root.")
-        root_next_pitch = cs_now.root()
-    root_next = root_next_pitch.transpose((octave - root_next_pitch.octave) * 12)
-
-
-    beat1 = root_now
-    
-    options_b2 = [p for p in cs_now.pitches if p.pitchClass in degrees[1:]]
-    if not options_b2: 
-        options_b2 = [cs_now.root()] 
-    
-    beat2_raw_pitch = cs_now.root() # デフォルト値を設定
-    if options_b2: # options_b2 が空でないことを確認
-        beat2_raw_candidate = _rand.choice(options_b2)
-        if beat2_raw_candidate: # _rand.choice がリストが空の場合にエラーを出す可能性があるが、ここではoptions_b2は空でない
-             beat2_raw_pitch = beat2_raw_candidate
-
-    beat2 = beat2_raw_pitch.transpose((octave - beat2_raw_pitch.octave) * 12)
-
-    step_int_val = interval.Interval(2) # interval を使用。明示的に長2度または短2度を指定する方が良い場合もある
-    if root_next.midi < beat2.midi:
-        step_int_val = interval.Interval(-2) # interval を使用
-    
-    beat3 = beat2.transpose(step_int_val) # interval オブジェクトを渡す
-    
-    scale_pitches_classes = []
-    if hasattr(scl, 'getPitches') and callable(scl.getPitches): # callable チェックを追加
-        try:
-            # getPitches に適切な範囲を与える (例: 2オクターブ分)
-            # scl.tonic が None でないことを確認
-            if scl.tonic:
-                scale_pitches_classes = [p.pitchClass for p in scl.getPitches(scl.tonic.transpose(-12), scl.tonic.transpose(12))]
-            else:
-                logger.warning(f"BassUtils (walking_quarters): Scale object for {tonic} {mode} has no tonic. Cannot get scale pitches.")
-        except Exception as e_getpitch:
-            logger.warning(f"BassUtils (walking_quarters): Error getting pitches from scale {scl}: {e_getpitch}")
+        if "bass_quarter_notes" not in self.rhythm_library:
+            self.rhythm_library["bass_quarter_notes"] = {
+                "description": "Default quarter note roots for bass.",
+                "pattern": [
+                    {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+                    {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+                    {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+                    {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}
+                ]
+            }
+            logger.info("BassGenerator: Added 'bass_quarter_notes' to rhythm_library.")
 
 
-    if not scale_pitches_classes or beat3.pitchClass not in scale_pitches_classes:
-        # スケール外の場合、より近いスケール音を探すか、前の音に戻すなどの処理
-        # ここでは簡略化のため beat2 に戻すが、実際にはより音楽的な解決策が望ましい
-        beat3 = beat2 
+    def _select_style(self, bass_params: Dict[str, Any], blk_musical_intent: Dict[str, Any]) -> str:
+        if "style" in bass_params and bass_params["style"]:
+            return bass_params["style"]
+        intensity = blk_musical_intent.get("intensity", "medium").lower()
+        if intensity in {"low", "medium_low"}: return "root_only"
+        if intensity in {"medium"}: return "root_fifth"
+        return "walking"
 
-    beat4 = approach_note(beat3, root_next)
-    return [beat1, beat2, beat3, beat4]
+    def compose(self, processed_blocks: Sequence[Dict[str, Any]]) -> stream.Part:
+        bass_part = stream.Part(id="Bass")
+        bass_part.insert(0, self.default_instrument)
+        bass_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
+        ts_copy_init = meter.TimeSignature(self.global_time_signature_obj.ratioString)
+        bass_part.insert(0, ts_copy_init)
+
+        first_block_tonic = processed_blocks[0].get("tonic_of_section", self.global_key_tonic) if processed_blocks else self.global_key_tonic
+        first_block_mode = processed_blocks[0].get("mode", self.global_key_mode) if processed_blocks else self.global_key_mode
+        bass_part.insert(0, key.Key(first_block_tonic, first_block_mode))
+
+        current_total_offset = 0.0
+
+        for i, blk_data in enumerate(processed_blocks):
+            bass_params = blk_data.get("part_params", {}).get("bass", {})
+            block_q_length = blk_data.get("q_length", 4.0) # block_q_length をここで取得
+
+            if not bass_params:
+                current_total_offset += block_q_length
+                continue
+
+            chord_label_str = blk_data.get("chord_label", "C")
+            # ★★★ "Rest" ラベルの明示的な処理 ★★★
+            if chord_label_str.lower() == "rest":
+                logger.info(f"BassGenerator: Block {i+1} is a Rest. Skipping bass notes for this block.")
+                current_total_offset += block_q_length
+                continue
+            # ★★★ ここまで ★★★
+
+            musical_intent = blk_data.get("musical_intent", {})
+            selected_style = self._select_style(bass_params, musical_intent)
+
+            cs_now_obj: Optional[harmony.ChordSymbol] = None
+            # sanitize_chord_label は "Rest" を None にするが、上記で既に "Rest" は処理済み
+            sanitized_label = sanitize_chord_label(chord_label_str)
+            if sanitized_label:
+                try:
+                    cs_now_obj = harmony.ChordSymbol(sanitized_label)
+                    if not cs_now_obj.pitches:
+                        cs_now_obj = None
+                except Exception as e_parse:
+                    logger.warning(f"BassGenerator: Error parsing chord '{chord_label_str}' (sanitized: '{sanitized_label}') for block {i}: {e_parse}")
+                    cs_now_obj = None
+
+            if cs_now_obj is None:
+                logger.warning(f"BassGenerator: Could not parse chord '{chord_label_str}' or no pitches for block {i}. Skipping.")
+                current_total_offset += block_q_length
+                continue
+
+            cs_next_obj: Optional[harmony.ChordSymbol] = None
+            if i + 1 < len(processed_blocks):
+                next_label_str = processed_blocks[i+1].get("chord_label")
+                if next_label_str and next_label_str.lower() != "rest": # 次もRestでない場合のみパース試行
+                    sanitized_next_label = sanitize_chord_label(next_label_str)
+                    if sanitized_next_label:
+                        try:
+                            cs_next_obj = harmony.ChordSymbol(sanitized_next_label)
+                            if not cs_next_obj.pitches:
+                                cs_next_obj = None
+                        except Exception:
+                            cs_next_obj = None
+            if cs_next_obj is None: # 次のコードがないか、Restか、パース不能なら現在のコードを使う
+                cs_next_obj = cs_now_obj
+
+            tonic = blk_data.get("tonic_of_section", self.global_key_tonic)
+            mode = blk_data.get("mode", self.global_key_mode)
+            target_octave = bass_params.get("octave", bass_params.get("bass_target_octave", 2))
+            base_velocity = bass_params.get("velocity", bass_params.get("bass_velocity", 70))
+
+            measure_pitches_template: List[pitch.Pitch] = []
+            try:
+                temp_notes = generate_bass_measure(style=selected_style, cs_now=cs_now_obj, cs_next=cs_next_obj, tonic=tonic, mode=mode, octave=target_octave)
+                measure_pitches_template = [n.pitch for n in temp_notes if isinstance(n, note.Note)]
+            except Exception as e_gbm:
+                logger.error(f"BassGenerator: Error in generate_bass_measure for style '{selected_style}': {e_gbm}. Using root note.")
+                if cs_now_obj and cs_now_obj.root():
+                    measure_pitches_template = [cs_now_obj.root().transpose((target_octave - cs_now_obj.root().octave) * 12)] * 4
+                else: # 万が一rootも取れない場合
+                    measure_pitches_template = [pitch.Pitch('C3')] * 4
 
 
-def root_fifth_half(
-    cs: harmony.ChordSymbol, # harmony を使用
-    octave: int = 3,
-) -> List[pitch.Pitch]: # pitch を使用
-    if cs.root() is None: # ルートがない場合はデフォルト値を返す
-        logger.warning(f"BassUtils (root_fifth): Chord {cs.figure} has no root. Returning default C notes.")
-        default_pitch = pitch.Pitch(f"C{octave}")
-        return [default_pitch] * 4 # リストの要素数を合わせる
+            rhythm_key = bass_params.get("rhythm_key", "bass_quarter_notes")
+            rhythm_details = self.rhythm_library.get(rhythm_key, self.rhythm_library.get("bass_quarter_notes"))
 
-    root = cs.root().transpose((octave - cs.root().octave) * 12)
-    fifth_pitch_obj = cs.fifth
-    if fifth_pitch_obj is None: 
-        logger.warning(f"BassUtils (root_fifth): Chord {cs.figure} has no fifth. Using octave root as substitute.")
-        fifth_pitch_obj = cs.root().transpose(12) 
-    
-    # fifth_pitch_obj が None でないことを再度確認 (transpose 前)
-    if fifth_pitch_obj is None: # 万が一、ルートのオクターブ上も取得できない場合
-        logger.error(f"BassUtils (root_fifth): Could not determine fifth for {cs.figure}. Using root for all.")
-        return [root, root, root, root]
+            pattern_events = rhythm_details.get("pattern", [])
+            pattern_ref_duration = rhythm_details.get("reference_duration_ql", 4.0)
 
-    fifth = fifth_pitch_obj.transpose((octave - fifth_pitch_obj.octave) * 12)
-    return [root, fifth, root, fifth]
+            pitch_idx = 0
+            for event_data in pattern_events:
+                event_offset_in_pattern = event_data.get("offset", 0.0)
+                event_duration_from_pattern = event_data.get("duration", 1.0)
 
-STYLE_DISPATCH: Dict[str, Any] = { # 型ヒントを修正
-    "root_only": lambda cs_now, cs_next, **k: [cs_now.root().transpose((k.get("octave",3) - cs_now.root().octave) * 12)] * 4 if cs_now.root() else [pitch.Pitch(f"C{k.get('octave',3)}")]*4, # pitch を使用
-    "root_fifth": root_fifth_half,
-    "walking": walking_quarters,
-}
+                scale_factor = block_q_length / pattern_ref_duration if pattern_ref_duration > 0 else 1.0
 
-def generate_bass_measure(
-    style: str,
-    cs_now: harmony.ChordSymbol, # harmony を使用
-    cs_next: harmony.ChordSymbol, # harmony を使用
-    tonic: str,
-    mode: str,
-    octave: int = 3,
-) -> List[note.Note]: # note を使用
-    func = STYLE_DISPATCH.get(style, STYLE_DISPATCH["root_only"])
-    
-    # cs_now が None の場合のフォールバックを追加
-    if cs_now is None:
-        logger.warning("BassUtils (generate_bass_measure): cs_now is None. Returning empty list.")
-        return []
-    # cs_next が None の場合、cs_now を使用 (これは BassGenerator 側で処理されるべきかもしれない)
-    effective_cs_next = cs_next if cs_next is not None else cs_now
+                abs_event_offset_in_block = event_offset_in_pattern * scale_factor
+                actual_event_duration = event_duration_from_pattern * scale_factor
 
-    try:
-        pitches_list = func(cs_now=cs_now, cs_next=effective_cs_next, tonic=tonic, mode=mode, octave=octave)
-    except Exception as e_dispatch:
-        logger.error(f"BassUtils (generate_bass_measure): Error in dispatched style function '{style}': {e_dispatch}. Using root notes.")
-        root_pitch = cs_now.root()
-        if root_pitch:
-            pitches_list = [root_pitch.transpose((octave - root_pitch.octave) * 12)] * 4
-        else:
-            pitches_list = [pitch.Pitch(f"C{octave}")] * 4 # pitch を使用
-            
-    notes_out = []
-    for p_obj in pitches_list:
-        n = note.Note(p_obj) # note を使用
-        n.quarterLength = 1.0
-        notes_out.append(n)
-    return notes_out
-# --- END OF FILE generator/bass_utils.py ---
+                if abs_event_offset_in_block >= block_q_length:
+                    continue
+                actual_event_duration = min(actual_event_duration, block_q_length - abs_event_offset_in_block)
+
+                if actual_event_duration < MIN_NOTE_DURATION_QL / 2: continue
+
+                current_pitch_obj: Optional[pitch.Pitch] = None
+                if measure_pitches_template:
+                    current_pitch_obj = measure_pitches_template[pitch_idx % len(measure_pitches_template)]
+                    pitch_idx += 1
+                else: # measure_pitches_template が空の場合のフォールバック
+                    if cs_now_obj and cs_now_obj.root():
+                         current_pitch_obj = cs_now_obj.root().transpose((target_octave - cs_now_obj.root().octave) * 12)
+                    else:
+                        current_pitch_obj = pitch.Pitch('C3') # 絶対的なフォールバック
+
+                if current_pitch_obj is None: # current_pitch_obj が決定できなかった場合
+                    logger.warning("BassGenerator: Could not determine pitch for event. Skipping.")
+                    continue
+
+                n_bass = note.Note(current_pitch_obj)
+                n_bass.quarterLength = actual_event_duration
+                vel_factor = event_data.get("velocity_factor", 1.0)
+                n_bass.volume = m21volume.Volume(velocity=int(base_velocity * vel_factor))
+                bass_part.insert(current_total_offset + abs_event_offset_in_block, n_bass)
+
+            current_total_offset += block_q_length
+
+        global_bass_params = processed_blocks[0].get("part_params", {}).get("bass", {}) if processed_blocks else {}
+        if global_bass_params.get("bass_humanize", global_bass_params.get("humanize", False)):
+            h_template = global_bass_params.get("bass_humanize_style_template",
+                                                 global_bass_params.get("humanize_style_template", "default_subtle"))
+            h_custom = {
+                k.replace("bass_humanize_", "").replace("humanize_", ""): v
+                for k, v in global_bass_params.items()
+                if (k.startswith("bass_humanize_") or k.startswith("humanize_")) and
+                   not k.endswith("_template") and not k.endswith("humanize") and not k.endswith("_opt")
+            }
+            logger.info(f"BassGenerator: Applying humanization with template '{h_template}' and params {h_custom}")
+            bass_part = apply_humanization_to_part(bass_part, template_name=h_template, custom_params=h_custom)
+            # humanizerがIDなどをリセットする場合があるので再設定
+            bass_part.id = "Bass"
+            if not bass_part.getElementsByClass(m21instrument.Instrument).first(): bass_part.insert(0, self.default_instrument)
+            if not bass_part.getElementsByClass(tempo.MetronomeMark).first(): bass_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
+            if not bass_part.getElementsByClass(meter.TimeSignature).first():
+                ts_copy_humanize = meter.TimeSignature(self.global_time_signature_obj.ratioString)
+                bass_part.insert(0, ts_copy_humanize)
+            if not bass_part.getElementsByClass(key.Key).first(): bass_part.insert(0, key.Key(first_block_tonic, first_block_mode))
+
+        return bass_part
+# --- END OF FILE generator/bass_generator.py ---
