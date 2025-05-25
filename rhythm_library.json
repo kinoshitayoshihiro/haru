@@ -228,7 +228,6 @@
     }
   }
 }
-
   "melody_rhythms": {
     "default_melody_rhythm": {
       "description": "Default melody rhythm - simple quarter notes.",
