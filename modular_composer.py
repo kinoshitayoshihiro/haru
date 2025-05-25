@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (vocal_generator呼び出し再修正・.flat修正版) ---
+# --- START OF FILE modular_composer.py (ドラムリズムキー修正版) ---
 import music21
 import sys
 import os
@@ -77,8 +77,8 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Voice",
-            "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"}, # kasi_rist.json は使用しない
+            "instrument": "Vocalist",
+            "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"},
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
             "default_humanize_fbm_time": True, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.65
@@ -226,11 +226,8 @@ def translate_keywords_to_params(
         if "guitar_rhythm_key" not in params or not params["guitar_rhythm_key"]:
             params["guitar_rhythm_key"] = cfg_guitar.get("default_rhythm_key")
 
-
     elif instrument_name_key == "vocal":
-        # VocalGenerator.compose の引数が変更されたため、このセクションはほぼ空で良い
-        # humanize関連のパラメータは _get_humanize_params で処理される
-        pass
+        pass # humanize params are handled by _get_humanize_params
 
     elif instrument_name_key == "bass":
         cfg_bass = DEFAULT_CONFIG["default_part_parameters"]["bass"]
@@ -448,11 +445,14 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
 
         part_default_cfg = main_cfg["default_part_parameters"].get(part_name, {})
         instrument_str = part_default_cfg.get("instrument", "Piano")
-        rhythm_category_key = f"{part_name}_patterns"
-        if part_name == "bass":
-             rhythm_category_key = "bass_lines"
+        rhythm_category_key = f"{part_name}_patterns" # Default assumption
+        if part_name == "drums": # ★★★ ドラム用のリズムカテゴリキーを修正 ★★★
+            rhythm_category_key = "drum_patterns" # "drums_patterns" から "drum_patterns" へ
+        elif part_name == "bass":
+            rhythm_category_key = "bass_lines"
         elif part_name == "melody":
             rhythm_category_key = "melody_rhythms"
+        # 他の楽器（piano, guitar）は {part_name}_patterns のままで rhythm_library.json と一致
 
         rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
 
@@ -516,8 +516,8 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                     global_time_signature=main_cfg["global_time_signature"]
                 )
             else:
-                logger.warning(f"Vocal generation skipped: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str}'") # Warningに変更
-                main_cfg["parts_to_generate"][part_name] = False # このパートの生成をスキップ
+                logger.warning(f"Vocal generation skipped: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str}'")
+                main_cfg["parts_to_generate"][part_name] = False
         elif part_name == "bass":
             gens[part_name] = BassGenerator(
                 rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
@@ -557,11 +557,11 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                         midivocal_data_for_compose = load_json_file(Path(str(midivocal_p_str_compose)), "Vocal MIDI Data for compose")
 
                     if midivocal_data_for_compose:
-                        part_obj = p_g_inst.compose( # ★★★ kasi_rist_data と関連引数を削除 ★★★
+                        part_obj = p_g_inst.compose( # ★★★ kasi_rist_data 関連の引数を削除 ★★★
                             midivocal_data=midivocal_data_for_compose,
                             processed_chord_stream=proc_blocks,
                             humanize_opt=vocal_params_for_compose.get("humanize_opt", True),
-                            humanize_template_name=vocal_params_for_compose.get("template_name"), # humanize_style_template ではなく template_name
+                            humanize_template_name=vocal_params_for_compose.get("template_name"),
                             humanize_custom_params=vocal_params_for_compose.get("custom_params")
                         )
                     else:
@@ -572,9 +572,9 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
 
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts:
-                        if sub_part.flatten().notesAndRests: # .flat -> .flatten()
+                        if sub_part.flatten().notesAndRests:
                             final_score.insert(0, sub_part)
-                elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests: # .flat -> .flatten()
+                elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests:
                     final_score.insert(0, part_obj)
                 logger.info(f"{p_n} part generated.")
             except Exception as e_gen: logger.error(f"Error in {p_n} generation: {e_gen}", exc_info=True)
@@ -585,7 +585,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
     out_fpath = cli_args.output_dir / actual_out_fname
     out_fpath.parent.mkdir(parents=True,exist_ok=True)
     try:
-        if final_score.flatten().notesAndRests: # .flat -> .flatten()
+        if final_score.flatten().notesAndRests:
             final_score.write('midi',fp=str(out_fpath))
             logger.info(f"🎉 MIDI exported to {out_fpath}")
         else:
@@ -640,7 +640,10 @@ def main_cli():
         effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["midivocal_data_path"] = str(args.vocal_mididata_path)
     if args.vocal_lyrics_path:
         logger.warning("Command line argument --vocal-lyrics-path is provided but no longer used by the simplified VocalGenerator.")
-        # effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["lyrics_text_path"] は削除されたか、使用されない
+        # The following key is no longer in DEFAULT_CONFIG for vocal data_paths
+        # if "lyrics_text_path" in effective_cfg["default_part_parameters"]["vocal"]["data_paths"]:
+        #    del effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["lyrics_text_path"]
+
 
     chordmap_data_loaded = load_json_file(args.chordmap_file, "Chordmap")
     rhythm_library_data_loaded = load_json_file(args.rhythm_library_file, "Rhythm Library")
