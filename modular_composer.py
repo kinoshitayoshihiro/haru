@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (tensions_to_add 削除対応版) ---
+# --- START OF FILE modular_composer.py (tensions_to_add 削除 & コードラベル検証強化版) ---
 import music21
 import sys
 import os
@@ -13,6 +13,7 @@ import music21.instrument as m21instrument
 import music21.midi as midi
 import music21.meter as meter
 import music21.key as key
+import music21.harmony # harmony.ChordSymbol と harmony.HarmonyException のためにインポート
 from music21 import exceptions21
 
 from pathlib import Path
@@ -310,13 +311,50 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
                 continue
             c_def: Dict[str, Any] = c_def_any
 
-            c_lbl = c_def.get("label", "C")
+            # --- コードラベル検証強化 ---
+            original_chord_label = c_def.get("label", "C") # 元のラベルを保持
+            sanitized_chord_label_for_block: Optional[str] = None # このブロックで使用する最終的なラベル
+            is_valid_chord_label_for_block = False
+
+            if not original_chord_label or original_chord_label.strip().lower() in ["rest", "r", "nc", "n.c.", "silence", "-"]:
+                logger.info(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' is a rest.")
+                sanitized_chord_label_for_block = "Rest" # "Rest" として処理
+                is_valid_chord_label_for_block = True
+            else:
+                temp_sanitized_label = sanitize_chord_label(original_chord_label)
+
+                if temp_sanitized_label is None: # sanitize_chord_label が Rest と判断した場合
+                    logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' was sanitized to Rest by sanitize_chord_label. Treating as Rest.")
+                    sanitized_chord_label_for_block = "Rest"
+                    is_valid_chord_label_for_block = True
+                else:
+                    try:
+                        cs = music21.harmony.ChordSymbol(temp_sanitized_label)
+                        if cs.pitches:
+                            sanitized_chord_label_for_block = temp_sanitized_label
+                            is_valid_chord_label_for_block = True
+                            logger.debug(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' (sanitized: '{sanitized_chord_label_for_block}') parsed successfully by music21 -> {cs.figure}")
+                        else:
+                            logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' (sanitized: '{temp_sanitized_label}') parsed by music21 but resulted in NO PITCHES (figure: {cs.figure}). Treating as invalid.")
+                    except music21.harmony.HarmonyException as e_harm:
+                        logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' (sanitized: '{temp_sanitized_label}') FAILED music21 parsing. Error: {e_harm}. Treating as invalid.")
+                    except Exception as e_other_parse:
+                        logger.error(f"Section '{sec_name}', Chord {c_idx+1}: UNEXPECTED error parsing label '{original_chord_label}' (sanitized: '{temp_sanitized_label}'): {e_other_parse}. Treating as invalid.", exc_info=True)
+
+            if not is_valid_chord_label_for_block:
+                logger.error(f"Section '{sec_name}', Chord {c_idx+1}: Due to parsing issues, invalid chord label '{original_chord_label}' will be treated as 'C'. Please review chordmap.json.")
+                c_lbl = "C" # フォールバック
+            else:
+                c_lbl = cast(str, sanitized_chord_label_for_block) # Noneではないことが保証されている
+            # --- コードラベル検証強化ここまで ---
+
+
             dur_b_val = c_def.get("duration_beats")
             if dur_b_val is not None:
                 try:
                     dur_b = float(dur_b_val)
                 except (ValueError, TypeError):
-                    logger.warning(f"Invalid duration_beats '{dur_b_val}' for chord '{c_lbl}' in section '{sec_name}'. Using default.")
+                    logger.warning(f"Invalid duration_beats '{dur_b_val}' for chord '{original_chord_label}' in section '{sec_name}'. Using default.")
                     dur_b = default_beats_per_chord_block if default_beats_per_chord_block is not None else beats_per_measure
             elif default_beats_per_chord_block is not None:
                 dur_b = default_beats_per_chord_block
@@ -331,7 +369,6 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             current_block_mode = c_def.get("mode", sec_m)
             blk_hints_for_translate["mode_of_block"] = current_block_mode
 
-            # "tensions_to_add" を予約キーから削除しても良いが、現状のままでも動作に支障はない
             reserved_keys = {"label", "duration_beats", "order", "musical_intent", "part_settings", "tensions_to_add", "emotion", "intensity", "mode"}
             for k_hint, v_hint in c_def.items():
                 if k_hint not in reserved_keys:
@@ -340,11 +377,11 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             blk_data = {
                 "offset": current_abs_offset,
                 "q_length": dur_b,
-                "chord_label": c_lbl, # テンション情報を含むコードラベル
+                "chord_label": c_lbl, # 検証済みのラベルを使用
                 "section_name": sec_name,
                 "tonic_of_section": sec_t,
                 "mode": current_block_mode,
-                # "tensions_to_add": c_def.get("tensions_to_add",[]), # ★★★ この行を削除 ★★★
+                # "tensions_to_add": c_def.get("tensions_to_add",[]), # この行は削除済み
                 "is_first_in_section":(c_idx==0),
                 "is_last_in_section":(c_idx==len(chord_prog)-1),
                 "part_params":{}
