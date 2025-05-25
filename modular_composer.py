@@ -77,7 +77,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Vocalist",
+            "instrument": "Voice",
             "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"}, # lyrics_text_path は削除
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
