@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (vocal_generator呼び出し修正版) ---
+# --- START OF FILE modular_composer.py (vocal_generator呼び出し修正・.flat修正版) ---
 import music21
 import sys
 import os
@@ -76,11 +76,9 @@ DEFAULT_CONFIG = {
             "default_humanize_time_var": 0.015, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 6,
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
-        "vocal": { # kasi_rist.json を使わない前提で data_paths から lyrics_text_path を削除しても良い
+        "vocal": {
             "instrument": "Vocalist",
-            "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"}, # "lyrics_text_path": "data/kasi_rist.json", "lyrics_timeline.json" は直接参照しない
-            # "default_insert_breaths_opt": True, # VocalGenerator側で削除済み
-            # "default_breath_duration_ql_opt": 0.25, # VocalGenerator側で削除済み
+            "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"}, # lyrics_text_path は削除
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
             "default_humanize_fbm_time": True, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.65
@@ -229,12 +227,13 @@ def translate_keywords_to_params(
             params["guitar_rhythm_key"] = cfg_guitar.get("default_rhythm_key")
 
 
-    elif instrument_name_key == "vocal": # VocalGenerator 側で引数が変更されたため、このセクションのデフォルトパラメータ設定は多くが不要に
-        cfg_vocal = DEFAULT_CONFIG["default_part_parameters"]["vocal"]
-        # insert_breaths_opt と breath_duration_ql_opt は VocalGenerator.compose から削除された
-        # params["insert_breaths_opt"] = params.get("insert_breaths_opt", cfg_vocal.get("default_insert_breaths_opt"))
-        # params["breath_duration_ql_opt"] = params.get("breath_duration_ql_opt", cfg_vocal.get("default_breath_duration_ql_opt"))
-        # humanize 関連は _get_humanize_params で処理される
+    elif instrument_name_key == "vocal":
+        # cfg_vocal = DEFAULT_CONFIG["default_part_parameters"]["vocal"] # Simplified VocalGenerator
+        # vocal_param_keys = ["insert_breaths_opt", "breath_duration_ql_opt"] # No longer used by VocalGenerator.compose
+        # for p_key_vocal in vocal_param_keys:
+        #     if p_key_vocal not in params:
+        #         params[p_key_vocal] = cfg_vocal.get(f"default_{p_key_vocal}")
+        pass # humanize params are handled by _get_humanize_params
 
     elif instrument_name_key == "bass":
         cfg_bass = DEFAULT_CONFIG["default_part_parameters"]["bass"]
@@ -509,16 +508,13 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
             vocal_data_paths = part_default_cfg.get("data_paths", {})
             midivocal_p_str = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
             # lyrics_p_str は VocalGenerator が kasi_rist.json を使わなくなったため不要
-            # lyrics_p_str = cli_args.vocal_lyrics_path or chordmap_data.get("global_settings",{}).get("vocal_lyrics_path", vocal_data_paths.get("lyrics_text_path"))
 
             midivocal_d_local: Optional[List[Dict]] = None
-            # kasi_rist_d_local: Optional[Dict[str, List[str]]] = None # 不要
 
             if midivocal_p_str:
                 midivocal_d_local = load_json_file(Path(str(midivocal_p_str)), "Vocal MIDI Data for instantiation")
-            # if lyrics_p_str: kasi_rist_d_local = cast(Optional[Dict[str, List[str]]], load_json_file(Path(str(lyrics_p_str)), "Lyrics List Data for instantiation")) # 不要
 
-            if midivocal_d_local: # kasi_rist_d_local のチェックを削除
+            if midivocal_d_local:
                 gens[part_name] = VocalGenerator(
                     default_instrument=instrument_obj,
                     global_tempo=main_cfg["global_tempo"],
@@ -561,21 +557,15 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
 
                     vocal_data_paths = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
                     midivocal_p_str_compose = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-                    # lyrics_p_str_compose は不要
 
                     midivocal_data_for_compose : Optional[List[Dict]] = None
-                    # kasi_rist_data_for_compose : Optional[Dict[str, List[str]]] = None # 不要
                     if midivocal_p_str_compose:
                         midivocal_data_for_compose = load_json_file(Path(str(midivocal_p_str_compose)), "Vocal MIDI Data for compose")
-                    # if lyrics_p_str_compose: kasi_rist_data_for_compose = cast(Optional[Dict[str, List[str]]], load_json_file(Path(str(lyrics_p_str_compose)), "Lyrics List Data for compose")) # 不要
 
-                    if midivocal_data_for_compose: # kasi_rist_data_for_compose のチェックを削除
+                    if midivocal_data_for_compose:
                         part_obj = p_g_inst.compose(
                             midivocal_data=midivocal_data_for_compose,
-                            # kasi_rist_data=kasi_rist_data_for_compose, # ★★★ 引数削除 ★★★
-                            processed_chord_stream=proc_blocks,
-                            # insert_breaths_opt=vocal_params_for_compose.get("insert_breaths_opt", True), # VocalGeneratorから削除
-                            # breath_duration_ql_opt=vocal_params_for_compose.get("breath_duration_ql_opt", 0.25), # VocalGeneratorから削除
+                            processed_chord_stream=proc_blocks, # 変更：kasi_rist_data を削除
                             humanize_opt=vocal_params_for_compose.get("humanize_opt", True),
                             humanize_template_name=vocal_params_for_compose.get("template_name"),
                             humanize_custom_params=vocal_params_for_compose.get("custom_params")
@@ -621,7 +611,7 @@ def main_cli():
     parser.add_argument("--settings-file", type=Path, help="Path to a custom settings JSON file to override defaults.")
     parser.add_argument("--tempo", type=int, help="Override global tempo defined in chordmap or DEFAULT_CONFIG.")
     parser.add_argument("--vocal-mididata-path", type=str, help="Path to vocal MIDI data JSON (overrides config).")
-    parser.add_argument("--vocal-lyrics-path", type=str, help="Path to lyrics list JSON (DEPRECATED - no longer used by VocalGenerator).") # 説明を修正
+    parser.add_argument("--vocal-lyrics-path", type=str, help="Path to lyrics list JSON (DEPRECATED - no longer used by VocalGenerator).")
 
     default_parts_cfg = DEFAULT_CONFIG.get("parts_to_generate", {})
     for part_key, default_enabled_status in default_parts_cfg.items():
@@ -654,9 +644,10 @@ def main_cli():
 
     if args.vocal_mididata_path:
         effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["midivocal_data_path"] = str(args.vocal_mididata_path)
-    if args.vocal_lyrics_path: # この引数は残すが、VocalGeneratorでは使用されない
+    if args.vocal_lyrics_path:
         logger.warning("Command line argument --vocal-lyrics-path is provided but no longer used by the simplified VocalGenerator.")
-        # effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["lyrics_text_path"] = str(args.vocal_lyrics_path) # 設定は変更しない
+        # The following line is intentionally commented out as lyrics_text_path is not used by VocalGenerator anymore.
+        # effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["lyrics_text_path"] = str(args.vocal_lyrics_path)
 
     chordmap_data_loaded = load_json_file(args.chordmap_file, "Chordmap")
     rhythm_library_data_loaded = load_json_file(args.rhythm_library_file, "Rhythm Library")
