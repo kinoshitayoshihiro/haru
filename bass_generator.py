@@ -1,4 +1,4 @@
-# --- START OF FILE generator/bass_generator.py (ヒューマナイズ外部化・修正版) ---
+# --- START OF FILE generator/bass_generator.py (Rest対応・.flat修正版) ---
 from __future__ import annotations
 """bass_generator.py – streamlined rewrite
 Generates a **bass part** for the modular composer pipeline.
@@ -17,10 +17,10 @@ import music21.harmony as harmony
 import music21.note as note
 import music21.tempo as tempo
 import music21.meter as meter
-import music21.instrument as m21instrument # 指摘された形式
+import music21.instrument as m21instrument
 import music21.key as key
 import music21.pitch as pitch
-import music21.volume as m21volume # <<< MODIFICATION: volumeモジュールをインポート
+import music21.volume as m21volume
 
 # ユーティリティのインポート
 try:
@@ -37,7 +37,7 @@ except ImportError as e:
         return stream.Part()
     def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature("4/4")
     def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
-        if not label or label.strip().lower() in ["rest", "n.c.", "nc", "none"]: return None
+        if not label or label.strip().lower() in ["rest", "r", "n.c.", "nc", "none"]: return None # "r" も追加
         return label.strip()
     MIN_NOTE_DURATION_QL = 0.125
     HUMANIZATION_TEMPLATES = {}
@@ -101,43 +101,56 @@ class BassGenerator:
 
         for i, blk_data in enumerate(processed_blocks):
             bass_params = blk_data.get("part_params", {}).get("bass", {})
-            if not bass_params:
-                current_total_offset += blk_data.get("q_length", 0.0)
+            block_q_length = blk_data.get("q_length", 4.0)
+
+            if not bass_params: # パラメータがない場合はスキップ
+                current_total_offset += block_q_length
                 continue
 
             chord_label_str = blk_data.get("chord_label", "C")
-            block_q_length = blk_data.get("q_length", 4.0)
-            musical_intent = blk_data.get("musical_intent", {})
 
+            # ★★★ "Rest" ラベルの明示的な処理 ★★★
+            if chord_label_str.lower() == "rest":
+                logger.info(f"BassGenerator: Block {i+1} ('{chord_label_str}') is a Rest. Skipping bass notes for this block.")
+                current_total_offset += block_q_length
+                continue
+            # ★★★ ここまで ★★★
+
+            musical_intent = blk_data.get("musical_intent", {}) # 以前は chord_label_str の後にあったのを移動
             selected_style = self._select_style(bass_params, musical_intent)
 
             cs_now_obj: Optional[harmony.ChordSymbol] = None
+            # sanitize_chord_label は "Rest" を None にするが、上記で既に "Rest" は処理済み
             sanitized_label = sanitize_chord_label(chord_label_str)
             if sanitized_label:
                 try:
                     cs_now_obj = harmony.ChordSymbol(sanitized_label)
-                    if not cs_now_obj.pitches:
+                    if not cs_now_obj.pitches: # ピッチがない場合は無効なコードとして扱う
                         cs_now_obj = None
-                except Exception:
+                except Exception as e_parse:
+                    logger.warning(f"BassGenerator: Error parsing chord '{chord_label_str}' (sanitized: '{sanitized_label}') for block {i+1}: {e_parse}")
                     cs_now_obj = None
 
-            if cs_now_obj is None:
-                logger.warning(f"BassGenerator: Could not parse chord '{chord_label_str}' for block {i}. Skipping.")
+            if cs_now_obj is None: # パース失敗またはピッチなしの場合
+                logger.warning(f"BassGenerator: Could not create valid ChordSymbol for '{chord_label_str}' (Sanitized: '{sanitized_label}') in block {i+1}. Skipping notes for this block.")
                 current_total_offset += block_q_length
                 continue
 
             cs_next_obj: Optional[harmony.ChordSymbol] = None
             if i + 1 < len(processed_blocks):
                 next_label_str = processed_blocks[i+1].get("chord_label")
-                sanitized_next_label = sanitize_chord_label(next_label_str)
-                if sanitized_next_label:
-                    try:
-                        cs_next_obj = harmony.ChordSymbol(sanitized_next_label)
-                        if not cs_next_obj.pitches:
+                # 次のブロックも "Rest" でないことを確認
+                if next_label_str and next_label_str.lower() != "rest":
+                    sanitized_next_label = sanitize_chord_label(next_label_str)
+                    if sanitized_next_label:
+                        try:
+                            cs_next_obj = harmony.ChordSymbol(sanitized_next_label)
+                            if not cs_next_obj.pitches:
+                                cs_next_obj = None
+                        except Exception:
                             cs_next_obj = None
-                    except Exception:
-                        cs_next_obj = None
-            if cs_next_obj is None: cs_next_obj = cs_now_obj
+            if cs_next_obj is None:
+                cs_next_obj = cs_now_obj
 
             tonic = blk_data.get("tonic_of_section", self.global_key_tonic)
             mode = blk_data.get("mode", self.global_key_mode)
@@ -195,9 +208,7 @@ class BassGenerator:
                 n_bass = note.Note(current_pitch_obj)
                 n_bass.quarterLength = actual_event_duration
                 vel_factor = event_data.get("velocity_factor", 1.0)
-                # --- MODIFICATION: Use m21volume.Volume ---
                 n_bass.volume = m21volume.Volume(velocity=int(base_velocity * vel_factor))
-                # --- END MODIFICATION ---
                 bass_part.insert(current_total_offset + abs_event_offset_in_block, n_bass)
 
             current_total_offset += block_q_length
