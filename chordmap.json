@@ -63,7 +63,7 @@
       },
       "chord_progression": [
         {
-          "label": "Am7add11"
+          "label": "Am7add11",
           "duration_beats": 4
         },
         {
@@ -1003,62 +1003,61 @@
           "duration_beats": 8
         },
         {
-          "label": "Fmaj9#11",	"label": "Fmaj9#1
-          "duration_beats": 4,	
-          "nuance": "lydian_transition_starts",	
-          "tensions_to_add": []	
-        },	
-        {	
-          "label": "G7/F",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Cmaj7/F",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Fmaj9#11",	
+          "label": "Fmaj9#11",
+          "duration_beats": 4,
+          "nuance": "lydian_transition_starts"
+        },
+        {
+          "label": "G7/F",
           "duration_beats": 4
-        },	
-        {	
-          "label": "Gm7",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Am7",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Bbmaj9#11",	
+        },
+        {
+          "label": "Cmaj7/F",
           "duration_beats": 4
-        },	
-        {	
-          "label": "C7sus4",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Fmaj9#11",	
+        },
+        {
+          "label": "Fmaj9#11",
           "duration_beats": 4
-        },	
-        {	
-          "label": "C/E",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Dm7(add11)",	
+        },
+        {
+          "label": "Gm7",
           "duration_beats": 4
-        },	
-        {	
-          "label": "Gm7",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "C13",	
-          "duration_beats": 4	
-        },	
-        {	
-          "label": "Fmaj9#11",	
-          "duration_beats": 1.5,	
+        },
+        {
+          "label": "Am7",
+          "duration_beats": 4
+        },
+        {
+          "label": "Bbmaj9#11",
+          "duration_beats": 4
+        },
+        {
+          "label": "C7sus4",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj9#11",
+          "duration_beats": 4
+        },
+        {
+          "label": "C/E",
+          "duration_beats": 4
+        },
+        {
+          "label": "Dm7(add11)",
+          "duration_beats": 4
+        },
+        {
+          "label": "Gm7",
+          "duration_beats": 4
+        },
+        {
+          "label": "C13",
+          "duration_beats": 4
+        },
+        {
+          "label": "Fmaj9#11",
+          "duration_beats": 1.5,
           "nuance": "final_grand_chord"
         },
         {
