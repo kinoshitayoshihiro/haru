@@ -109,7 +109,7 @@
       ]
     }
   },
- "drum_patterns": {
+  "drum_patterns": {
     "default_drum_pattern": {
       "description": "Default simple kick and snare (Global Fallback).",
       "time_signature": "4/4",
@@ -226,8 +226,7 @@
       "time_signature": "4/4",
       "pattern": []
     }
-  }
-},
+  },
   "melody_rhythms": {
     "default_melody_rhythm": {
       "description": "Default melody rhythm - simple quarter notes.",
