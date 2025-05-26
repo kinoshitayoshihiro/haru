@@ -86,14 +86,14 @@ DEFAULT_CONFIG = {
         },
         "bass": {
             "instrument": "Acoustic Bass",
-            "default_style": "simple_roots", "default_rhythm_key": "bass_quarter_notes",
+            "default_style": "simple_roots", "default_rhythm_key": "bass_quarter_notes", # これは rhythm_library.json の "bass_lines" を参照
             "default_octave": 2, "default_velocity": 70,
             "default_humanize": True, "default_humanize_style_template": "default_subtle",
             "default_humanize_time_var": 0.01, "default_humanize_dur_perc": 0.03, "default_humanize_vel_var": 5
         },
         "melody": {
             "instrument": "Flute",
-            "default_rhythm_key": "default_melody_rhythm",
+            "default_rhythm_key": "default_melody_rhythm", # これは rhythm_library.json の "melody_rhythms" を参照
             "default_octave_range": [4,5],
             "default_density": 0.7,
             "default_velocity": 75,
@@ -153,7 +153,7 @@ def _get_humanize_params(params_from_chordmap: Dict[str, Any], default_cfg_instr
 def translate_keywords_to_params(
         musical_intent: Dict[str, Any], chord_block_specific_hints: Dict[str, Any],
         default_instrument_params: Dict[str, Any], instrument_name_key: str,
-        rhythm_library_all_categories: Dict
+        rhythm_library_all_categories: Dict # この引数は現状直接使われていないが、将来的に参照する可能性は残す
 ) -> Dict[str, Any]:
     params: Dict[str, Any] = default_instrument_params.copy()
     emotion_key = musical_intent.get("emotion", "default").lower()
@@ -226,9 +226,9 @@ def translate_keywords_to_params(
 
     elif instrument_name_key == "bass":
         cfg_bass = DEFAULT_CONFIG["default_part_parameters"]["bass"]
-        if "style" not in params:
+        if "style" not in params: # "bass_style" ではなく "style" で chordmap と合わせる
             params["style"] = cfg_bass.get("style_map",{}).get(emotion_key, cfg_bass.get("style_map",{}).get("default", cfg_bass.get("default_style")))
-        if "rhythm_key" not in params:
+        if "rhythm_key" not in params: # "bass_rhythm_key" ではなく "rhythm_key"
             params["rhythm_key"] = cfg_bass.get("rhythm_key_map", {}).get(emotion_key, cfg_bass.get("rhythm_key_map", {}).get("default", cfg_bass.get("default_rhythm_key")))
         if "octave" not in params: params["octave"] = cfg_bass.get("default_octave")
         if "velocity" not in params: params["velocity"] = cfg_bass.get("default_velocity")
@@ -245,24 +245,23 @@ def translate_keywords_to_params(
     if isinstance(block_instrument_specific_hints, dict):
         params.update(block_instrument_specific_hints)
 
-    if instrument_name_key == "drums" and "drum_fill" in chord_block_specific_hints:
+    if instrument_name_key == "drums" and "drum_fill" in chord_block_specific_hints: # chord_block_specific_hints から直接参照
         params["drum_fill_key_override"] = chord_block_specific_hints["drum_fill"]
 
     logger.info(f"Final params for [{instrument_name_key}] (Emo: {emotion_key}, Int: {intensity_key}, Mode: {mode_of_block}) -> {params}")
     return params
 
-# ★★★ 新しいヘルパー関数: ボーカルMIDIデータをパース ★★★
-def parse_vocal_midi_data_for_context(midivocal_data_list: List[Dict]) -> List[Dict]:
+def parse_vocal_midi_data_for_context(midivocal_data_list: Optional[List[Dict]]) -> List[Dict]:
     parsed_notes = []
     if not midivocal_data_list:
         logger.info("Composer: No vocal MIDI data provided for context parsing.")
         return parsed_notes
     for item_idx, item in enumerate(midivocal_data_list):
         try:
-            offset = float(item.get("offset", item.get("Offset", 0.0))) # "offset" or "Offset"
-            pitch_name = str(item.get("pitch", item.get("Pitch", "")))   # "pitch" or "Pitch"
-            length = float(item.get("length", item.get("Length", 0.0))) # "length" or "Length"
-            # velocity = int(item.get("velocity", item.get("Velocity", 70))) # 必要に応じて追加
+            offset = float(item.get("offset", item.get("Offset", 0.0)))
+            pitch_name = str(item.get("pitch", item.get("Pitch", "")))
+            length = float(item.get("length", item.get("Length", 0.0)))
+            # velocity = int(item.get("velocity", item.get("Velocity", 70))) # 必要に応じて
 
             if not pitch_name:
                 logger.debug(f"Composer: Vocal note item #{item_idx+1} has empty pitch. Skipping.")
@@ -280,7 +279,7 @@ def parse_vocal_midi_data_for_context(midivocal_data_list: List[Dict]) -> List[D
                 "offset": offset,
                 "pitch_str": pitch_name,
                 "q_length": length,
-                # "velocity": velocity # 必要なら追加
+                # "velocity": velocity
             })
         except KeyError as ke:
             logger.error(f"Composer: Skipping vocal item #{item_idx+1} due to missing key: {ke} in {item}")
@@ -292,11 +291,9 @@ def parse_vocal_midi_data_for_context(midivocal_data_list: List[Dict]) -> List[D
     parsed_notes.sort(key=lambda x: x["offset"])
     logger.info(f"Composer: Parsed {len(parsed_notes)} valid notes from vocal MIDI data for context.")
     return parsed_notes
-# ★★★ ここまで新しいヘルパー関数 ★★★
-
 
 def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_all: Dict,
-                             parsed_vocal_track: List[Dict]) -> List[Dict]: # ★ 引数に parsed_vocal_track を追加
+                             parsed_vocal_track: List[Dict]) -> List[Dict]:
     processed_stream: List[Dict] = []
     current_abs_offset: float = 0.0
     g_settings = chordmap_data.get("global_settings", {})
@@ -304,7 +301,7 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
     ts_obj = get_time_signature_object(ts_str)
     if ts_obj is None:
         logger.error("Failed to get TimeSignature object. Defaulting to 4/4 time.")
-        ts_obj = meter.TimeSignature("4/4")
+        ts_obj = music21.meter.TimeSignature("4/4") # music21.meter を使用
     beats_per_measure = ts_obj.barDuration.quarterLength
 
     g_key_t, g_key_m = g_settings.get("key_tonic", main_config["global_key_tonic"]), g_settings.get("key_mode", main_config["global_key_mode"])
@@ -394,14 +391,13 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             for k_hint, v_hint in c_def.items():
                 if k_hint not in reserved_keys: blk_hints_for_translate[k_hint] = v_hint
 
-            # ★★★ このブロックに対応するボーカルノートを抽出 ★★★
             vocal_notes_in_this_block = []
             block_start_time = current_abs_offset
             block_end_time = current_abs_offset + dur_b
-            for vocal_note in parsed_vocal_track: # 引数で受け取ったパース済みボーカルトラックを参照
+            for vocal_note in parsed_vocal_track:
                 v_offset = vocal_note["offset"]
                 v_end_offset = v_offset + vocal_note["q_length"]
-                if max(block_start_time, v_offset) < min(block_end_time, v_end_offset): # 重なり判定
+                if max(block_start_time, v_offset) < min(block_end_time, v_end_offset):
                     relative_v_offset = v_offset - block_start_time
                     vocal_notes_in_this_block.append({
                         "pitch_str": vocal_note["pitch_str"],
@@ -409,13 +405,12 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
                         "block_relative_offset": relative_v_offset,
                         "absolute_offset": v_offset
                     })
-            # ★★★ ここまでボーカルノート抽出 ★★★
 
             blk_data = {
                 "offset": current_abs_offset, "q_length": dur_b, "chord_label": c_lbl,
                 "section_name": sec_name, "tonic_of_section": sec_t, "mode": current_block_mode,
                 "is_first_in_section":(c_idx==0), "is_last_in_section":(c_idx==len(chord_prog)-1),
-                "vocal_notes_in_block": vocal_notes_in_this_block, # ★ 追加 ★
+                "vocal_notes_in_block": vocal_notes_in_this_block,
                 "part_params":{}
             }
             for p_key_name, generate_flag in main_config.get("parts_to_generate", {}).items():
@@ -458,24 +453,17 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         if not final_score.getElementsByClass(meter.TimeSignature).first(): final_score.insert(0, meter.TimeSignature("4/4"))
         if not final_score.getElementsByClass(key.Key).first(): final_score.insert(0, key.Key(main_cfg.get("global_key_tonic","C"), main_cfg.get("global_key_mode","major")))
 
-    # ★★★ ボーカルMIDIデータを最初に読み込んでパース ★★★
     parsed_vocal_track_for_context: List[Dict] = []
     vocal_data_paths = main_cfg.get("default_part_parameters", {}).get("vocal", {}).get("data_paths", {})
     midivocal_p_str_context = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-    
     if midivocal_p_str_context:
         vocal_midi_data_content = load_json_file(Path(str(midivocal_p_str_context)), "Vocal MIDI Data for Context")
         if isinstance(vocal_midi_data_content, list):
-            # VocalGeneratorのパースメソッドを呼び出すか、同様のロジックをここに実装
-            # 今回は直接 modular_composer 内にヘルパー関数を定義
             parsed_vocal_track_for_context = parse_vocal_midi_data_for_context(vocal_midi_data_content)
-        else:
-            logger.warning(f"Vocal MIDI data for context at '{midivocal_p_str_context}' is not a list. Cannot use for context.")
-    if not parsed_vocal_track_for_context:
-        logger.info("No vocal track data provided or parsed for context. Bass/Melody will be generated without direct vocal reference.")
-    # ★★★ ここまでボーカルデータ読み込み ★★★
+        else: logger.warning(f"Vocal MIDI data for context at '{midivocal_p_str_context}' is not a list.")
+    if not parsed_vocal_track_for_context: logger.info("No vocal track data for context. Bass/Melody generated without direct vocal reference.")
 
-    proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data, parsed_vocal_track_for_context) # ★ parsed_vocal_track を渡す
+    proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data, parsed_vocal_track_for_context)
 
     if not proc_blocks: logger.error("No blocks to process. Aborting."); return
     cv_inst = ChordVoicer(global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
@@ -512,15 +500,12 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         elif part_name == "drums": gens[part_name] = DrumGenerator(drum_pattern_library=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "guitar": gens[part_name] = GuitarGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "vocal":
-            # VocalGenerator はリズムライブラリを直接使用しない
-            # midivocal_d_local のロードは compose 呼び出し時に行う
-            if main_cfg["parts_to_generate"].get("vocal"): # 再度フラグ確認
+            if main_cfg["parts_to_generate"].get("vocal"):
                 gens[part_name] = VocalGenerator(default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "bass": gens[part_name] = BassGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_tonic=main_cfg["global_key_tonic"], global_key_mode=main_cfg["global_key_mode"])
         elif part_name == "melody": gens[part_name] = MelodyGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_signature_tonic=main_cfg["global_key_tonic"], global_key_signature_mode=main_cfg["global_key_mode"])
         elif part_name == "chords": gens[part_name] = cv_inst;
         if part_name == "chords" and instrument_obj : cv_inst.default_instrument = instrument_obj
-
 
     for p_n, p_g_inst in gens.items():
         if p_g_inst and main_cfg["parts_to_generate"].get(p_n):
@@ -529,31 +514,23 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 part_obj: Optional[stream.Stream] = None
                 if p_n == "vocal":
                     vocal_params_for_compose = proc_blocks[0]["part_params"].get("vocal") if proc_blocks else main_cfg["default_part_parameters"].get("vocal", {})
-                    # midivocal_data_for_compose は既に parsed_vocal_track_for_context としてロード済み
-                    # ただし、VocalGeneratorのcomposeはJSONのリストを期待するので、再度ファイルパスからロードするのが安全か、
-                    # あるいは parse_vocal_midi_data_for_context の戻り値をそのまま渡せるように VocalGenerator.compose を調整するか
-                    # ここでは、VocalGenerator が期待する形式でデータを取得
                     midivocal_data_for_compose_list : Optional[List[Dict]] = None
                     vocal_data_paths_call = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
                     midivocal_p_str_call = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths_call.get("midivocal_data_path"))
                     if midivocal_p_str_call:
                         loaded_data = load_json_file(Path(str(midivocal_p_str_call)), "Vocal MIDI Data for VocalGenerator.compose")
-                        if isinstance(loaded_data, list):
-                            midivocal_data_for_compose_list = loaded_data
-                    
+                        if isinstance(loaded_data, list): midivocal_data_for_compose_list = loaded_data
                     if midivocal_data_for_compose_list:
                         part_obj = p_g_inst.compose(
                             midivocal_data=midivocal_data_for_compose_list,
-                            processed_chord_stream=proc_blocks, # コンテクスト情報として渡す
+                            processed_chord_stream=proc_blocks,
                             humanize_opt=vocal_params_for_compose.get("humanize_opt", True),
                             humanize_template_name=vocal_params_for_compose.get("template_name"),
                             humanize_custom_params=vocal_params_for_compose.get("custom_params")
                         )
-                    else:
-                        logger.warning(f"Vocal generation skipped in compose call: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str_call}'")
-                        continue
+                    else: logger.warning(f"Vocal generation skipped in compose: No MIDI data from '{midivocal_p_str_call}'."); continue
                 else:
-                    part_obj = p_g_inst.compose(proc_blocks) # 他のジェネレータは proc_blocks を受け取る
+                    part_obj = p_g_inst.compose(proc_blocks)
 
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts:
