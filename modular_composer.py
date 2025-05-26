@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (リズムカテゴリキー修正・全体調整版 v2) ---
+# --- START OF FILE modular_composer.py (ボーカル情報集約機能追加版) ---
 import music21
 import sys
 import os
@@ -14,6 +14,7 @@ import music21.midi as midi
 import music21.meter as meter
 import music21.key as key
 import music21.harmony # harmony.ChordSymbol と harmony.HarmonyException のためにインポート
+import music21.pitch # pitch.Pitch のためにインポート
 from music21 import exceptions21
 
 from pathlib import Path
@@ -25,7 +26,7 @@ try:
     from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label
     from generator import (
         PianoGenerator, DrumGenerator, GuitarGenerator, ChordVoicer,
-        MelodyGenerator, BassGenerator, VocalGenerator
+        MelodyGenerator, BassGenerator, VocalGenerator # VocalGenerator もインポートしておく
     )
 except ImportError as e:
     print(f"CRITICAL ERROR: Could not import modules: {e}")
@@ -41,7 +42,7 @@ DEFAULT_CONFIG = {
     "global_tempo": 100, "global_time_signature": "4/4", "global_key_tonic": "C", "global_key_mode": "major",
     "parts_to_generate": {
         "piano": True, "drums": True, "guitar": True, "bass": True,
-        "chords": True, "melody": False, "vocal": True
+        "chords": True, "melody": False, "vocal": True # vocalパート生成自体は残す
     },
     "default_part_parameters": {
         "piano": {
@@ -77,7 +78,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Voice", # music21 v7+ は "Voice" を推奨 (Vocalistは古い可能性)
+            "instrument": "Voice",
             "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"},
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
@@ -194,17 +195,13 @@ def translate_keywords_to_params(
         params["humanize_rh_opt"] = params.get("piano_humanize_rh", params.get("humanize_opt", False))
         params["humanize_lh_opt"] = params.get("piano_humanize_lh", params.get("humanize_opt", False))
 
-
     elif instrument_name_key == "drums":
         cfg_drums = DEFAULT_CONFIG["default_part_parameters"]["drums"]
         if "drum_style_key" not in params:
             params["drum_style_key"] = cfg_drums.get("emotion_to_style_key", {}).get(emotion_key, cfg_drums.get("emotion_to_style_key", {}).get("default_style"))
-
         drum_vel_setting = cfg_drums.get("intensity_to_base_velocity", {}).get(intensity_key, cfg_drums.get("intensity_to_base_velocity", {}).get("default", [80,90]))
         if "drum_base_velocity" not in params:
              params["drum_base_velocity"] = drum_vel_setting[0] if isinstance(drum_vel_setting, list) and drum_vel_setting else drum_vel_setting
-
-
         if "drum_fill_interval_bars" not in params: params["drum_fill_interval_bars"] = cfg_drums.get("default_fill_interval_bars")
         if "drum_fill_keys" not in params: params["drum_fill_keys"] = cfg_drums.get("default_fill_keys")
 
@@ -216,13 +213,11 @@ def translate_keywords_to_params(
                                         style_map.get(emotion_key,
                                             style_map.get(f"default_{mode_of_block}",
                                                 style_map.get("default_default", {}))))
-
         param_keys_guitar = ["guitar_style", "guitar_rhythm_key", "guitar_voicing_style", "guitar_num_strings", "guitar_target_octave", "guitar_velocity", "arpeggio_type", "arpeggio_note_duration_ql", "strum_delay_ql", "mute_note_duration_ql", "mute_interval_ql"]
         for p_key in param_keys_guitar:
             if p_key not in params:
                 specific_key_name = p_key.replace("guitar_", "")
                 params[p_key] = specific_style_config.get(specific_key_name, cfg_guitar.get(f"default_{specific_key_name}"))
-
         if "guitar_rhythm_key" not in params or not params["guitar_rhythm_key"]:
             params["guitar_rhythm_key"] = cfg_guitar.get("default_rhythm_key")
 
@@ -235,16 +230,13 @@ def translate_keywords_to_params(
             params["style"] = cfg_bass.get("style_map",{}).get(emotion_key, cfg_bass.get("style_map",{}).get("default", cfg_bass.get("default_style")))
         if "rhythm_key" not in params:
             params["rhythm_key"] = cfg_bass.get("rhythm_key_map", {}).get(emotion_key, cfg_bass.get("rhythm_key_map", {}).get("default", cfg_bass.get("default_rhythm_key")))
-
         if "octave" not in params: params["octave"] = cfg_bass.get("default_octave")
         if "velocity" not in params: params["velocity"] = cfg_bass.get("default_velocity")
-
 
     elif instrument_name_key == "melody":
         cfg_melody = DEFAULT_CONFIG["default_part_parameters"]["melody"]
         if "rhythm_key" not in params:
             params["rhythm_key"] = cfg_melody.get("rhythm_key_map", {}).get(emotion_key, cfg_melody.get("rhythm_key_map", {}).get("default", cfg_melody.get("default_rhythm_key")))
-
         if "octave_range" not in params: params["octave_range"] = cfg_melody.get("default_octave_range")
         if "density" not in params: params["density"] = cfg_melody.get("default_density")
         if "velocity" not in params: params["velocity"] = cfg_melody.get("default_velocity")
@@ -259,7 +251,52 @@ def translate_keywords_to_params(
     logger.info(f"Final params for [{instrument_name_key}] (Emo: {emotion_key}, Int: {intensity_key}, Mode: {mode_of_block}) -> {params}")
     return params
 
-def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_all: Dict) -> List[Dict]:
+# ★★★ 新しいヘルパー関数: ボーカルMIDIデータをパース ★★★
+def parse_vocal_midi_data_for_context(midivocal_data_list: List[Dict]) -> List[Dict]:
+    parsed_notes = []
+    if not midivocal_data_list:
+        logger.info("Composer: No vocal MIDI data provided for context parsing.")
+        return parsed_notes
+    for item_idx, item in enumerate(midivocal_data_list):
+        try:
+            offset = float(item.get("offset", item.get("Offset", 0.0))) # "offset" or "Offset"
+            pitch_name = str(item.get("pitch", item.get("Pitch", "")))   # "pitch" or "Pitch"
+            length = float(item.get("length", item.get("Length", 0.0))) # "length" or "Length"
+            # velocity = int(item.get("velocity", item.get("Velocity", 70))) # 必要に応じて追加
+
+            if not pitch_name:
+                logger.debug(f"Composer: Vocal note item #{item_idx+1} has empty pitch. Skipping.")
+                continue
+            try:
+                music21.pitch.Pitch(pitch_name) # ピッチ名の妥当性チェック
+            except Exception as e_pitch_parse:
+                logger.warning(f"Composer: Skipping vocal item #{item_idx+1} due to invalid pitch_name '{pitch_name}': {e_pitch_parse}")
+                continue
+            if length <= 0:
+                logger.debug(f"Composer: Vocal note item #{item_idx+1} with pitch '{pitch_name}' has non-positive length {length}. Skipping.")
+                continue
+
+            parsed_notes.append({
+                "offset": offset,
+                "pitch_str": pitch_name,
+                "q_length": length,
+                # "velocity": velocity # 必要なら追加
+            })
+        except KeyError as ke:
+            logger.error(f"Composer: Skipping vocal item #{item_idx+1} due to missing key: {ke} in {item}")
+        except ValueError as ve:
+            logger.error(f"Composer: Skipping vocal item #{item_idx+1} due to ValueError: {ve} in {item}")
+        except Exception as e:
+            logger.error(f"Composer: Unexpected error parsing vocal item #{item_idx+1}: {e} in {item}", exc_info=True)
+
+    parsed_notes.sort(key=lambda x: x["offset"])
+    logger.info(f"Composer: Parsed {len(parsed_notes)} valid notes from vocal MIDI data for context.")
+    return parsed_notes
+# ★★★ ここまで新しいヘルパー関数 ★★★
+
+
+def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_all: Dict,
+                             parsed_vocal_track: List[Dict]) -> List[Dict]: # ★ 引数に parsed_vocal_track を追加
     processed_stream: List[Dict] = []
     current_abs_offset: float = 0.0
     g_settings = chordmap_data.get("global_settings", {})
@@ -298,7 +335,6 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             except (ValueError, TypeError):
                 logger.warning(f"Could not calculate default_beats_per_chord_block for section {sec_name}.")
 
-
         for c_idx, c_def_any in enumerate(chord_prog):
             if not isinstance(c_def_any, dict):
                 logger.warning(f"Chord definition at index {c_idx} in section '{sec_name}' is not a dictionary. Skipping.")
@@ -315,7 +351,6 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
                 is_valid_chord_label_for_block = True
             else:
                 temp_sanitized_label = sanitize_chord_label(original_chord_label)
-
                 if temp_sanitized_label is None:
                     logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' was sanitized to Rest by sanitize_chord_label. Treating as Rest.")
                     sanitized_chord_label_for_block = "Rest"
@@ -340,57 +375,58 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
             else:
                 c_lbl = cast(str, sanitized_chord_label_for_block)
 
-
             dur_b_val = c_def.get("duration_beats")
             if dur_b_val is not None:
-                try:
-                    dur_b = float(dur_b_val)
+                try: dur_b = float(dur_b_val)
                 except (ValueError, TypeError):
                     logger.warning(f"Invalid duration_beats '{dur_b_val}' for chord '{original_chord_label}' in section '{sec_name}'. Using default.")
                     dur_b = default_beats_per_chord_block if default_beats_per_chord_block is not None else beats_per_measure
-            elif default_beats_per_chord_block is not None:
-                dur_b = default_beats_per_chord_block
-            else:
-                dur_b = beats_per_measure
+            elif default_beats_per_chord_block is not None: dur_b = default_beats_per_chord_block
+            else: dur_b = beats_per_measure
 
             blk_intent = sec_intent.copy();
             if "emotion" in c_def: blk_intent["emotion"] = c_def["emotion"]
             if "intensity" in c_def: blk_intent["intensity"] = c_def["intensity"]
-
             blk_hints_for_translate = {"part_settings": sec_part_settings_for_all_instruments.copy()}
             current_block_mode = c_def.get("mode", sec_m)
             blk_hints_for_translate["mode_of_block"] = current_block_mode
-
             reserved_keys = {"label", "duration_beats", "order", "musical_intent", "part_settings", "tensions_to_add", "emotion", "intensity", "mode"}
             for k_hint, v_hint in c_def.items():
-                if k_hint not in reserved_keys:
-                    blk_hints_for_translate[k_hint] = v_hint
+                if k_hint not in reserved_keys: blk_hints_for_translate[k_hint] = v_hint
+
+            # ★★★ このブロックに対応するボーカルノートを抽出 ★★★
+            vocal_notes_in_this_block = []
+            block_start_time = current_abs_offset
+            block_end_time = current_abs_offset + dur_b
+            for vocal_note in parsed_vocal_track: # 引数で受け取ったパース済みボーカルトラックを参照
+                v_offset = vocal_note["offset"]
+                v_end_offset = v_offset + vocal_note["q_length"]
+                if max(block_start_time, v_offset) < min(block_end_time, v_end_offset): # 重なり判定
+                    relative_v_offset = v_offset - block_start_time
+                    vocal_notes_in_this_block.append({
+                        "pitch_str": vocal_note["pitch_str"],
+                        "q_length": vocal_note["q_length"],
+                        "block_relative_offset": relative_v_offset,
+                        "absolute_offset": v_offset
+                    })
+            # ★★★ ここまでボーカルノート抽出 ★★★
 
             blk_data = {
-                "offset": current_abs_offset,
-                "q_length": dur_b,
-                "chord_label": c_lbl,
-                "section_name": sec_name,
-                "tonic_of_section": sec_t,
-                "mode": current_block_mode,
-                "is_first_in_section":(c_idx==0),
-                "is_last_in_section":(c_idx==len(chord_prog)-1),
+                "offset": current_abs_offset, "q_length": dur_b, "chord_label": c_lbl,
+                "section_name": sec_name, "tonic_of_section": sec_t, "mode": current_block_mode,
+                "is_first_in_section":(c_idx==0), "is_last_in_section":(c_idx==len(chord_prog)-1),
+                "vocal_notes_in_block": vocal_notes_in_this_block, # ★ 追加 ★
                 "part_params":{}
             }
             for p_key_name, generate_flag in main_config.get("parts_to_generate", {}).items():
                 if generate_flag:
                     default_params_for_instrument = main_config["default_part_parameters"].get(p_key_name, {})
                     chord_specific_settings_for_part = c_def.get("part_specific_hints", {}).get(p_key_name, {})
-
                     final_hints_for_translate = blk_hints_for_translate.copy()
                     final_hints_for_translate.update(chord_specific_settings_for_part)
-
                     blk_data["part_params"][p_key_name] = translate_keywords_to_params(
-                        blk_intent,
-                        final_hints_for_translate,
-                        default_params_for_instrument,
-                        p_key_name,
-                        rhythm_lib_all
+                        blk_intent, final_hints_for_translate, default_params_for_instrument,
+                        p_key_name, rhythm_lib_all
                     )
             processed_stream.append(blk_data)
             current_abs_offset += dur_b
@@ -405,7 +441,6 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         ts_obj_score = get_time_signature_object(main_cfg["global_time_signature"]);
         if ts_obj_score: final_score.insert(0, ts_obj_score)
         else: final_score.insert(0, meter.TimeSignature("4/4"))
-
         key_t, key_m = main_cfg["global_key_tonic"], main_cfg["global_key_mode"]
         sections_data = chordmap_data.get("sections")
         if sections_data and isinstance(sections_data, dict) and sections_data:
@@ -415,147 +450,76 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 if isinstance(first_sec_info, dict):
                     key_t = first_sec_info.get("tonic", key_t)
                     key_m = first_sec_info.get("mode", key_m)
-            except IndexError:
-                logger.warning("No sections found or sections are not properly formatted for initial key determination.")
-            except Exception as e_key_init:
-                 logger.warning(f"Could not determine initial key from sections: {e_key_init}. Using global key.")
-
+            except IndexError: logger.warning("No sections for initial key.")
+            except Exception as e_key_init: logger.warning(f"Could not determine initial key: {e_key_init}.")
         final_score.insert(0, key.Key(key_t, key_m.lower()))
     except Exception as e:
-        logger.error(f"Error setting score globals: {e}. Using defaults.", exc_info=True)
-        if not final_score.getElementsByClass(meter.TimeSignature).first():
-            final_score.insert(0, meter.TimeSignature("4/4"))
-        if not final_score.getElementsByClass(key.Key).first():
-            final_score.insert(0, key.Key(main_cfg.get("global_key_tonic","C"), main_cfg.get("global_key_mode","major")))
+        logger.error(f"Error setting score globals: {e}. Defaults.", exc_info=True)
+        if not final_score.getElementsByClass(meter.TimeSignature).first(): final_score.insert(0, meter.TimeSignature("4/4"))
+        if not final_score.getElementsByClass(key.Key).first(): final_score.insert(0, key.Key(main_cfg.get("global_key_tonic","C"), main_cfg.get("global_key_mode","major")))
 
+    # ★★★ ボーカルMIDIデータを最初に読み込んでパース ★★★
+    parsed_vocal_track_for_context: List[Dict] = []
+    vocal_data_paths = main_cfg.get("default_part_parameters", {}).get("vocal", {}).get("data_paths", {})
+    midivocal_p_str_context = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
+    
+    if midivocal_p_str_context:
+        vocal_midi_data_content = load_json_file(Path(str(midivocal_p_str_context)), "Vocal MIDI Data for Context")
+        if isinstance(vocal_midi_data_content, list):
+            # VocalGeneratorのパースメソッドを呼び出すか、同様のロジックをここに実装
+            # 今回は直接 modular_composer 内にヘルパー関数を定義
+            parsed_vocal_track_for_context = parse_vocal_midi_data_for_context(vocal_midi_data_content)
+        else:
+            logger.warning(f"Vocal MIDI data for context at '{midivocal_p_str_context}' is not a list. Cannot use for context.")
+    if not parsed_vocal_track_for_context:
+        logger.info("No vocal track data provided or parsed for context. Bass/Melody will be generated without direct vocal reference.")
+    # ★★★ ここまでボーカルデータ読み込み ★★★
 
-    proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data)
-    if not proc_blocks:
-        logger.error("No blocks to process after preparation. Aborting composition.")
-        return
+    proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data, parsed_vocal_track_for_context) # ★ parsed_vocal_track を渡す
 
-    cv_inst = ChordVoicer(
-        global_tempo=main_cfg["global_tempo"],
-        global_time_signature=main_cfg["global_time_signature"]
-    )
+    if not proc_blocks: logger.error("No blocks to process. Aborting."); return
+    cv_inst = ChordVoicer(global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
     gens: Dict[str, Any] = {}
 
     for part_name, generate_flag in main_cfg.get("parts_to_generate", {}).items():
         if not generate_flag: continue
-
         part_default_cfg = main_cfg["default_part_parameters"].get(part_name, {})
         instrument_str = part_default_cfg.get("instrument", "Piano")
-
-        # ★★★ リズムカテゴリキーの明示的な設定とログ出力の改善 ★★★
-        rhythm_category_key: Optional[str] = None
-        rhythm_lib_for_instrument: Dict[str, Any] = {} # デフォルトは空辞書
-
-        if part_name == "drums":
-            rhythm_category_key = "drum_patterns"
-        elif part_name == "bass":
-            rhythm_category_key = "bass_lines"
-        elif part_name == "melody":
-            rhythm_category_key = "melody_rhythms"
-        elif part_name == "piano":
-            rhythm_category_key = "piano_patterns"
-        elif part_name == "guitar":
-            rhythm_category_key = "guitar_patterns"
-        # "chords" と "vocal" は rhythm_category_key を設定しない（リズムライブラリを使用しないため）
-
+        rhythm_category_key: Optional[str] = None; rhythm_lib_for_instrument: Dict[str, Any] = {}
+        if part_name == "drums": rhythm_category_key = "drum_patterns"
+        elif part_name == "bass": rhythm_category_key = "bass_lines"
+        elif part_name == "melody": rhythm_category_key = "melody_rhythms"
+        elif part_name == "piano": rhythm_category_key = "piano_patterns"
+        elif part_name == "guitar": rhythm_category_key = "guitar_patterns"
         if rhythm_category_key:
             rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
-            if not rhythm_lib_for_instrument:
-                logger.warning(f"Rhythm category '{rhythm_category_key}' not found in rhythm_library.json for part '{part_name}'. Generator will use internal defaults or operate without library patterns.")
-            else:
-                logger.info(f"Loaded {len(rhythm_lib_for_instrument)} patterns from category '{rhythm_category_key}' for part '{part_name}'.")
-        else:
-            logger.info(f"Part '{part_name}' does not use a predefined rhythm library category. Generator will use internal defaults or its own logic.")
-        # ★★★ ここまで修正 ★★★
-
+            if not rhythm_lib_for_instrument: logger.warning(f"Rhythm category '{rhythm_category_key}' for '{part_name}' not in rhythm_library or empty.")
+            else: logger.info(f"Loaded {len(rhythm_lib_for_instrument)} patterns for '{rhythm_category_key}' for '{part_name}'.")
+        else: logger.info(f"Part '{part_name}' does not use predefined rhythm library category.")
 
         instrument_obj = None
-        try:
-            instrument_obj = m21instrument.fromString(instrument_str)
+        try: instrument_obj = m21instrument.fromString(instrument_str)
         except exceptions21.InstrumentException:
-            logger.warning(f"Could not match string '{instrument_str}' with music21 instrument. Trying direct class instantiation.")
+            logger.warning(f"Could not match '{instrument_str}'. Trying direct class.")
             try:
-                instrument_class_name = instrument_str.replace(" ", "")
-                instrument_class = getattr(m21instrument, instrument_class_name, None)
-                if instrument_class and callable(instrument_class):
-                    instrument_obj = instrument_class()
-                else:
-                    logger.warning(f"Could not find class '{instrument_class_name}' in music21.instrument. Defaulting to Piano for {part_name}.")
-                    instrument_obj = m21instrument.Piano()
-            except Exception as e_getattr:
-                logger.error(f"Error instantiating instrument '{instrument_str}' directly: {e_getattr}. Defaulting to Piano for {part_name}.")
-                instrument_obj = m21instrument.Piano()
-        except Exception as e_other_inst:
-             logger.error(f"Unexpected error with instrument.fromString for '{instrument_str}': {e_other_inst}. Defaulting to Piano for {part_name}.")
-             instrument_obj = m21instrument.Piano()
+                instrument_class = getattr(m21instrument, instrument_str.replace(" ", ""), None)
+                if instrument_class and callable(instrument_class): instrument_obj = instrument_class()
+                else: logger.warning(f"Class '{instrument_str.replace(' ', '')}' not in m21instrument. Default Piano."); instrument_obj = m21instrument.Piano()
+            except Exception as e_getattr: logger.error(f"Error instantiating '{instrument_str}': {e_getattr}. Default Piano."); instrument_obj = m21instrument.Piano()
+        except Exception as e_other_inst: logger.error(f"Unexpected error with '{instrument_str}': {e_other_inst}. Default Piano."); instrument_obj = m21instrument.Piano()
 
-
-        if part_name == "piano":
-            gens[part_name] = PianoGenerator(
-                rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
-                chord_voicer_instance=cv_inst,
-                default_instrument_rh=instrument_obj,
-                default_instrument_lh=instrument_obj,
-                global_tempo=main_cfg["global_tempo"],
-                global_time_signature=main_cfg["global_time_signature"]
-            )
-        elif part_name == "drums":
-            gens[part_name] = DrumGenerator(
-                drum_pattern_library=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument),
-                default_instrument=instrument_obj,
-                global_tempo=main_cfg["global_tempo"],
-                global_time_signature=main_cfg["global_time_signature"]
-            )
-        elif part_name == "guitar":
-            gens[part_name] = GuitarGenerator(
-                rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
-                default_instrument=instrument_obj,
-                global_tempo=main_cfg["global_tempo"],
-                global_time_signature=main_cfg["global_time_signature"]
-            )
+        if part_name == "piano": gens[part_name] = PianoGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), chord_voicer_instance=cv_inst, default_instrument_rh=instrument_obj, default_instrument_lh=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
+        elif part_name == "drums": gens[part_name] = DrumGenerator(drum_pattern_library=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
+        elif part_name == "guitar": gens[part_name] = GuitarGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "vocal":
-            vocal_data_paths = part_default_cfg.get("data_paths", {})
-            midivocal_p_str = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-
-            midivocal_d_local: Optional[List[Dict]] = None
-            if midivocal_p_str:
-                midivocal_d_local = load_json_file(Path(str(midivocal_p_str)), "Vocal MIDI Data for instantiation")
-
-            if midivocal_d_local:
-                gens[part_name] = VocalGenerator(
-                    default_instrument=instrument_obj,
-                    global_tempo=main_cfg["global_tempo"],
-                    global_time_signature=main_cfg["global_time_signature"]
-                )
-            else:
-                logger.warning(f"Vocal generation skipped: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str}'")
-                main_cfg["parts_to_generate"][part_name] = False
-        elif part_name == "bass":
-            gens[part_name] = BassGenerator(
-                rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
-                default_instrument=instrument_obj,
-                global_tempo=main_cfg["global_tempo"],
-                global_time_signature=main_cfg["global_time_signature"],
-                global_key_tonic=main_cfg["global_key_tonic"],
-                global_key_mode=main_cfg["global_key_mode"]
-            )
-        elif part_name == "melody":
-            gens[part_name] = MelodyGenerator(
-                rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
-                default_instrument=instrument_obj,
-                global_tempo=main_cfg["global_tempo"],
-                global_time_signature=main_cfg["global_time_signature"],
-                global_key_signature_tonic=main_cfg["global_key_tonic"],
-                global_key_signature_mode=main_cfg["global_key_mode"]
-            )
-        elif part_name == "chords":
-            gens[part_name] = cv_inst # ChordVoicer doesn't use rhythm_library from constructor
-            if instrument_obj:
-                 cv_inst.default_instrument = instrument_obj
+            # VocalGenerator はリズムライブラリを直接使用しない
+            # midivocal_d_local のロードは compose 呼び出し時に行う
+            if main_cfg["parts_to_generate"].get("vocal"): # 再度フラグ確認
+                gens[part_name] = VocalGenerator(default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
+        elif part_name == "bass": gens[part_name] = BassGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_tonic=main_cfg["global_key_tonic"], global_key_mode=main_cfg["global_key_mode"])
+        elif part_name == "melody": gens[part_name] = MelodyGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_signature_tonic=main_cfg["global_key_tonic"], global_key_signature_mode=main_cfg["global_key_mode"])
+        elif part_name == "chords": gens[part_name] = cv_inst;
+        if part_name == "chords" and instrument_obj : cv_inst.default_instrument = instrument_obj
 
 
     for p_n, p_g_inst in gens.items():
@@ -565,31 +529,35 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 part_obj: Optional[stream.Stream] = None
                 if p_n == "vocal":
                     vocal_params_for_compose = proc_blocks[0]["part_params"].get("vocal") if proc_blocks else main_cfg["default_part_parameters"].get("vocal", {})
-                    vocal_data_paths = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
-                    midivocal_p_str_compose = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
-
-                    midivocal_data_for_compose : Optional[List[Dict]] = None
-                    if midivocal_p_str_compose:
-                        midivocal_data_for_compose = load_json_file(Path(str(midivocal_p_str_compose)), "Vocal MIDI Data for compose")
-
-                    if midivocal_data_for_compose:
+                    # midivocal_data_for_compose は既に parsed_vocal_track_for_context としてロード済み
+                    # ただし、VocalGeneratorのcomposeはJSONのリストを期待するので、再度ファイルパスからロードするのが安全か、
+                    # あるいは parse_vocal_midi_data_for_context の戻り値をそのまま渡せるように VocalGenerator.compose を調整するか
+                    # ここでは、VocalGenerator が期待する形式でデータを取得
+                    midivocal_data_for_compose_list : Optional[List[Dict]] = None
+                    vocal_data_paths_call = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
+                    midivocal_p_str_call = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths_call.get("midivocal_data_path"))
+                    if midivocal_p_str_call:
+                        loaded_data = load_json_file(Path(str(midivocal_p_str_call)), "Vocal MIDI Data for VocalGenerator.compose")
+                        if isinstance(loaded_data, list):
+                            midivocal_data_for_compose_list = loaded_data
+                    
+                    if midivocal_data_for_compose_list:
                         part_obj = p_g_inst.compose(
-                            midivocal_data=midivocal_data_for_compose,
-                            processed_chord_stream=proc_blocks,
+                            midivocal_data=midivocal_data_for_compose_list,
+                            processed_chord_stream=proc_blocks, # コンテクスト情報として渡す
                             humanize_opt=vocal_params_for_compose.get("humanize_opt", True),
                             humanize_template_name=vocal_params_for_compose.get("template_name"),
                             humanize_custom_params=vocal_params_for_compose.get("custom_params")
                         )
                     else:
-                        logger.warning(f"Vocal generation skipped in compose call: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str_compose}'")
+                        logger.warning(f"Vocal generation skipped in compose call: Missing or invalid MIDI data. MIDI path: '{midivocal_p_str_call}'")
                         continue
                 else:
-                    part_obj = p_g_inst.compose(proc_blocks)
+                    part_obj = p_g_inst.compose(proc_blocks) # 他のジェネレータは proc_blocks を受け取る
 
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts:
-                        if sub_part.flatten().notesAndRests:
-                            final_score.insert(0, sub_part)
+                        if sub_part.flatten().notesAndRests: final_score.insert(0, sub_part)
                 elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests:
                     final_score.insert(0, part_obj)
                 logger.info(f"{p_n} part generated.")
@@ -604,13 +572,9 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         if final_score.flatten().notesAndRests:
             final_score.write('midi',fp=str(out_fpath))
             logger.info(f"🎉 MIDI exported to {out_fpath}")
-        else:
-            logger.warning(f"Score is empty. No MIDI file generated at {out_fpath}.")
-    except exceptions21.Music21Exception as e_m21write:
-        logger.error(f"Music21 MIDI write error to {out_fpath}: {e_m21write}", exc_info=True)
-    except Exception as e_w:
-        logger.error(f"General MIDI write error to {out_fpath}: {e_w}", exc_info=True)
-
+        else: logger.warning(f"Score is empty. No MIDI file generated at {out_fpath}.")
+    except exceptions21.Music21Exception as e_m21write: logger.error(f"Music21 MIDI write error to {out_fpath}: {e_m21write}", exc_info=True)
+    except Exception as e_w: logger.error(f"General MIDI write error to {out_fpath}: {e_w}", exc_info=True)
 
 def main_cli():
     parser = argparse.ArgumentParser(description="Modular Music Composer")
@@ -626,13 +590,10 @@ def main_cli():
     default_parts_cfg = DEFAULT_CONFIG.get("parts_to_generate", {})
     for part_key, default_enabled_status in default_parts_cfg.items():
         arg_name_for_part = f"generate_{part_key}"
-        if default_enabled_status:
-            parser.add_argument(f"--no-{part_key}", action="store_false", dest=arg_name_for_part, help=f"Disable {part_key} generation.")
-        else:
-            parser.add_argument(f"--include-{part_key}", action="store_true", dest=arg_name_for_part, help=f"Enable {part_key} generation.")
+        if default_enabled_status: parser.add_argument(f"--no-{part_key}", action="store_false", dest=arg_name_for_part, help=f"Disable {part_key} generation.")
+        else: parser.add_argument(f"--include-{part_key}", action="store_true", dest=arg_name_for_part, help=f"Enable {part_key} generation.")
     arg_defaults = {f"generate_{k}": v for k, v in default_parts_cfg.items()}
     parser.set_defaults(**arg_defaults)
-
     args = parser.parse_args()
     effective_cfg = json.loads(json.dumps(DEFAULT_CONFIG))
 
@@ -641,10 +602,8 @@ def main_cli():
         if custom_settings_data and isinstance(custom_settings_data, dict):
             def _deep_update(target_dict, source_dict):
                 for key_item, value_item in source_dict.items():
-                    if isinstance(value_item, dict) and key_item in target_dict and isinstance(target_dict[key_item], dict):
-                        _deep_update(target_dict[key_item], value_item)
-                    else:
-                        target_dict[key_item] = value_item
+                    if isinstance(value_item, dict) and key_item in target_dict and isinstance(target_dict[key_item], dict): _deep_update(target_dict[key_item], value_item)
+                    else: target_dict[key_item] = value_item
             _deep_update(effective_cfg, custom_settings_data)
 
     for pk_name in default_parts_cfg.keys():
@@ -653,23 +612,15 @@ def main_cli():
              effective_cfg["parts_to_generate"][pk_name] = getattr(args, arg_name_cli)
 
     if args.vocal_mididata_path:
-        effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["midivocal_data_path"] = str(args.vocal_mididata_path)
-    if args.vocal_lyrics_path:
-        logger.warning("Command line argument --vocal-lyrics-path is provided but no longer used by the simplified VocalGenerator.")
+        if "vocal" in effective_cfg["default_part_parameters"] and "data_paths" in effective_cfg["default_part_parameters"]["vocal"]:
+            effective_cfg["default_part_parameters"]["vocal"]["data_paths"]["midivocal_data_path"] = str(args.vocal_mididata_path)
+    if args.vocal_lyrics_path: logger.warning("Cmd arg --vocal-lyrics-path is deprecated.")
 
     chordmap_data_loaded = load_json_file(args.chordmap_file, "Chordmap")
     rhythm_library_data_loaded = load_json_file(args.rhythm_library_file, "Rhythm Library")
-
-    if not chordmap_data_loaded or not rhythm_library_data_loaded:
-        logger.critical("Data files (chordmap or rhythm_library) missing. Exiting.")
-        sys.exit(1)
-
-    if not isinstance(chordmap_data_loaded, dict):
-        logger.critical(f"Chordmap data is not a dictionary. Type: {type(chordmap_data_loaded)}. Exiting.")
-        sys.exit(1)
-    if not isinstance(rhythm_library_data_loaded, dict):
-        logger.critical(f"Rhythm library data is not a dictionary. Type: {type(rhythm_library_data_loaded)}. Exiting.")
-        sys.exit(1)
+    if not chordmap_data_loaded or not rhythm_library_data_loaded: logger.critical("Data files missing. Exit."); sys.exit(1)
+    if not isinstance(chordmap_data_loaded, dict): logger.critical("Chordmap not dict. Exit."); sys.exit(1)
+    if not isinstance(rhythm_library_data_loaded, dict): logger.critical("Rhythm lib not dict. Exit."); sys.exit(1)
 
     cm_globals_loaded = chordmap_data_loaded.get("global_settings", {})
     effective_cfg["global_tempo"]=cm_globals_loaded.get("tempo",effective_cfg["global_tempo"])
@@ -677,16 +628,11 @@ def main_cli():
     effective_cfg["global_key_tonic"]=cm_globals_loaded.get("key_tonic",effective_cfg["global_key_tonic"])
     effective_cfg["global_key_mode"]=cm_globals_loaded.get("key_mode",effective_cfg["global_key_mode"])
     if args.tempo is not None: effective_cfg["global_tempo"] = args.tempo
-
     logger.info(f"Final Effective Config: {json.dumps(effective_cfg, indent=2, ensure_ascii=False)}")
 
-    try:
-        run_composition(args, effective_cfg, chordmap_data_loaded, rhythm_library_data_loaded)
-    except SystemExit:
-        raise
-    except Exception as e_main_run:
-        logger.critical(f"Critical error during main composition run: {e_main_run}", exc_info=True)
-        sys.exit(1)
+    try: run_composition(args, effective_cfg, chordmap_data_loaded, rhythm_library_data_loaded)
+    except SystemExit: raise
+    except Exception as e_main_run: logger.critical(f"Critical error in main run: {e_main_run}", exc_info=True); sys.exit(1)
 
 if __name__ == "__main__":
     main_cli()
