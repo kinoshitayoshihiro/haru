@@ -1,11 +1,9 @@
 # scale_registry.py – Revised 2025-05-27
 # ------------------------------------------------------------
 # Centralised factory for returning music21 scale objects based on
-# a (tonic, mode) tuple.  Previous versions raised an AttributeError
-# because music21 >=9.5 renamed PentatonicScale → MajorPentatonicScale /
-# MinorPentatonicScale.  This revision normalises those names and adds
-# graceful fall‑backs **and** a compatibility alias `build_scale_object`
-# so legacy modules (bass_utils, melody_generator, etc.) keep working.
+# a (tonic, mode) tuple.  Handles renamed and missing classes
+# (Pentatonic → Major/MinorPentatonicScale, optional Blues/WholeTone/Octatonic)
+# with graceful fallbacks and legacy aliases.
 # ------------------------------------------------------------
 from __future__ import annotations
 from functools import lru_cache
@@ -15,21 +13,19 @@ from music21 import scale, pitch
 
 __all__ = [
     "get",
-    "ScaleRegistry",  # legacy alias
-    "build_scale_object",  # legacy alias
+    "ScaleRegistry",
+    "build_scale_object",
 ]
 
 # ---------------------------------------------------------------------
 # _resolve_scale_class
-#   Given a canonical mode string, return the corresponding music21
-#   Scale *class* (not instance).  Fall back to major / minor where
-#   appropriate and keep everything lower‑case for robust lookup.
+#   Normalize mode string and map to available music21 Scale classes,
+#   using getattr fallbacks where classes may not exist.
 # ---------------------------------------------------------------------
 
-def _resolve_scale_class(mode: str) -> Callable[[str], scale.ConcreteScale]:
+def _resolve_scale_class(mode: str) -> Callable[[pitch.Pitch], scale.ConcreteScale]:
     mode_lc = mode.lower()
-
-    _mapping: Dict[str, Callable[[str], scale.ConcreteScale]] = {
+    _mapping: Dict[str, Callable[[pitch.Pitch], scale.ConcreteScale]] = {
         # diatonic
         "major": scale.MajorScale,
         "ionian": scale.MajorScale,
@@ -40,48 +36,38 @@ def _resolve_scale_class(mode: str) -> Callable[[str], scale.ConcreteScale]:
         "lydian": scale.LydianScale,
         "mixolydian": scale.MixolydianScale,
         "locrian": scale.LocrianScale,
-        # pentatonic (music21 >= 9.5 uses MajorPentatonicScale / MinorPentatonicScale)
+        # pentatonic
         "majorpentatonic": getattr(scale, "MajorPentatonicScale", getattr(scale, "PentatonicScale", scale.MajorScale)),
         "minorpentatonic": getattr(scale, "MinorPentatonicScale", scale.MinorScale),
         "pentatonic": getattr(scale, "MajorPentatonicScale", getattr(scale, "PentatonicScale", scale.MajorScale)),
-        # blues / whole‑tone / octatonic
-        "blues": scale.BluesScale,
-        "wholetone": scale.WholeToneScale,
-        "octatonic": scale.OctatonicScale,
+        # blues / whole-tone / octatonic with fallbacks
+        "blues": getattr(scale, "BluesScale", getattr(scale, "MinorPentatonicScale", scale.MinorScale)),
+        "wholetone": getattr(scale, "WholeToneScale", scale.MajorScale),
+        "octatonic": getattr(scale, "OctatonicScale", scale.WholeToneScale),
     }
 
     if mode_lc not in _mapping:
         raise ValueError(f"Unsupported mode name: {mode}")
-
     return _mapping[mode_lc]
 
 # ---------------------------------------------------------------------
-# public helpers
+# public API
 # ---------------------------------------------------------------------
 
 @lru_cache(maxsize=128)
 def get(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:
-    """Return a *singleton* music21 Scale for the given tonic + mode.
-
-    This helper is the new canonical API; it is cached so repeated look‑ups
-    incur zero overhead.
-    """
+    """Return a singleton music21 Scale instance for the given tonic + mode."""
     tonic_pitch = pitch.Pitch(tonic)
     scale_cls = _resolve_scale_class(mode)
     return scale_cls(tonic_pitch)
 
 # ---------------------------------------------------------------------
-# ---------------------------------------------------------------------
-# legacy aliases (to avoid massive refactors)
+# legacy aliases
 # ---------------------------------------------------------------------
 
-ScaleRegistry = get  # old code expects a namespace‑like object
-# Add a `.get` attribute pointing back to itself so that calls like
-# `ScaleRegistry.get("C", "dorian")` still work even though
-# ScaleRegistry is now a function decorated by lru_cache.
+ScaleRegistry = get
 setattr(ScaleRegistry, "get", get)
 
-
-def build_scale_object(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:  # noqa: N802
-    """Backward‑compat shim – old code expects this symbol."""
+def build_scale_object(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:
+    """Backward‑compat shim for old code."""
     return get(tonic, mode)
