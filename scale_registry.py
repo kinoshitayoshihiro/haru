@@ -71,10 +71,16 @@ def get(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:
     return scale_cls(tonic_pitch)
 
 # ---------------------------------------------------------------------
+# ---------------------------------------------------------------------
 # legacy aliases (to avoid massive refactors)
 # ---------------------------------------------------------------------
 
-ScaleRegistry = get  # modules already doing `ScaleRegistry("C", "dorian")`
+ScaleRegistry = get  # old code expects a namespace‑like object
+# Add a `.get` attribute pointing back to itself so that calls like
+# `ScaleRegistry.get("C", "dorian")` still work even though
+# ScaleRegistry is now a function decorated by lru_cache.
+setattr(ScaleRegistry, "get", get)
+
 
 def build_scale_object(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:  # noqa: N802
     """Backward‑compat shim – old code expects this symbol."""
