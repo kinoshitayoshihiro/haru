@@ -1,10 +1,10 @@
-# --- START OF FILE generator/bass_utils.py (containsメソッド修正版) ---
+# --- START OF FILE generator/bass_utils.py (getScaleDegreeFromPitch 使用版) ---
 from __future__ import annotations
 """bass_utils.py
 Low-level helpers for *bass line generation*, now with vocal context awareness (Phase 1).
 Generates pitch templates for bass lines, considering current and next chords,
 section tonality, and vocal notes within the current block for basic collision avoidance.
-Uses Python's `in` operator for scale membership testing.
+Uses music21's getScaleDegreeFromPitch for scale membership testing.
 """
 
 from typing import List, Sequence, Optional, Any, Dict
@@ -14,7 +14,6 @@ import logging
 from music21 import note, pitch, harmony, interval, scale as m21_scale
 
 try:
-    # Haruさんご提供の scale_registry.py を使用することを想定
     from utilities.scale_registry import ScaleRegistry as SR
 except ImportError:
     logger_fallback_sr_bass = logging.getLogger(__name__ + ".fallback_sr_bass")
@@ -72,8 +71,8 @@ def walking_quarters(
     beat2 = beat2_candidate_pitch.transpose((octave - beat2_candidate_pitch.octave) * 12)
     
     beat3_candidate_pitch = beat2.transpose(_rand.choice([-2, -1, 1, 2]))
-    # ★修正点: .contains() -> in 演算子
-    if not (beat3_candidate_pitch in scl):
+    # ★修正点: scl.getScaleDegreeFromPitch(pitch) is not None で判定
+    if scl.getScaleDegreeFromPitch(beat3_candidate_pitch) is None:
         temp_options_b3 = [p for p in options_b2_pitches if p.nameWithOctave != beat2_candidate_pitch.nameWithOctave]
         if not temp_options_b3: temp_options_b3 = [root_now_init]
         beat3_candidate_pitch = _rand.choice(temp_options_b3) if temp_options_b3 else root_now_init
@@ -82,22 +81,22 @@ def walking_quarters(
         beat3 = beat3_candidate_pitch
 
     beat4 = approach_note(beat3, root_next)
-    # ★修正点: .contains() -> in 演算子
-    if not (beat4 in scl):
-        if root_next in scl: # scl.contains(root_next) -> root_next in scl
+    # ★修正点: scl.getScaleDegreeFromPitch(pitch) is not None で判定
+    if scl.getScaleDegreeFromPitch(beat4) is None:
+        if scl.getScaleDegreeFromPitch(root_next) is not None:
              beat4 = root_next
         else:
             beat4_alt = scl.nextPitch(beat3, direction=m21_scale.Direction.ASCENDING if root_next.ps > beat3.ps else m21_scale.Direction.DESCENDING)
-            if isinstance(beat4_alt, pitch.Pitch) and (beat4_alt in scl): # scl.contains(beat4_alt) -> beat4_alt in scl
+            if isinstance(beat4_alt, pitch.Pitch) and (scl.getScaleDegreeFromPitch(beat4_alt) is not None):
                 beat4 = beat4_alt
     return [beat1, beat2, beat3, beat4]
 
 
 def root_fifth_half(
     cs_now: harmony.ChordSymbol,
-    cs_next: harmony.ChordSymbol, # 未使用だがシグネチャ合わせ
-    tonic: str,                   # 未使用だがシグネチャ合わせ
-    mode: str,                    # 未使用だがシグネチャ合わせ
+    cs_next: harmony.ChordSymbol,
+    tonic: str,
+    mode: str,
     octave: int = 3,
     vocal_notes_in_block: Optional[List[Dict]] = None
 ) -> List[pitch.Pitch]:
@@ -172,7 +171,7 @@ def generate_bass_measure(
         else: initial_pitches = initial_pitches[:4]
 
     final_adjusted_pitches: List[pitch.Pitch] = []
-    scl_obj = SR.get(tonic, mode) # scl_obj は ConcreteScale オブジェクト
+    scl_obj = SR.get(tonic, mode)
 
     for beat_idx, p_bass_initial in enumerate(initial_pitches):
         adjusted_pitch_current_beat = p_bass_initial
@@ -205,14 +204,14 @@ def generate_bass_measure(
 
                         if current_bass_is_root and cs_now.fifth:
                             candidate_pitch = cs_now.fifth.transpose((octave - cs_now.fifth.octave) * 12)
-                            # ★修正点: .contains() -> in 演算子
-                            if candidate_pitch in scl_obj:
+                            # ★修正点: scl_obj.getScaleDegreeFromPitch(pitch) is not None で判定
+                            if scl_obj.getScaleDegreeFromPitch(candidate_pitch) is not None:
                                 adjusted_pitch_current_beat = candidate_pitch
                                 logger.info(f"  Adjusted bass to 5th: {adjusted_pitch_current_beat.nameWithOctave}")
                             elif cs_now.third:
                                 candidate_pitch = cs_now.third.transpose((octave - cs_now.third.octave) * 12)
-                                # ★修正点: .contains() -> in 演算子
-                                if candidate_pitch in scl_obj:
+                                # ★修正点: scl_obj.getScaleDegreeFromPitch(pitch) is not None で判定
+                                if scl_obj.getScaleDegreeFromPitch(candidate_pitch) is not None:
                                     adjusted_pitch_current_beat = candidate_pitch
                                     logger.info(f"  5th out of scale. Adjusted bass to 3rd: {adjusted_pitch_current_beat.nameWithOctave}")
                                 else:
@@ -226,7 +225,7 @@ def generate_bass_measure(
                         else:
                             logger.info(f"  Collision on non-Root/Fifth or no simple alternative. Bass for beat {beat_idx} remains {adjusted_pitch_current_beat.nameWithOctave}.")
                         break 
-                except Exception as e_vp_parse: # エラーメッセージに 'scl_obj' が含まれないように修正
+                except Exception as e_vp_parse:
                     logger.warning(f"Could not parse vocal pitch '{vn_data.get('pitch_str')}' or error in collision check logic: {e_vp_parse}")
 
             if not collided_with_vocal_on_beat and vocal_notes_on_this_beat:
@@ -244,4 +243,4 @@ def generate_bass_measure(
         notes_out.append(n)
         
     return notes_out
-# --- END OF FILE generator/bass_utils.py (containsメソッド修正版) ---
+# --- END OF FILE generator/bass_utils.py (getScaleDegreeFromPitch 使用版) ---
