@@ -1,4 +1,4 @@
-# --- START OF FILE modular_composer.py (ドラムリズムキー修正・全体調整版) ---
+# --- START OF FILE modular_composer.py (リズムカテゴリキー修正・全体調整版 v2) ---
 import music21
 import sys
 import os
@@ -63,7 +63,7 @@ DEFAULT_CONFIG = {
             "instrument": "Percussion",
             "emotion_to_style_key": {"default_style": "default_drum_pattern", "quiet_pain_and_nascent_strength": "no_drums", "deep_regret_gratitude_and_realization": "ballad_soft_kick_snare_8th_hat", "acceptance_of_love_and_pain_hopeful_belief": "anthem_rock_chorus_16th_hat", "self_reproach_regret_deep_sadness": "no_drums_or_sparse_cymbal", "supported_light_longing_for_rebirth": "rock_ballad_build_up_8th_hat", "reflective_transition_instrumental_passage": "no_drums_or_gentle_cymbal_swell", "trial_cry_prayer_unbreakable_heart": "rock_ballad_build_up_8th_hat", "memory_unresolved_feelings_silence": "no_drums", "wavering_heart_gratitude_chosen_strength": "ballad_soft_kick_snare_8th_hat", "reaffirmed_strength_of_love_positive_determination": "anthem_rock_chorus_16th_hat", "hope_dawn_light_gentle_guidance": "no_drums_or_gentle_cymbal_swell", "nature_memory_floating_sensation_forgiveness": "no_drums_or_sparse_chimes", "future_cooperation_our_path_final_resolve_and_liberation": "anthem_rock_chorus_16th_hat"},
             "intensity_to_base_velocity": {"default": [70,80], "low": [55,65], "medium_low": [60,70], "medium": [70,80], "medium_high": [75,85], "high": [85,95], "high_to_very_high_then_fade": [90,105]},
-            "default_fill_interval_bars": 4, "default_fill_keys": ["simple_snare_roll_half_bar", "chorus_end_fill", "expressive_fill", "soulful_tom_roll"], # 追加されたフィルキーの例
+            "default_fill_interval_bars": 4, "default_fill_keys": ["simple_snare_roll_half_bar", "chorus_end_fill", "expressive_fill", "soulful_tom_roll"],
             "default_humanize": True, "default_humanize_style_template": "drum_loose_fbm",
             "default_humanize_time_var": 0.015, "default_humanize_dur_perc": 0.03, "default_humanize_vel_var": 6,
             "default_humanize_fbm_time": True, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.6
@@ -77,7 +77,7 @@ DEFAULT_CONFIG = {
             "default_humanize_fbm_time": False, "default_humanize_fbm_scale": 0.01, "default_humanize_fbm_hurst": 0.7
         },
         "vocal": {
-            "instrument": "Voice", # music21.instrument.fromString("Vocalist") で取得可能
+            "instrument": "Voice", # music21 v7+ は "Voice" を推奨 (Vocalistは古い可能性)
             "data_paths": {"midivocal_data_path": "data/vocal_note_data_ore.json"},
             "default_humanize_opt": True, "default_humanize_template_name": "vocal_ballad_smooth",
             "default_humanize_time_var": 0.02, "default_humanize_dur_perc": 0.04, "default_humanize_vel_var": 5,
@@ -227,8 +227,6 @@ def translate_keywords_to_params(
             params["guitar_rhythm_key"] = cfg_guitar.get("default_rhythm_key")
 
     elif instrument_name_key == "vocal":
-        # VocalGenerator.compose の引数が変更されたため、このセクションはほぼ空で良い
-        # humanize関連のパラメータは _get_humanize_params で処理される
         pass
 
     elif instrument_name_key == "bass":
@@ -447,9 +445,11 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
 
         part_default_cfg = main_cfg["default_part_parameters"].get(part_name, {})
         instrument_str = part_default_cfg.get("instrument", "Piano")
-        
-        # ★★★ リズムカテゴリキーの明示的な設定 ★★★
+
+        # ★★★ リズムカテゴリキーの明示的な設定とログ出力の改善 ★★★
         rhythm_category_key: Optional[str] = None
+        rhythm_lib_for_instrument: Dict[str, Any] = {} # デフォルトは空辞書
+
         if part_name == "drums":
             rhythm_category_key = "drum_patterns"
         elif part_name == "bass":
@@ -460,14 +460,17 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
             rhythm_category_key = "piano_patterns"
         elif part_name == "guitar":
             rhythm_category_key = "guitar_patterns"
-        else: # フォールバックまたは他の楽器用の一般的なキー
-            rhythm_category_key = f"{part_name}_patterns"
+        # "chords" と "vocal" は rhythm_category_key を設定しない（リズムライブラリを使用しないため）
 
-        rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
-        if not rhythm_lib_for_instrument:
-            logger.warning(f"No rhythm library found for category '{rhythm_category_key}' for part '{part_name}'. Generator will use internal defaults if any.")
+        if rhythm_category_key:
+            rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
+            if not rhythm_lib_for_instrument:
+                logger.warning(f"Rhythm category '{rhythm_category_key}' not found in rhythm_library.json for part '{part_name}'. Generator will use internal defaults or operate without library patterns.")
+            else:
+                logger.info(f"Loaded {len(rhythm_lib_for_instrument)} patterns from category '{rhythm_category_key}' for part '{part_name}'.")
         else:
-            logger.info(f"Loaded {len(rhythm_lib_for_instrument)} patterns for '{rhythm_category_key}' for part '{part_name}'.")
+            logger.info(f"Part '{part_name}' does not use a predefined rhythm library category. Generator will use internal defaults or its own logic.")
+        # ★★★ ここまで修正 ★★★
 
 
         instrument_obj = None
@@ -550,7 +553,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 global_key_signature_mode=main_cfg["global_key_mode"]
             )
         elif part_name == "chords":
-            gens[part_name] = cv_inst
+            gens[part_name] = cv_inst # ChordVoicer doesn't use rhythm_library from constructor
             if instrument_obj:
                  cv_inst.default_instrument = instrument_obj
 
