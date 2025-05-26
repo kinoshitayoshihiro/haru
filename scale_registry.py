@@ -1,11 +1,11 @@
-# scale_registry.py – Revised 2025‑05‑27
+# scale_registry.py – Revised 2025-05-27
 # ------------------------------------------------------------
 # Centralised factory for returning music21 scale objects based on
-# a (tonic, mode) tuple.  Previous version raised an AttributeError
+# a (tonic, mode) tuple.  Previous versions raised an AttributeError
 # because music21 >=9.5 renamed PentatonicScale → MajorPentatonicScale /
 # MinorPentatonicScale.  This revision normalises those names and adds
-# graceful fall‑backs so the composer pipeline no longer crashes when a
-# “pentatonic” mode is requested.
+# graceful fall‑backs **and** a compatibility alias `build_scale_object`
+# so legacy modules (bass_utils, melody_generator, etc.) keep working.
 # ------------------------------------------------------------
 from __future__ import annotations
 from functools import lru_cache
@@ -14,8 +14,9 @@ from typing import Dict, Callable
 from music21 import scale, pitch
 
 __all__ = [
-    "ScaleRegistry",
-    "get",  # backwards compatibility
+    "get",
+    "ScaleRegistry",  # legacy alias
+    "build_scale_object",  # legacy alias
 ]
 
 # ---------------------------------------------------------------------
@@ -60,13 +61,21 @@ def _resolve_scale_class(mode: str) -> Callable[[str], scale.ConcreteScale]:
 
 @lru_cache(maxsize=128)
 def get(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:
-    """Return a *singleton* scale object for the given tonic + mode.
+    """Return a *singleton* music21 Scale for the given tonic + mode.
 
-    The result is cached so repeated look‑ups incur zero overhead.
+    This helper is the new canonical API; it is cached so repeated look‑ups
+    incur zero overhead.
     """
     tonic_pitch = pitch.Pitch(tonic)
     scale_cls = _resolve_scale_class(mode)
     return scale_cls(tonic_pitch)
 
-# alias retained for backwards compatibility
-ScaleRegistry = get
+# ---------------------------------------------------------------------
+# legacy aliases (to avoid massive refactors)
+# ---------------------------------------------------------------------
+
+ScaleRegistry = get  # modules already doing `ScaleRegistry("C", "dorian")`
+
+def build_scale_object(tonic: str | pitch.Pitch, mode: str = "major") -> scale.ConcreteScale:  # noqa: N802
+    """Backward‑compat shim – old code expects this symbol."""
+    return get(tonic, mode)
