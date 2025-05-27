@@ -603,6 +603,13 @@ class BassGenerator:
                     new_dur = end_of_block - abs_note_offset
                     if new_dur > MIN_NOTE_DURATION_QL / 2: note_obj.duration.quarterLength = new_dur
                     else: continue
+
+                                    # === Haruさん確認用ログ追加 START ===
+                    if m21_cs_obj: # m21_cs_objがNoneでないことを確認
+                        self.logger.info(f"DEBUG Bass Insert: Chord='{m21_cs_obj.figure}', BlockOffset={block_abs_offset:.2f}, NoteAbsOffset={abs_note_offset:.2f}, Pitch={note_obj.pitch.nameWithOctave if note_obj.pitch else 'N/A'}, Duration={note_obj.duration.quarterLength:.2f}")
+                    else:
+                        self.logger.info(f"DEBUG Bass Insert (No Chord): BlockOffset={block_abs_offset:.2f}, NoteAbsOffset={abs_note_offset:.2f}, Pitch={note_obj.pitch.nameWithOctave if note_obj.pitch else 'N/A'}, Duration={note_obj.duration.quarterLength:.2f}")
+                    # === Haruさん確認用ログ追加 END ===
                 if note_obj.duration.quarterLength >= MIN_NOTE_DURATION_QL / 2:
                      bass_part.insert(abs_note_offset, note_obj)
 
