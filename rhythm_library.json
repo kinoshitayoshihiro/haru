@@ -267,8 +267,7 @@
   "bass_lines": {
     "bass_quarter_notes": {
       "description": "Default bass line - simple quarter notes on root.",
-      "tags": ["bass", "default", "quarter_notes", "root", "fixed_pattern"],
-      "reference_duration_ql": 4.0,
+      "tags": ["bass", "default", "quarter_notes", "root"],
       "pattern": [
         {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
         {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
@@ -278,69 +277,67 @@
     },
     "root_only": {
       "description": "Whole- or half-note roots only (very low intensity).",
-      "tags": ["bass", "simple", "long_notes", "root", "algorithmic_style_hint"],
-      "algorithmic_type": "algorithm_simple_roots",
-      "bass_utils_style": "root_only",
-      "options": {"note_duration_preference": [4.0, 2.0]}
+      "tags": ["bass", "simple", "long_notes", "root"],
+      "pattern_type": "algorithmic_root_only",
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}
+      ]
     },
     "root_fifth": {
       "description": "Root-fifth alternation pattern (ballad feel).",
-      "tags": ["bass", "ballad", "root_fifth", "algorithmic_style_hint"],
-      "algorithmic_type": "algorithm_root_fifth",
-      "bass_utils_style": "root_fifth",
-       "options": {"alternation_beats": [2.0, 2.0]}
+      "tags": ["bass", "ballad", "root_fifth"],
+      "pattern_type": "algorithmic_root_fifth",
+      "pattern": [
+        {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 2.0, "velocity_factor": 0.65}
+      ]
     },
     "walking": {
-      "description": "4-beat walking bass; actual notes computed on the fly by bass_utils.",
-      "tags": ["bass", "walking", "jazz", "fixed_pattern_rhythm_for_bass_utils"],
-      "bass_utils_style": "walking",
-      "reference_duration_ql": 4.0,
+      "description": "4-beat walking bass; actual notes computed on the fly.",
+      "tags": ["bass", "walking", "jazz"],
+      "pattern_type": "algorithmic_walking",
       "pattern": [
-        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "auto"},
-        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "auto"},
-        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "auto"},
-        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "auto"}
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
       ]
     },
     "bass_walking_8ths": {
       "description": "コードトーン + アプローチノートで歩く 8分。Swing‑feel walking bass in straight 8ths (root ➜ approach ➜ chord‑tone ➜ approach).",
       "tags": ["bass", "walking", "swing", "eighth_notes", "algorithmic"],
       "time_signature": "4/4",
-      "algorithmic_type": "algorithm_walk",
+      "pattern_type": "walking_8ths",
       "velocity_base": 70,
       "options": {
         "approach_note_prob": 0.4,
-        "target_octave_range": [2,3],
-        "swing_ratio": 0.0,
-        "density_factor": 1.0
+        "target_octave": 2,
+        "swing_ratio": 0.0 
       }
     },
     "bass_half_time_pop": {
       "description": "2拍目裏にゴーストを入れるハーフタイム POP。Half‑time pop groove: long roots with eighth‑anticipation pickup on beat 4&.",
       "tags": ["bass", "pop", "half_time", "algorithmic"],
       "time_signature": "4/4",
-      "algorithmic_type": "algorithm_half_time_pop",
+      "pattern_type": "half_time_pop",
       "velocity_base": 75,
       "options": {
-        "ghost_on_beat_2_and_a_half": true,
-        "anticipation_on_4_and_a_half": true
+        "ghost_on_beat_2_and_a_half": true 
       }
     },
     "bass_syncopated_rnb": {
       "description": "16 分シンコペで跳ねる RnB スタイル。16th‑syncopated R&B / neo‑soul motif with ghost 16ths.",
       "tags": ["bass", "rnb", "syncopated", "sixteenth_notes", "algorithmic"],
       "time_signature": "4/4",
-      "algorithmic_type": "algorithm_syncopated_rnb",
+      "pattern_type": "syncopated_rnb",
       "velocity_base": 78,
       "options": {
-        "ghost_velocity_ratio": 0.5,
-        "base_rhythm_complexity": "medium"
+        "ghost_velocity_ratio": 0.5
       }
     },
     "bass_pump_8th_octaves": {
       "description": "Driving rock/punk pump on root octaves in straight 8ths.",
-      "tags": ["bass", "rock", "punk", "octave", "eighth_notes", "fixed_pattern"],
-      "reference_duration_ql": 4.0,
+      "tags": ["bass", "rock", "octave", "eighth_notes", "fixed_pattern"],
       "pattern": [
         {"offset": 0.0, "duration": 0.5, "velocity_factor": 1.0, "type": "root"},
         {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
@@ -352,10 +349,9 @@
         {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"}
       ]
     },
-    "bass_reggae_offbeat_fixed": {
-      "description": "Reggae one‑drop off‑beat 8ths with muted pickup (Fixed Pattern).",
+    "bass_reggae_offbeat": {
+      "description": "Reggae one‑drop off‑beat 8ths with muted pickup.",
       "tags": ["bass", "reggae", "offbeat", "fixed_pattern"],
-      "reference_duration_ql": 4.0,
       "pattern": [
         {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.85, "type": "root"},
         {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.8,  "type": "fifth"},
@@ -366,53 +362,12 @@
     "bass_808_trap": {
       "description": "808 slide & hold pattern for modern trap.",
       "tags": ["bass", "trap", "808", "slide", "fixed_pattern"],
-      "reference_duration_ql": 4.0,
       "pattern": [
         {"offset": 0.0, "duration": 1.0, "velocity_factor": 1.0, "type": "root", "glide_to_next": true},
         {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.95, "type": "fifth"},
         {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.9, "type": "approach"},
         {"offset": 2.0, "duration": 2.0, "velocity_factor": 1.0, "type": "root", "glide_to_next": true}
       ]
-    },
-    "bass_walk_chromatic_4ths": {
-      "description": "ジャズ系：ウォーキング4分でクロマチック・アプローチ音を自動生成",
-      "tags": ["bass", "walking", "jazz", "chromatic", "quarter_notes", "algorithmic"],
-      "time_signature": "4/4",
-      "algorithmic_type": "algorithm_walk_chromatic",
-      "velocity_base": 72,
-      "options": { "density": 1.0, "approach_prob": 0.3, "note_duration_ql": 1.0 }
-    },
-    "bass_reggae_offbeat_8ths_algo": {
-      "description": "レゲエ／ロックステディ：拍裏の8分・オクターブ跳躍付き (アルゴリズム版)",
-      "tags": ["bass", "reggae", "rocksteady", "offbeat", "octave_jump", "eighth_notes", "algorithmic"],
-      "time_signature": "4/4",
-      "algorithmic_type": "algorithm_reggae_offbeat",
-      "velocity_base": 75,
-      "options": { "target_octave_range": [2,4], "octave_jump_prob": 0.7, "alternate_root_fifth": true }
-    },
-    "bass_funk_slap_16ths": {
-      "description": "16th グルーヴ＋ゴーストノート (ファンク・スラップ)",
-      "tags": ["bass", "funk", "slap", "ghost_notes", "sixteenth_notes", "algorithmic"],
-      "time_signature": "4/4",
-      "algorithmic_type": "algorithm_funk_slap",
-      "velocity_base": 88,
-      "options": { "ghost_prob": 0.4, "slap_velocity_range": [90, 115], "pull_velocity_range": [80,105], "ghost_velocity_range": [40,55] }
-    },
-    "bass_pedal_point_guide": {
-      "description": "サスペンス・バラード：低音ペダル＋上行ガイドトーン",
-      "tags": ["bass", "pedal_point", "suspense", "ballad", "guide_tones", "algorithmic"],
-      "time_signature": "4/4",
-      "algorithmic_type": "algorithm_pedal_point",
-      "velocity_base": 65,
-      "options": { "pedal_length_bars": 4, "decor_density": 0.5, "guide_tone_octave": 3 }
-    },
-    "bass_ostinato_fifths_epic": {
-      "description": "エピック映画風：5度オスティナート (8分または16分)",
-      "tags": ["bass", "ostinato", "fifths", "epic", "film_score", "algorithmic"],
-      "time_signature": "4/4",
-      "algorithmic_type": "algorithm_ostinato_fifths",
-      "velocity_base": 80,
-      "options": { "pattern_definition": "R5O5", "subdivision": "8th", "target_octave_range": [1,2] }
     }
   },
   "guitar_patterns": {
