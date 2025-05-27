@@ -1,4 +1,4 @@
-# --- START OF FILE generator/bass_generator.py (コードトーン比率調整v1) ---
+# --- START OF FILE generator/bass_generator.py (警告解消版) ---
 import music21
 import logging
 from music21 import stream, note, chord as m21chord, harmony, pitch, tempo, meter, instrument as m21instrument, key, interval, scale # scale を追加
@@ -36,6 +36,9 @@ class BassGenerator:
 
         Args:
             rhythm_library (Optional[Dict[str, Dict]]): リズムパターンライブラリ。
+                                                         modular_composer.pyからは、
+                                                         rhythm_library.jsonの"bass_lines"または"bass_patterns"
+                                                         キーの中身が直接渡されることを想定しています。
             default_instrument (music21.instrument.Instrument): デフォルトで使用するmusic21の楽器オブジェクト。
             global_tempo (int): 曲のグローバルなテンポ（BPM）。
             global_time_signature (str): 曲のグローバルな拍子記号（例: "4/4"）。
@@ -44,11 +47,15 @@ class BassGenerator:
             rng (Optional[random.Random]): 乱数ジェネレータのインスタンス。
         """
         self.logger = logging.getLogger(__name__)
-        self.rhythm_library_all = rhythm_library if rhythm_library else {}
-        self.bass_rhythm_library = self.rhythm_library_all.get("bass_lines",
-                                                            self.rhythm_library_all.get("bass_patterns", {}))
+        
+        # --- ここを修正しました！ ---
+        # modular_composer.py からは 'bass_lines' または 'bass_patterns' の中身が直接渡されるため、
+        # 引数 rhythm_library が既にベースのリズムライブラリそのものになります。
+        self.bass_rhythm_library = rhythm_library if rhythm_library else {}
         if not self.bass_rhythm_library:
-            self.logger.warning("BassGenerator: 'bass_lines' or 'bass_patterns' not found in rhythm_library. Using empty.")
+            # 渡された辞書自体が空の場合にのみ警告を出す
+            self.logger.warning("BassGenerator: No bass rhythm patterns provided in the rhythm library. Using internal defaults only.")
+        # --- 修正ここまで ---
 
         self.default_instrument = default_instrument
         self.global_tempo = global_tempo
@@ -64,6 +71,9 @@ class BassGenerator:
         self.rng = rng if rng else random.Random()
 
         # 新しいデフォルトのアルゴリズムパターンを追加（土台作り）
+        # 既存の外部パターンよりも内部デフォルトを優先したい場合は、この追加ロジックを
+        # self.bass_rhythm_library = rhythm_library if rhythm_library else {} の後に記述します。
+        # すでに外部に存在していても、ここで上書きすることは避け、存在しない場合にのみ追加する形にします。
         if "basic_chord_tone_quarters" not in self.bass_rhythm_library:
             self.bass_rhythm_library["basic_chord_tone_quarters"] = {
                 "description": "Basic quarter note pattern emphasizing root and fifth/third on strong beats.",
@@ -305,11 +315,14 @@ class BassGenerator:
 
             # 4/4拍子を想定して4拍分を生成
             # block_duration はクォーターレングスなので、拍数に変換してループ回数を決定
-            beats_per_measure_in_block = int(self.global_time_signature_obj.numerator / self.global_time_signature_obj.denominator * 4) # 例: 4/4なら4拍
+            # 小節の始まりから終わりまでをカバーする拍数を計算
+            # 最小でも1小節分の処理を行うが、durationがそれ未満ならdurationで制限
+            beats_per_measure_in_block = int(self.global_time_signature_obj.numerator / self.global_time_signature_obj.denominator * 4)
             
-            # ブロックの長さが1小節未満の場合も考慮
-            num_beats_to_generate = int(block_duration) if block_duration >= 1.0 else beats_per_measure_in_block # 最低1小節分の拍を考慮
-
+            # ブロックの総クォーターレングスを現在の拍子での小節数に変換し、それを基に何拍生成するか決定
+            # 例えば、4/4拍子で q_lengthが 6.0 (1.5小節) なら、6拍生成
+            num_beats_to_generate = int(block_duration)
+            
             for beat_idx in range(num_beats_to_generate):
                 current_beat_offset = beat_idx * 1.0 # 1拍 = 1.0 quarterLength
                 
@@ -321,10 +334,10 @@ class BassGenerator:
                 current_velocity = base_velocity
 
                 # 拍ごとのコードトーン選択ロジック
-                if beat_idx == 0: # 1拍目 (強拍)
+                if beat_idx % beats_per_measure_in_block == 0 : # 1拍目 (小節の頭)
                     chosen_pitch_base = root_note_obj
                     current_velocity = min(127, base_velocity + strong_beat_vel_boost)
-                elif beat_idx == 2: # 3拍目 (中強拍)
+                elif beat_idx % beats_per_measure_in_block == 2 and beats_per_measure_in_block >= 4 : # 3拍目 (4/4拍子の場合の中強拍)
                     # 優先度: 5度 -> 3度 -> ルート
                     if m21_cs.fifth:
                         chosen_pitch_base = m21_cs.fifth
@@ -333,7 +346,7 @@ class BassGenerator:
                     else:
                         chosen_pitch_base = root_note_obj
                     current_velocity = min(127, base_velocity + (strong_beat_vel_boost // 2)) # 3拍目は少し弱めに
-                else: # 2拍目、4拍目 (弱拍)
+                else: # その他の拍 (弱拍)
                     # まずはルート音を配置。将来的には経過音や休符なども考慮
                     chosen_pitch_base = root_note_obj
                     current_velocity = max(1, base_velocity - off_beat_vel_reduction)
