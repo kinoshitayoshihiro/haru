@@ -398,9 +398,9 @@ class BassGenerator:
             # o3さん提案#2: パース失敗時のフォールバック
             if not m21_cs_obj and sanitized_label and sanitized_label.lower() != "rest":
                 self.logger.warning(f"BassGen: Chord '{chord_label_str}' (sanitized: '{sanitized_label}') could not be fully parsed ({parse_failure_reason}). Attempting root-only fallback.")
-                # _ROOT_RE は utilities.core_music_utils からインポートされている想定
-                root_only_match = _ROOT_RE.match(sanitized_label)
+                root_only_match = _ROOT_RE_STRICT.match(sanitized_label) # ここを _ROOT_RE_STRICT に変更
                 if root_only_match:
+                    # ... (以降の処理は変更なし)
                     try:
                         m21_cs_obj = harmony.ChordSymbol(root_only_match.group(0))
                         self.logger.info(f"BassGen: Fallback to root: '{m21_cs_obj.figure}' for original '{chord_label_str}'.")
