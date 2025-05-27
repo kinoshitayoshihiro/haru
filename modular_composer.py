@@ -497,8 +497,13 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         except Exception as e_other_inst: logger.error(f"Unexpected error with '{instrument_str}': {e_other_inst}. Default Piano."); instrument_obj = m21instrument.Piano()
 
         if part_name == "piano": gens[part_name] = PianoGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), chord_voicer_instance=cv_inst, default_instrument_rh=instrument_obj, default_instrument_lh=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
-        elif part_name == "drums": gens[part_name] = DrumGenerator(drum_pattern_library=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
-        elif part_name == "guitar": gens[part_name] = GuitarGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
+        elif part_name == "drums":
+            gens[part_name] = DrumGenerator(
+                lib=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument),  # "drum_pattern_library" を "lib" に変更
+                tempo_bpm=main_cfg["global_tempo"],                             # "global_tempo" を "tempo_bpm" に変更
+                time_sig=main_cfg["global_time_signature"]                    # "global_time_signature" を "time_sig" に変更
+                # "default_instrument" は新しい __init__ から削除されたため、ここからも削除
+            )        elif part_name == "guitar": gens[part_name] = GuitarGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "vocal":
             if main_cfg["parts_to_generate"].get("vocal"):
                 gens[part_name] = VocalGenerator(default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
