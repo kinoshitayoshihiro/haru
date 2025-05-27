@@ -2,8 +2,7 @@
 import music21
 from music21 import stream, note, chord as m21chord, harmony, pitch, tempo, meter, instrument as m21instrument, key, interval, scale # scale を追加
 import random
-from typing import List, Dict, Optional, Any, Tuple, Union, cast
-
+from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence # Sequence を追加
 # ユーティリティ関数や定数のインポート (プロジェクト構成に合わせて調整)
 try:
     from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL
