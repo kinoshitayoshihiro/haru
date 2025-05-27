@@ -1,5 +1,6 @@
 # --- START OF FILE generator/bass_generator.py (ユーザー指摘反映版) ---
 import music21
+import logging
 from music21 import stream, note, chord as m21chord, harmony, pitch, tempo, meter, instrument as m21instrument, key, interval, scale # scale を追加
 import random
 from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence # Sequence を追加
