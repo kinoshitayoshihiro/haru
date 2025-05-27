@@ -1,20 +1,13 @@
-# --- START OF FILE generator/bass_generator.py (Algorithm‑Hook + PrettyMIDI Ready v2.0 - Init Fix) ---
-"""bass_generator.py – Phase 2
+# --- START OF FILE generator/bass_generator.py (Integrated Algorithm-Hook + Vocal-Aware + PrettyMIDI v2.1) ---
+"""bass_generator.py – Phase 2.1 (Integrated)
 
 Highlights
 ~~~~~~~~~~
-* **Algorithmic hooks** – Rhythm‑library entries whose ``pattern_type`` starts with
-  ``algorithmic_`` (e.g. ``algorithmic_walking``) are recognised.  The suffix
-  (``walking``, ``root_fifth`` …) is mapped to a style handled by
-  :pyfunc:`generator.bass_utils.generate_bass_measure`.
-* **Static patterns** – Non‑algorithmic library items continue to work (offset &
-  duration are copied verbatim).
-* **PrettyMIDI bridge (optional)** – If *return_pretty_midi=True* the part is
-  converted to a :class:`pretty_midi.PrettyMIDI` object.  Full CC / bend work is
-  left for future phases but the scaffold is here.
-
-The class remains a drop‑in replacement for *modular_composer.py* (no changes
-required on that side).
+* **Algorithmic hooks & Static patterns** – Supports both algorithmic pitch generation
+  with skeleton rhythms, and static patterns with pitch generation via bass_utils.
+* **Vocal Context Awareness** – Passes vocal notes to bass_utils for consideration.
+* **PrettyMIDI bridge (optional)** – Can return PrettyMIDI objects.
+* **Humanization** – Applies humanization templates.
 """
 from __future__ import annotations
 
@@ -31,61 +24,62 @@ import music21.meter    as meter
 import music21.instrument as m21instrument
 import music21.pitch    as pitch
 import music21.volume   as m21volume
-import music21.key      as key
+import music21.key      as m21key # Explicit import for key.Key
+import music21.scale    # For build_scale_object
+import music21.interval # For _generic_bass_note (if used more broadly)
+
+
 # ── optional pretty_midi ─────────────────────────────────────────────────────
 try:
-    import pretty_midi  # type: ignore
+    import pretty_midi
     _PRETTY_OK = True
 except ImportError:
-    pretty_midi = None  # type: ignore
+    pretty_midi = None # type: ignore
     _PRETTY_OK = False
 
 # ── project utils ────────────────────────────────────────────────────────────
 try:
     from .bass_utils import generate_bass_measure
     from utilities.core_music_utils import (
-        get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL
+        get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL, build_scale_object
     )
     from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES
 except ImportError as e:  # graceful degradation on import failure
-    logging.getLogger(__name__+".fallback").error(f"BassGen imports failed: {e}")
-    def generate_bass_measure(*_a, **_k) -> List[note.Note]: return []  # type: ignore
-    def apply_humanization_to_part(p, *_a, **_k) -> stream.Part: # type: ignore
-        if isinstance(p, stream.Part): return p
-        return stream.Part()
-    def get_time_signature_object(_s: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature("4/4")  # type: ignore
-    def sanitize_chord_label(l: Optional[str]) -> Optional[str]: # type: ignore
-        if not l or l.strip().lower() in ["rest", "r", "n.c.", "nc", "none"]: return None
-        return l.strip()
+    logger_fallback = logging.getLogger(__name__+".fallback_bass")
+    logger_fallback.error(f"BassGenerator: Critical imports failed: {e}. Using fallbacks.")
+    def generate_bass_measure(*_a, **_k) -> List[note.Note]: return []
+    def apply_humanization_to_part(p, *_a, **_k) -> stream.Part: return cast(stream.Part, p)
+    def get_time_signature_object(_s: Optional[str]) -> meter.TimeSignature: return meter.TimeSignature(_s or "4/4")
+    def sanitize_chord_label(l: Optional[str]) -> Optional[str]: return None if not l or l.strip().lower() in ["rest", "r", "n.c.", "nc", "none"] else l.strip()
+    def build_scale_object(mode: str, tonic_name: str) -> Optional[music21.scale.ConcreteScale]: # type: ignore
+        try:
+            if mode.lower() == "major": return music21.scale.MajorScale(tonic_name)
+            elif mode.lower() == "minor": return music21.scale.MinorScale(tonic_name)
+            return music21.scale.DiatonicScale(tonic_name) # Generic fallback
+        except Exception: return None
     MIN_NOTE_DURATION_QL = 0.125
     HUMANIZATION_TEMPLATES: Dict[str, Dict[str, Any]] = {}
 
 logger = logging.getLogger(__name__)
 
 # ── mapping from algorithmic suffix → bass_utils style key ───────────────────
-_ALG_TO_STYLE: Dict[str, str] = {
-    "root_only":  "root_only",
-    "root_fifth": "root_fifth",
-    "walking":    "walking",
-    # rhythm_library.json で定義された新しい algorithmic_type のサフィックスと、
-    # それに対応する bass_utils.generate_bass_measure の style 文字列をここにマッピングします。
-    "walk_chromatic": "walk_chromatic", # 例: "algorithm_walk_chromatic" -> "walk_chromatic"
-    "reggae_offbeat": "reggae_offbeat", # 例: "algorithm_reggae_offbeat" -> "reggae_offbeat"
-    "funk_slap": "funk_slap",           # 例: "algorithm_funk_slap" -> "funk_slap"
-    "pedal_point": "pedal_point",       # 例: "algorithm_pedal_point" -> "pedal_point"
-    "ostinato_fifths": "ostinato_fifths", # 例: "algorithm_ostinato_fifths" -> "ostinato_fifths"
-    "simple_roots": "root_only", # rhythm_library.json の "algorithmic_type": "algorithm_simple_roots" に対応
+# These are styles that bass_utils.generate_bass_measure is expected to understand
+_ALG_TO_STYLE = {
+    "root_only":  "root_only",    # Simple root notes
+    "root_fifth": "root_fifth",  # Root and fifth alternation
+    "walking":    "walking",     # Walking bass lines
+    # Add more mappings here as new algorithmic styles are implemented in bass_utils
+    # e.g., "chromatic_walk": "chromatic_walk", "reggae": "reggae_style"
 }
 
-
 DEFAULT_BASS_VEL = 70
-DEFAULT_BASS_OCTAVE = 2
+DEFAULT_BASS_OCTAVE = 2 # Consistent with original vocal-aware version
 
 class BassGenerator:
     """Generate *music21* (and optionally PrettyMIDI) bass parts."""
 
     def __init__(self,
-                 rhythm_library: Optional[Dict[str, Any]] = None, # Expects the content of "bass_lines"
+                 rhythm_library: Optional[Dict[str, Dict]] = None, # Entire rhythm library
                  default_instrument: m21instrument.Instrument = m21instrument.AcousticBass(),
                  global_tempo: int = 100,
                  global_time_signature: str = "4/4",
@@ -93,278 +87,326 @@ class BassGenerator:
                  global_key_mode: str = "major",
                  rng: Optional[random.Random] = None) -> None:
 
-        self.rhythm_lib = rhythm_library if rhythm_library is not None else {} # Corrected: Use passed library directly
-        if not self.rhythm_lib:
-             # This warning will now only appear if modular_composer explicitly passes an empty dict or None
-             logger.warning("BassGen: Received an empty rhythm library for bass lines from composer.")
-
-        # Fallback pattern addition logic now operates on self.rhythm_lib
-        if "root_only" not in self.rhythm_lib:
-            self.rhythm_lib["root_only"] = {
-                "description": "Fallback: Whole‑bar root hold (auto-added)",
-                "pattern_type": "algorithmic_root_only",
-                "pattern": [{"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7, "type": "root"}],
+        # Expects rhythm_library to contain a "bass_lines" key as per user's JSON structure
+        self.rhythm_lib = rhythm_library.get("bass_lines", {}) if rhythm_library else {}
+        
+        # Ensure a minimal fallback pattern exists if "root_only" or a default is missing
+        # The new script used "algorithmic_root_only" as a fallback type.
+        # Let's use a simple fixed pattern as a robust fallback.
+        if "bass_quarter_notes" not in self.rhythm_lib:
+            self.rhythm_lib["bass_quarter_notes"] = {
+                "description": "Default quarter note roots (auto-added fallback).",
+                "pattern": [
+                    {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+                    {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+                    {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+                    {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}
+                ],
                 "reference_duration_ql": 4.0
             }
-            logger.warning("BassGen: 'root_only' key was not in received rhythm library. Inserted fallback 'root_only' pattern.")
-        elif self.rhythm_lib.get("root_only") and "pattern" not in self.rhythm_lib["root_only"] and \
-             "algorithmic_root_only" == self.rhythm_lib["root_only"].get("pattern_type"):
-             self.rhythm_lib["root_only"]["pattern"] = [{"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7, "type": "root"}]
-             self.rhythm_lib["root_only"]["reference_duration_ql"] = 4.0
-             logger.info("BassGen: Added skeleton 'pattern' to algorithmic 'root_only' for rhythmic mapping as it was missing.")
+            logger.warning("BassGenerator: Added 'bass_quarter_notes' to internal rhythm_lib as fallback.")
+        # Fallback for "root_only" if specifically requested and missing
+        if "root_only" not in self.rhythm_lib:
+             self.rhythm_lib["root_only"] = self.rhythm_lib["bass_quarter_notes"] # Alias to quarter notes
+             logger.warning("BassGenerator: Aliased missing 'root_only' to 'bass_quarter_notes'.")
+
 
         self.inst      = default_instrument
         self.tempo_val = global_tempo
         self.ts_obj    = get_time_signature_object(global_time_signature)
-        self.key_tonic = global_key_tonic
-        self.key_mode  = global_key_mode
-        self.rng       = rng or random.Random()
+        self.key_tonic = global_key_tonic # Retained from vocal-aware
+        self.key_mode  = global_key_mode  # Retained from vocal-aware
+        self.rng       = rng or random.Random() # Retained from vocal-aware
 
-    def _choose_style_for_bass_utils(self, pattern_definition: Dict[str, Any]) -> str:
-        pattern_type_str: Optional[str] = pattern_definition.get("pattern_type")
-        
-        if pattern_type_str and pattern_type_str.startswith("algorithmic_"):
-            algo_key_suffix = pattern_type_str.split("algorithmic_")[-1]
-            if algo_key_suffix in _ALG_TO_STYLE:
-                return _ALG_TO_STYLE[algo_key_suffix]
-            logger.warning(f"BassGen: Algorithmic suffix '{algo_key_suffix}' from pattern_type '{pattern_type_str}' not found in _ALG_TO_STYLE. Defaulting to 'root_only' for bass_utils.")
-            return "root_only"
-        # If not algorithmic or no specific bass_utils_style, default to "root_only"
-        # This also covers cases where "pattern_type" is missing but we still need a style for bass_utils
-        # if this function were to be called for non-algorithmic fixed patterns that use bass_utils for pitches.
-        # However, the current compose logic calls this mainly for algorithmic patterns.
-        return pattern_definition.get("bass_utils_style", "root_only")
+    def _get_bass_utils_style_for_algo(self, pattern_def: Dict[str, Any]) -> str:
+        """Maps algorithmic_type suffix to a style for bass_utils.generate_bass_measure."""
+        ptype: str = pattern_def.get("pattern_type", "")
+        if ptype.startswith("algorithmic_"):
+            algo_key_suffix = ptype.split("algorithmic_", 1)[-1] # Get "walking", "root_fifth" etc.
+            return _ALG_TO_STYLE.get(algo_key_suffix, "root_only") # Default to "root_only" if suffix not in map
+        return "root_only" # Should not be called if not algorithmic, but a safe default
 
+    def _voice_pitch_to_octave(self, pitch_obj: pitch.Pitch, target_octave: int) -> pitch.Pitch:
+        """Helper to voice a given pitch into the target octave."""
+        new_pitch = pitch_obj.clone()
+        new_pitch.octave = target_octave
+        # Adjust if still too far, common for bass
+        while new_pitch.ps < pitch.Pitch(f"C{target_octave-1}").ps : new_pitch.octave +=1
+        while new_pitch.ps > pitch.Pitch(f"B{target_octave+1}").ps : new_pitch.octave -=1
+        return new_pitch
 
     def compose(self, processed_chord_stream: Sequence[Dict[str, Any]],
                 return_pretty_midi: bool = False) -> Union[stream.Part, "pretty_midi.PrettyMIDI", None]:
+        
+        if not processed_chord_stream:
+            logger.warning("BassGenerator: processed_chord_stream is empty. Returning None.")
+            return None
+
         part = stream.Part(id="Bass")
         part.insert(0, self.inst)
         part.insert(0, tempo.MetronomeMark(number=self.tempo_val))
-        
-        ts_to_use = self.ts_obj if self.ts_obj else get_time_signature_object("4/4")
-        part.insert(0, meter.TimeSignature(ts_to_use.ratioString))
+        if self.ts_obj: # Ensure ts_obj is not None
+            part.insert(0, self.ts_obj.clone())
+        else: # Fallback if ts_obj is somehow None
+            logger.error("BassGenerator: self.ts_obj is None. Defaulting to 4/4 for Part.")
+            part.insert(0, meter.TimeSignature("4/4"))
 
+        # Set initial key for the part
+        first_block_tonic = processed_chord_stream[0].get("tonic_of_section", self.key_tonic)
+        first_block_mode = processed_chord_stream[0].get("mode", self.key_mode)
         try:
-            initial_key = key.Key(self.key_tonic, self.key_mode)
-            part.insert(0, initial_key)
+            part.insert(0, m21key.Key(first_block_tonic, first_block_mode))
         except Exception as e_key_init:
-            logger.warning(f"BassGen: Could not set initial part key to {self.key_tonic} {self.key_mode}: {e_key_init}. Using C major.")
-            part.insert(0, key.Key("C", "major"))
+            logger.warning(f"BassGenerator: Could not set initial key {first_block_tonic} {first_block_mode}: {e_key_init}. Using C Major.")
+            part.insert(0, m21key.Key("C", "major"))
 
-        current_block_abs_offset = 0.0
 
-        for blk_idx, blk in enumerate(processed_chord_stream):
-            current_block_abs_offset = float(blk.get("offset", current_block_abs_offset))
-            block_q_length = float(blk.get("q_length", ts_to_use.barDuration.quarterLength))
-            cs_label_raw = blk.get("chord_label", "C")
-            bass_params = blk.get("part_params", {}).get("bass", {})
-            pattern_key = bass_params.get("bass_rhythm_key", "root_only") # Ensure chordmap uses "bass_rhythm_key"
-            pattern_def = self.rhythm_lib.get(pattern_key)
+        # current_total_offset is managed by blk.get("offset")
+        # prev_cs: Optional[harmony.ChordSymbol] = None # For context if needed beyond next_cs
 
+        for blk_idx, blk_data in enumerate(processed_chord_stream):
+            block_abs_offset = float(blk_data.get("offset", 0.0))
+            block_q_length = float(blk_data.get("q_length", self.ts_obj.barDuration.quarterLength if self.ts_obj else 4.0))
+            
+            bass_params = blk_data.get("part_params", {}).get("bass", {})
+            if not bass_params:
+                logger.debug(f"BassGenerator: No bass_params for block {blk_idx+1}. Skipping.")
+                continue
+
+            chord_label_raw = blk_data.get("chord_label", "C") # Default to C if missing
+            sanitized_label = sanitize_chord_label(chord_label_raw)
+
+            if sanitized_label is None: # Is a Rest or N.C.
+                # If pattern definition expects rests, it might have specific rest events.
+                # For simplicity here, if chord is None, we skip adding notes for this block from bass gen,
+                # relying on chordmap to have defined rests if silence is intended for the whole block.
+                # Or, a pattern could explicitly define rests.
+                logger.info(f"BassGenerator: Block {blk_idx+1} ('{chord_label_raw}') is Rest/N.C. No bass notes generated by default.")
+                continue
+
+            cs_now_obj: Optional[harmony.ChordSymbol] = None
+            try:
+                cs_now_obj = harmony.ChordSymbol(sanitized_label)
+                if not cs_now_obj.pitches: cs_now_obj = None # Treat N.C. effectively as None here
+            except Exception as e_parse_cs:
+                logger.error(f"BassGenerator: Failed to parse chord '{sanitized_label}' for block {blk_idx+1}: {e_parse_cs}. Skipping block.")
+                cs_now_obj = None
+            
+            if cs_now_obj is None:
+                continue # Skip if chord is unparsable or N.C.
+
+            # --- Get contextual info for bass_utils ---
+            tonic_for_block = blk_data.get("tonic_of_section", self.key_tonic)
+            mode_for_block = blk_data.get("mode", self.key_mode)
+            target_octave_for_block = int(bass_params.get("bass_octave", bass_params.get("octave", DEFAULT_BASS_OCTAVE)))
+            base_vel_for_block = int(bass_params.get("bass_velocity", bass_params.get("velocity", DEFAULT_BASS_VEL)))
+            vocal_notes_in_block = blk_data.get("vocal_notes_in_block", [])
+
+
+            # --- Determine Next Chord for bass_utils context ---
+            cs_next_obj: Optional[harmony.ChordSymbol] = cs_now_obj # Default next to current
+            if blk_idx + 1 < len(processed_chord_stream):
+                next_blk = processed_chord_stream[blk_idx+1]
+                next_label_raw = next_blk.get("chord_label")
+                sanitized_next_label = sanitize_chord_label(next_label_raw)
+                if sanitized_next_label:
+                    try: 
+                        cs_next_obj_temp = harmony.ChordSymbol(sanitized_next_label)
+                        if cs_next_obj_temp.pitches: cs_next_obj = cs_next_obj_temp
+                    except Exception: pass # cs_next_obj remains cs_now_obj
+
+            # --- Get Rhythm Pattern Definition ---
+            rhythm_key = bass_params.get("bass_rhythm_key", bass_params.get("rhythm_key", "bass_quarter_notes"))
+            pattern_def = self.rhythm_lib.get(rhythm_key)
             if not pattern_def:
-                logger.warning(f"BassGen: Pattern key '{pattern_key}' not found in bass rhythm library. Using 'root_only' fallback definition.")
-                pattern_def = self.rhythm_lib.get("root_only")
-                if not pattern_def:
-                    logger.error("BassGen: Critical! Fallback 'root_only' definition is missing from internal library. Skipping block.")
-                    current_block_abs_offset += block_q_length
-                    continue
-            
-            cs_obj: Optional[harmony.ChordSymbol] = None
-            sanitized_cs_label = sanitize_chord_label(cs_label_raw)
-
-            if sanitized_cs_label is None:
-                cs_obj = None
-                logger.info(f"BassGen Blk {blk_idx+1}: Rest or N.C. ('{cs_label_raw}').")
-            else:
-                try:
-                    cs_obj = harmony.ChordSymbol(sanitized_cs_label)
-                    if not cs_obj.pitches:
-                        cs_obj = None
-                        logger.info(f"BassGen Blk {blk_idx+1}: Chord '{sanitized_cs_label}' has no pitches. Treating as rest.")
-                except Exception as e_cs_parse:
-                    logger.error(f"BassGen Blk {blk_idx+1}: Failed to parse chord '{sanitized_cs_label}': {e_cs_parse}. Treating as rest.")
-                    cs_obj = None
-            
-            # Determine octave and velocity for this block
-            # Priority: block_specific_param > rhythm_lib_option > rhythm_lib_velocity_base > GENERATOR_DEFAULT
-            block_options = pattern_def.get("options", {})
-            block_octave = int(bass_params.get("bass_octave", block_options.get("target_octave", DEFAULT_BASS_OCTAVE)))
-            block_base_velocity = int(bass_params.get("bass_velocity", pattern_def.get("velocity_base", DEFAULT_BASS_VEL)))
+                logger.warning(f"BassGenerator: Rhythm key '{rhythm_key}' not found. Using 'bass_quarter_notes'.")
+                pattern_def = self.rhythm_lib.get("bass_quarter_notes") # Should exist due to __init__
+                if not pattern_def: # Should be extremely rare
+                     logger.error("BassGenerator: CRITICAL - Default 'bass_quarter_notes' also missing. Skipping block.")
+                     continue
 
 
+            # --- Decide Path: Algorithmic (Pitches from bass_utils, Rhythm from skeleton) or Static (Pitches from bass_utils, Rhythm from pattern) ---
             is_algorithmic = pattern_def.get("pattern_type", "").startswith("algorithmic_")
+            
+            generated_pitches_from_bass_utils: List[pitch.Pitch] = []
 
             if is_algorithmic:
-                if cs_obj is None:
-                    logger.info(f"BassGen Blk {blk_idx+1}: Algorithmic pattern '{pattern_key}' specified, but current chord is Rest/N.C. Skipping.")
-                    current_block_abs_offset += block_q_length
-                    continue
+                style_for_bass_utils = self._get_bass_utils_style_for_algo(pattern_def)
+                logger.debug(f"BassGenerator: Block {blk_idx+1} (Algo): style '{style_for_bass_utils}', chord '{sanitized_label}'.")
+            else: # Static pattern, but still use bass_utils for potentially richer pitches
+                style_for_bass_utils = pattern_def.get("bass_utils_style", rhythm_key) # Use specific key or rhythm_key itself
+                logger.debug(f"BassGenerator: Block {blk_idx+1} (Static): style '{style_for_bass_utils}', chord '{sanitized_label}'.")
 
-                bass_utils_style = self._choose_style_for_bass_utils(pattern_def)
-                logger.debug(f"BassGen Blk {blk_idx+1}: Algo type '{pattern_def['pattern_type']}' -> bass_utils style '{bass_utils_style}' for chord '{sanitized_cs_label}'.")
-
-                next_cs_obj: Optional[harmony.ChordSymbol] = cs_obj
-                if blk_idx + 1 < len(processed_chord_stream):
-                    next_blk_data = processed_chord_stream[blk_idx+1]
-                    next_cs_label_raw = next_blk_data.get("chord_label")
-                    sanitized_next_cs_label = sanitize_chord_label(next_cs_label_raw)
-                    if sanitized_next_cs_label:
-                        try:
-                            parsed_next_cs = harmony.ChordSymbol(sanitized_next_cs_label)
-                            if parsed_next_cs.pitches: next_cs_obj = parsed_next_cs
-                        except Exception: pass
-
-                vocal_notes_in_block = blk.get("vocal_notes_in_block", [])
-                # Pass algo-specific options from rhythm_library to generate_bass_measure if it accepts them
-                algo_specific_options = pattern_def.get("options", {})
-
-                generated_pitch_material: List[note.Note] = generate_bass_measure(
-                    style=bass_utils_style,
-                    cs_now=cs_obj,
-                    cs_next=next_cs_obj,
-                    tonic=blk.get("tonic_of_section", self.key_tonic),
-                    mode=blk.get("mode", self.key_mode),
-                    octave=block_octave,
-                    vocal_notes_in_block=vocal_notes_in_block,
-                    # Pass additional options if generate_bass_measure is updated to use them
-                    # e.g., density=algo_specific_options.get("density_factor"),
-                    #       approach_prob=algo_specific_options.get("approach_note_prob")
-                    q_length=block_q_length, # Pass block length for context
-                    options=algo_specific_options # Pass all options from rhythm_lib
+            try:
+                temp_notes_from_utils = generate_bass_measure(
+                    style=style_for_bass_utils,
+                    cs_now=cs_now_obj,
+                    cs_next=cs_next_obj, # type: ignore # cs_next_obj is harmonoy.ChordSymbol here
+                    tonic=tonic_for_block,
+                    mode=mode_for_block,
+                    octave=target_octave_for_block,
+                    vocal_notes_in_block=vocal_notes_in_block
                 )
+                generated_pitches_from_bass_utils = [n.pitch for n in temp_notes_from_utils if isinstance(n, note.Note) and n.pitch is not None]
+            except Exception as e_gbm_call:
+                logger.error(f"BassGenerator: Error calling generate_bass_measure for style '{style_for_bass_utils}', chord '{sanitized_label}': {e_gbm_call}", exc_info=True)
 
-                if not generated_pitch_material:
-                    logger.warning(f"BassGen Blk {blk_idx+1}: bass_utils.generate_bass_measure returned no material for style '{bass_utils_style}'. Using simple root.")
-                    n_root_fallback = note.Note(cs_obj.root(), quarterLength=block_q_length)
-                    n_root_fallback.octave = block_octave
-                    generated_pitch_material = [n_root_fallback]
-                
-                rhythmic_skeleton = pattern_def.get("pattern")
-                if not rhythmic_skeleton:
-                    logger.error(f"BassGen Blk {blk_idx+1}: Algorithmic pattern '{pattern_key}' is missing 'pattern' (rhythmic skeleton). Skipping.")
-                    current_block_abs_offset += block_q_length
-                    continue
-                
-                pattern_ref_duration = float(pattern_def.get("reference_duration_ql", ts_to_use.barDuration.quarterLength))
-
-                for skeleton_idx, skeleton_event_data in enumerate(rhythmic_skeleton):
-                    if not generated_pitch_material: break
-                    pitch_to_use = generated_pitch_material[skeleton_idx % len(generated_pitch_material)].pitch
-                    event_offset_in_pattern = float(skeleton_event_data.get("offset", 0.0))
-                    event_duration_from_pattern = float(skeleton_event_data.get("duration", 1.0))
-                    
-                    # Rhythmic scaling/mapping logic:
-                    # If skeleton is for pattern_ref_duration, scale to block_q_length
-                    scale_factor = block_q_length / pattern_ref_duration if pattern_ref_duration > 0 else 1.0
-                    abs_event_offset_in_block = event_offset_in_pattern * scale_factor
-                    actual_event_duration = event_duration_from_pattern * scale_factor
-                    
-                    if abs_event_offset_in_block >= block_q_length - MIN_NOTE_DURATION_QL / 8: continue
-                    actual_event_duration = min(actual_event_duration, block_q_length - abs_event_offset_in_block)
-                    if actual_event_duration < MIN_NOTE_DURATION_QL / 2: continue
-
-                    n = note.Note(pitch_to_use)
-                    n.quarterLength = actual_event_duration
-                    vel_factor = float(skeleton_event_data.get("velocity_factor", 1.0))
-                    n.volume = m21volume.Volume(velocity=max(1, min(127, int(block_base_velocity * vel_factor))))
-                    part.insert(current_block_abs_offset + abs_event_offset_in_block, n)
-            else: # Static pattern
-                logger.debug(f"BassGen Blk {blk_idx+1}: Static pattern '{pattern_key}' for chord '{sanitized_cs_label}'.")
-                static_pattern_events = pattern_def.get("pattern")
-                if not static_pattern_events:
-                    logger.error(f"BassGen Blk {blk_idx+1}: Static pattern '{pattern_key}' is missing 'pattern' events. Skipping.")
-                    current_block_abs_offset += block_q_length
+            if not generated_pitches_from_bass_utils: # Fallback if bass_utils fails or returns empty
+                logger.warning(f"BassGenerator: No pitches from bass_utils for '{sanitized_label}'. Using voiced root.")
+                if cs_now_obj.root():
+                    generated_pitches_from_bass_utils = [self._voice_pitch_to_octave(cs_now_obj.root(), target_octave_for_block)]
+                else: # Should not happen if cs_now_obj is valid
+                    logger.error(f"BassGenerator: cs_now_obj.root() is None for '{sanitized_label}'. Skipping notes for this event.")
                     continue
 
-                pattern_ref_duration_static = float(pattern_def.get("reference_duration_ql", ts_to_use.barDuration.quarterLength))
 
-                for event_data in static_pattern_events:
-                    event_offset_in_pattern = float(event_data.get("offset", 0.0))
-                    event_duration_from_pattern = float(event_data.get("duration", 1.0))
-                    scale_factor_static = block_q_length / pattern_ref_duration_static if pattern_ref_duration_static > 0 else 1.0
-                    abs_event_offset_in_block = event_offset_in_pattern * scale_factor_static
-                    actual_event_duration = event_duration_from_pattern * scale_factor_static
+            # --- Apply Rhythm from Pattern Definition ---
+            pattern_events = pattern_def.get("pattern", [])
+            if not pattern_events:
+                logger.warning(f"BassGenerator: No 'pattern' events in rhythm_key '{rhythm_key}' for chord '{sanitized_label}'. Using single whole note root.")
+                # Create a single note for the block duration if no pattern events
+                if generated_pitches_from_bass_utils:
+                    n_fallback = note.Note(generated_pitches_from_bass_utils[0])
+                    n_fallback.quarterLength = block_q_length
+                    n_fallback.volume = m21volume.Volume(velocity=base_vel_for_block)
+                    part.insert(block_abs_offset, n_fallback)
+                continue # Move to next block
 
-                    if abs_event_offset_in_block >= block_q_length - MIN_NOTE_DURATION_QL / 8: continue
-                    actual_event_duration = min(actual_event_duration, block_q_length - abs_event_offset_in_block)
-                    if actual_event_duration < MIN_NOTE_DURATION_QL / 2: continue
-                    
-                    if cs_obj is None:
-                        r = note.Rest(quarterLength=actual_event_duration)
-                        part.insert(current_block_abs_offset + abs_event_offset_in_block, r)
-                    else:
-                        note_type = event_data.get("type", "root")
-                        p = cs_obj.root()
-                        if note_type == "fifth":
-                            p_fifth = cs_obj.fifth
-                            if p_fifth: p = p_fifth
-                        elif note_type == "third":
-                            p_third = cs_obj.third
-                            if p_third: p = p_third
-                        
-                        n_static = note.Note(p)
-                        n_static.octave = block_octave
-                        n_static.quarterLength = actual_event_duration
-                        vel_factor = float(event_data.get("velocity_factor", 1.0))
-                        n_static.volume = m21volume.Volume(velocity=max(1, min(127, int(block_base_velocity * vel_factor))))
-                        part.insert(current_block_abs_offset + abs_event_offset_in_block, n_static)
+            pattern_ref_duration = float(pattern_def.get("reference_duration_ql", self.ts_obj.barDuration.quarterLength if self.ts_obj else 4.0))
             
-            current_block_abs_offset += block_q_length # Ensure this is the true end for the next block's default start
+            pitch_idx = 0
+            for event_data in pattern_events:
+                event_offset_in_pattern = float(event_data.get("offset", 0.0))
+                event_duration_from_pattern = float(event_data.get("duration", 1.0))
 
-        humanize_params_source = processed_chord_stream[0].get("part_params", {}).get("bass", {}) if processed_chord_stream else {}
+                scale_factor = block_q_length / pattern_ref_duration if pattern_ref_duration > 0 else 1.0
+                abs_event_offset_in_block = event_offset_in_pattern * scale_factor
+                actual_event_duration = event_duration_from_pattern * scale_factor
+
+                if abs_event_offset_in_block >= block_q_length - MIN_NOTE_DURATION_QL / 8: continue
+                actual_event_duration = min(actual_event_duration, block_q_length - abs_event_offset_in_block)
+                if actual_event_duration < MIN_NOTE_DURATION_QL / 2: continue
+
+                # Select pitch
+                current_pitch_base: pitch.Pitch
+                if generated_pitches_from_bass_utils:
+                    current_pitch_base = generated_pitches_from_bass_utils[pitch_idx % len(generated_pitches_from_bass_utils)]
+                else: # Should have been caught earlier, but as a safeguard
+                    if cs_now_obj.root(): current_pitch_base = cs_now_obj.root()
+                    else: continue 
+                pitch_idx += 1
+                
+                # For fixed patterns, "type" can modify the pitch (e.g. "root", "fifth" of current chord)
+                # For algorithmic, the pitch from bass_utils is usually what we want.
+                final_pitch_obj = current_pitch_base # Default to the pitch from bass_utils
+                
+                if not is_algorithmic: # Only apply "type" modification for non-algorithmic (static) patterns
+                    quality_from_pattern = event_data.get("type", event_data.get("quality", "auto")).lower()
+                    if quality_from_pattern == "root":
+                        if cs_now_obj.root(): final_pitch_obj = cs_now_obj.root()
+                    elif quality_from_pattern == "fifth":
+                        if cs_now_obj.fifth: final_pitch_obj = cs_now_obj.fifth
+                        elif cs_now_obj.root(): final_pitch_obj = cs_now_obj.root().transpose(7)
+                    elif quality_from_pattern in ["octave_root", "octave"]:
+                        if cs_now_obj.root(): final_pitch_obj = cs_now_obj.root().transpose(12)
+                    # "auto" or other types will use current_pitch_base from bass_utils
+
+                # Ensure final pitch is in the target octave
+                final_pitch_obj_voiced = self._voice_pitch_to_octave(final_pitch_obj, target_octave_for_block)
+
+                n_bass = note.Note(final_pitch_obj_voiced)
+                n_bass.quarterLength = actual_event_duration * 0.95 # Slight staccato
+                vel_factor = float(event_data.get("velocity_factor", 1.0))
+                current_vel = int(base_vel_for_block * vel_factor)
+                n_bass.volume = m21volume.Volume(velocity=max(1, min(127, current_vel)))
+                
+                part.insert(block_abs_offset + abs_event_offset_in_block, n_bass)
+
+        # --- Humanization (applied to the whole part) ---
+        # Use bass_params from the first block for global humanization settings, or make it configurable
+        final_bass_params = processed_chord_stream[0].get("part_params", {}).get("bass", {}) if processed_chord_stream else {}
         
-        if humanize_params_source.get("bass_humanize", True):
-            template_name = humanize_params_source.get("bass_humanize_template", "default_subtle")
-            if template_name not in HUMANIZATION_TEMPLATES and template_name != "default_subtle":
-                 logger.warning(f"BassGen: Humanization template '{template_name}' not found in HUMANIZATION_TEMPLATES. Humanizer will use its own default.")
+        # New humanization keys from "v2.0" proposal
+        apply_h = final_bass_params.get("bass_humanize", final_bass_params.get("humanize", True)) # Check both new and old key
+        if apply_h:
+            h_template_name = final_bass_params.get("bass_humanize_template", 
+                                                final_bass_params.get("template_name", "default_subtle"))
+            # Allow custom params from chordmap if specified under humanization_settings
+            h_custom_params = final_bass_params.get("humanization_settings", {}).get("custom_params", {})
 
-            logger.info(f"BassGen: Applying humanization with template '{template_name}'.")
-            part = apply_humanization_to_part(part, template_name=template_name)
-            part.id = "Bass"
+            logger.info(f"BassGenerator: Applying humanization template '{h_template_name}' with custom: {h_custom_params if h_custom_params else 'None'}")
+            part = apply_humanization_to_part(part, template_name=h_template_name, custom_params=h_custom_params)
+            
+            # Ensure essential elements are re-inserted if apply_humanization_to_part recreates the Part object
+            part.id = "Bass" # Reset ID
             if not part.getElementsByClass(m21instrument.Instrument): part.insert(0, self.inst)
             if not part.getElementsByClass(tempo.MetronomeMark): part.insert(0, tempo.MetronomeMark(number=self.tempo_val))
-            if not part.getElementsByClass(meter.TimeSignature):
-                ts_reinsert = self.ts_obj if self.ts_obj else get_time_signature_object("4/4")
-                part.insert(0, meter.TimeSignature(ts_reinsert.ratioString))
-            if not part.getElementsByClass(key.Key):
-                try: part.insert(0, key.Key(self.key_tonic, self.key_mode))
-                except: part.insert(0, key.Key("C", "major"))
+            if not part.getElementsByClass(meter.TimeSignature) and self.ts_obj: part.insert(0, self.ts_obj.clone())
+            if not part.getElementsByClass(m21key.Key):
+                try: part.insert(0, m21key.Key(first_block_tonic, first_block_mode))
+                except: part.insert(0, m21key.Key("C", "major"))
 
+
+        # --- PrettyMIDI Conversion (Optional) ---
         if return_pretty_midi:
             if not _PRETTY_OK:
-                logger.warning("BassGen: PrettyMIDI requested but library not found. Returning music21 Part.")
+                logger.warning("BassGenerator: PrettyMIDI output requested but library not found. Returning music21 Part.")
                 return part
             
-            logger.info("BassGen: Converting to PrettyMIDI object.")
-            try:
-                pm = pretty_midi.PrettyMIDI(initial_tempo=float(self.tempo_val))
-                pm_instrument_program = self.inst.midiProgram if hasattr(self.inst, 'midiProgram') and self.inst.midiProgram is not None else 33
-                bass_instrument_pm = pretty_midi.Instrument(program=int(pm_instrument_program), is_drum=False, name=self.inst.instrumentName or "Bass")
+            pm = pretty_midi.PrettyMIDI(initial_tempo=self.tempo_val) # Set initial tempo
+            # Add time signature changes (if any, though typically one global for now)
+            # For simplicity, assuming one global time signature for the PrettyMIDI object
+            if self.ts_obj:
+                 pm.time_signature_changes.append(
+                     pretty_midi.TimeSignature(self.ts_obj.numerator, self.ts_obj.denominator, 0)
+                 )
+            else: # Fallback if self.ts_obj is None
+                 pm.time_signature_changes.append(pretty_midi.TimeSignature(4,4,0))
 
-                part_tempo = self.tempo_val
-                mm_marks = part.getElementsByClass(tempo.MetronomeMark)
-                if mm_marks: part_tempo = mm_marks[0].number
 
-                for n_or_r in part.recurse().notesAndRests:
-                    if isinstance(n_or_r, note.Note):
-                        start_time_sec = n_or_r.getOffsetInHierarchy(part) * (60.0 / part_tempo)
-                        duration_sec = n_or_r.duration.quarterLength * (60.0 / part_tempo)
-                        end_time_sec = start_time_sec + duration_sec
-                        note_velocity = n_or_r.volume.velocity if n_or_r.volume and n_or_r.volume.velocity is not None else DEFAULT_BASS_VEL
-                        note_pitch_midi = n_or_r.pitch.midi
-                        
-                        pm_note = pretty_midi.Note(
-                            velocity=int(note_velocity), pitch=int(note_pitch_midi),
-                            start=start_time_sec, end=end_time_sec
-                        )
-                        bass_instrument_pm.notes.append(pm_note)
-                pm.instruments.append(bass_instrument_pm)
-                return pm
-            except Exception as e_pm:
-                logger.error(f"BassGen: Error during PrettyMIDI conversion: {e_pm}", exc_info=True)
-                return part
-        
+            # Instrument mapping (Acoustic Bass = 32, Electric Bass (finger) = 33)
+            # self.inst.midiProgram seems to be the most reliable way if set.
+            program_num = 33 # Default to Electric Bass (finger)
+            if hasattr(self.inst, 'midiProgram') and self.inst.midiProgram is not None:
+                program_num = self.inst.midiProgram
+            elif isinstance(self.inst, m21instrument.AcousticBass):
+                program_num = 32
+            elif isinstance(self.inst, m21instrument.ElectricBass): # General Electric Bass
+                program_num = 33 
+            
+            inst_pm = pretty_midi.Instrument(program=program_num, is_drum=False, name=part.id or "Bass")
+
+            # Get tempo changes from the music21 part to inform note timings if dynamic
+            # For now, assuming global_tempo is constant for PrettyMIDI conversion simplicity
+            # More complex: iterate through tempo.MetronomeMark objects in part.
+            tempo_for_conversion = self.tempo_val 
+            # If there are tempo changes in the part, this needs to be handled more dynamically.
+            # For now, use the initial global tempo.
+            # seconds_per_ql = 60.0 / tempo_for_conversion
+
+            for n in part.recurse().notes:
+                if isinstance(n, note.Note) and n.pitch is not None and n.duration is not None:
+                    # music21 offset is in quarter lengths from the start of its container.
+                    # We need absolute offset in the part.
+                    abs_offset_ql = n.getOffsetInHierarchy(part)
+                    start_time_sec = (abs_offset_ql * 60.0) / tempo_for_conversion # Convert QL offset to seconds
+                    duration_sec = (n.duration.quarterLength * 60.0) / tempo_for_conversion # Convert QL duration to seconds
+                    end_time_sec = start_time_sec + duration_sec
+                    
+                    note_velocity = n.volume.velocity if n.volume and n.volume.velocity is not None else DEFAULT_BASS_VEL
+                    
+                    pm_note = pretty_midi.Note(
+                        velocity=max(1, min(127, note_velocity)),
+                        pitch=n.pitch.midi,
+                        start=start_time_sec,
+                        end=end_time_sec
+                    )
+                    inst_pm.notes.append(pm_note)
+            
+            pm.instruments.append(inst_pm)
+            return pm
+            
         return part
 
-# --- END OF FILE generator/bass_generator.py ---
+# --- END OF FILE generator/bass_generator.py (Integrated Algorithm-Hook + Vocal-Aware + PrettyMIDI v2.1) ---
