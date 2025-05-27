@@ -327,6 +327,19 @@
         "swing_ratio": 0.0
       }
     },
+    "bass_walking_blues": {
+      "description": "8分音符のスウィング・ウォーキング",
+      "algorithm": "walking_blues"
+    },
+     "bass_funk_octave": {
+      "description": "ファンク的な2オクターブ跳躍リック",
+      "algorithm": "funk_octave_pops"
+    },
+    "bass_latin_tumbao": {
+     "description": "ラテン系トゥンバオ",
+     "algorithm": "latin_tumbao"
+    }
+  },
     "bass_half_time_pop": {
       "description": "2拍目裏にゴーストを入れるハーフタイム POP。Half‑time pop groove: long roots with eighth‑anticipation pickup on beat 4&.",
       "tags": ["bass", "pop", "half_time", "algorithmic"],
