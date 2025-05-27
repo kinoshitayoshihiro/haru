@@ -31,8 +31,7 @@ import music21.meter    as meter
 import music21.instrument as m21instrument
 import music21.pitch    as pitch
 import music21.volume   as m21volume
-import music21.key
-
+import music21.key      as key
 # ── optional pretty_midi ─────────────────────────────────────────────────────
 try:
     import pretty_midi  # type: ignore
