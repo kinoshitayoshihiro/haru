@@ -1,228 +1,343 @@
-# --- START OF FILE generator/drum_generator.py (デバッグログ追加・エラー修正・.clone()修正版) ---
-import music21
-from typing import List, Dict, Optional, Tuple, Any, Sequence, Union, cast
+"""generator/drum_generator.py – v2025‑05‑27 brush‑up"""
+from __future__ import annotations
 
-# music21 のサブモジュールを正しい形式でインポート
-import music21.stream as stream
-import music21.note as note
-import music21.tempo as tempo
-import music21.meter as meter
-import music21.instrument as m21instrument
-import music21.volume as m21volume
-import music21.duration as duration
-import music21.pitch as pitch
-import music21.chord      as m21chord
-
-import random
 import logging
+import random
+import copy
+from typing import Any, Dict, List, Optional
 
-# ユーティリティのインポート
+import music21
+from music21 import instrument as m21instrument
+from music21 import note
+from music21 import pitch
+from music21 import stream
+from music21 import tempo
+from music21 import duration
+from music21 import meter
+from music21 import volume
+
+# --- utilities ------------------------------------------------------------
 try:
     from utilities.core_music_utils import get_time_signature_object, MIN_NOTE_DURATION_QL
-    from utilities.humanizer import apply_humanization_to_element, HUMANIZATION_TEMPLATES
+    # ★ drum ユーティリティ類を utilities.humanizer 内の汎用関数へ移動した…
+    # generate_fractional_noise は humanizer からインポートされる想定ですが、
+    # ひとまずランダムな値を返すダミー関数を定義しておきます。
+    # 実際の utilities.humanizer モジュールに実装がある場合はそちらが使用されます。
+    try:
+        from utilities.humanizer import generate_fractional_noise
+    except ImportError:
+        logger_fallback_humanizer = logging.getLogger(__name__ + ".fallback_humanizer")
+        logger_fallback_humanizer.warning(
+            "DrumGen: Could not import generate_fractional_noise from utilities.humanizer. "
+            "Using fallback random.uniform for FBM noise."
+        )
+        def generate_fractional_noise(count: int, hurst: float, scale_factor: float) -> List[float]:
+            return [random.uniform(-scale_factor, scale_factor) for _ in range(count)]
+
 except ImportError:
-    logger_fallback = logging.getLogger(__name__ + ".fallback_utils")
-    logger_fallback.warning("DrumGen: Could not import from utilities. Using fallbacks.")
+    logger_fallback_utils = logging.getLogger(__name__ + ".fallback_utils_dg")
+    logger_fallback_utils.warning("DrumGen: Could not import from utilities. Using fallbacks for core utils.")
     MIN_NOTE_DURATION_QL = 0.125
     def get_time_signature_object(ts_str: Optional[str]) -> meter.TimeSignature:
-        if not ts_str: ts_str = "4/4"; return meter.TimeSignature(ts_str)
-        try: return meter.TimeSignature(ts_str)
-        except: return meter.TimeSignature("4/4")
-    def apply_humanization_to_element(element, template_name=None, custom_params=None): return element
-    HUMANIZATION_TEMPLATES = {}
-
+        if not ts_str: ts_str = "4/4"
+        try:
+            return meter.TimeSignature(ts_str)
+        except Exception:
+            return meter.TimeSignature("4/4")
 
 logger = logging.getLogger(__name__)
 
-GM_DRUM_MAP = {"kick":36, "bd":36, "snare":38, "sd":38, "chh":42, "phh":44, "ohh":46, "crash":49, "ride":51, "claps":39, "rim":37, "lt":41, "mt":45, "ht":50, "hat":42}
-DEFAULT_DRUM_PATTERNS_LIB = {"default_drum_pattern": {"description":"Default simple kick/snare","time_signature":"4/4","pattern":[{"instrument":"kick","offset":0.0,"velocity":90,"duration":0.1},{"instrument":"snare","offset":1.0,"velocity":90,"duration":0.1},{"instrument":"kick","offset":2.0,"velocity":90,"duration":0.1},{"instrument":"snare","offset":3.0,"velocity":90,"duration":0.1}]},"no_drums":{"description":"Silence","time_signature":"4/4","pattern":[]}}
+# =========================================================================
+# 0. GM マップとメタ定義
+# =========================================================================
+GM_DRUM_MAP: Dict[str, int] = {
+    "kick": 36, "bd": 36,
+    "snare": 38, "sd": 38,
+    "chh": 42, "closed_hi_hat": 42, "closed_hat": 42,
+    "phh": 44, "pedal_hi_hat": 44,
+    "ohh": 46, "open_hi_hat": 46, "open_hat": 46,
+    "crash": 49, "crash_cymbal_1": 49,
+    "ride": 51, "ride_cymbal_1": 51,
+    "claps": 39, "hand_clap": 39,
+    "rim": 37, "rim_shot": 37,
+    "lt": 41, "low_tom": 41, "low_floor_tom": 41,
+    "mt": 45, "mid_tom": 45, "low_mid_tom": 45, # music21.instrument.TomTom L/M (45/47)
+    "ht": 50, "high_tom": 50,                  # music21.instrument.TomTom H (50)
+    "tom1": 48, "high_mid_tom": 48, # General MIDI Tom 1 (HighMidTom)
+    "tom2": 47, "tom_mid": 47,      # General MIDI Tom 2 (LowMidTom)
+    "tom3": 45, "tom_low": 45,      # General MIDI Tom 3 (LowTom)
+    "hat": 42, # Generic hat, defaults to closed
+    # 追加の一般的なマッピング
+    "stick": 31, "side_stick": 37, # Side Stick is often preferred over Stick clicks
+    "tambourine": 54,
+    "splash": 55, "splash_cymbal": 55,
+    "cowbell": 56,
+    "ride_bell": 53,
+    "china": 52, "china_cymbal": 52,
+    "shaker": 82, # Usually mapped to Shaker in GM2/XG, but sometimes found in Percussion kits
+    "cabasa": 69,
+    "triangle": 81,
+    "wood_block_high": 76, "high_wood_block": 76,
+    "wood_block_low": 77, "low_wood_block": 77,
+    "guiro_short": 73, "short_guiro": 73,
+    "guiro_long": 74, "long_guiro": 74,
+    "claves": 75,
+    "bongo_high": 60, "high_bongo": 60,
+    "bongo_low": 61, "low_bongo": 61,
+    "conga_open": 62, "mute_high_conga": 62, # Often Open Hi Conga, or Mute Hi Conga
+    "conga_slap": 63, "open_high_conga": 63, # Often Slap Conga, or Open Hi Conga
+    "timbale_high": 65, "high_timbale": 65,
+    "timbale_low": 66, "low_timbale": 66,
+    "agogo_high": 67, "high_agogo": 67,
+    "agogo_low": 68, "low_agogo": 68,
+}
+
+# Ghost note グループを一元管理
+GHOST_ALIAS: Dict[str, str] = {"ghost_snare": "snare", "gs": "snare"}
+
+# =========================================================================
+# 1. 人間味付け（共通関数を utilities.humanizer に寄せた実装）
+# =========================================================================
+
+def _apply_hit_humanization(
+    base_hit: note.Note,
+    *,
+    timing_jitter: float = 0.012,
+    vel_jitter: int = 5,
+    use_fbm: bool = False,
+) -> note.Note:
+    """単一のドラム Note に微乱数を与える。返り値は deepcopy 済み。"""
+    hit = copy.deepcopy(base_hit)
+
+    # ------ Timing ------
+    current_offset = hit.offset if hasattr(hit, 'offset') else 0.0
+    if use_fbm:
+        # generate_fractional_noise はリストを返すので、最初の要素を使用
+        jitter_value = generate_fractional_noise(1, hurst=0.6, scale_factor=timing_jitter)[0]
+    else:
+        jitter_value = random.uniform(-timing_jitter, timing_jitter)
+    
+    # music21 の Note オブジェクトは直接 offset を持たない場合がある (Streamに追加されるときに決定される)
+    # ここでは、Stream に挿入する際のオフセット調整値として jitter を扱うことを想定
+    # もし Note が既に Stream 内にあるなら、hit.setOffsetBySite(hit.activeSite, current_offset + jitter_value) のような操作が必要
+    # 今回は新規作成される Note を想定し、挿入時にこの jitter を考慮する。
+    # ただし、提案コードでは hit.offset を直接変更しているので、それに従う。
+    hit.offset = max(current_offset + jitter_value, 0.0)
 
 
+    # ------ Velocity ------
+    if hit.volume and hit.volume.velocity is not None:
+        hit.volume.velocity = max(1, min(127, hit.volume.velocity + random.randint(-vel_jitter, vel_jitter)))
+    elif not hit.volume: # volume オブジェクトがない場合
+        # デフォルトのベロシティを仮定してジッターを適用 (例: 64)
+        # ただし、この関数が呼ばれる時点でベロシティは設定されているはず
+        logger.debug("DrumGen: Note for humanization had no volume object. Velocity jitter not applied effectively.")
+        pass
+
+
+    return hit
+
+# =========================================================================
+# 2. DrumGenerator クラス
+# =========================================================================
 class DrumGenerator:
-    def __init__(self,
-                 drum_pattern_library: Optional[Dict[str, Dict[str, Any]]] = None,
-                 default_instrument=m21instrument.Percussion(),
-                 global_tempo: int = 120,
-                 global_time_signature: str = "4/4"):
-        self.drum_pattern_library = drum_pattern_library if drum_pattern_library is not None else {}
-        # ★★★ デバッグログ追加 ★★★
-        logger.info(f"DrumGen __init__: Received drum_pattern_library with keys: {list(self.drum_pattern_library.keys())}")
-        if not self.drum_pattern_library:
-            logger.warning("DrumGen __init__: Received an EMPTY drum_pattern_library!")
+    """1 ブロック = 1 measure 基準でパターン適用する簡易 Drum arranger"""
 
-        if "default_drum_pattern" not in self.drum_pattern_library:
-            self.drum_pattern_library["default_drum_pattern"] = DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"]
-            logger.info("DrumGen: Added 'default_drum_pattern' to internal library.")
-        if "no_drums" not in self.drum_pattern_library:
-            self.drum_pattern_library["no_drums"] = DEFAULT_DRUM_PATTERNS_LIB["no_drums"]
-            logger.info("DrumGen: Added 'no_drums' to internal library.")
+    DEFAULT_HUMANIZE: Dict[str, Any] = dict(timing_jitter=0.012, vel_jitter=5, use_fbm=False)
 
-        # chordmap で使用されるが rhythm_library に定義がない可能性のあるプレースホルダーを追加
-        # これにより、これらのキーが指定された場合にエラーではなく空のパターンが使用される
-        placeholder_styles = ["no_drums_or_sparse_cymbal", "no_drums_or_gentle_cymbal_swell", "no_drums_or_sparse_chimes"]
-        for style_key in placeholder_styles:
-            if style_key not in self.drum_pattern_library:
-                self.drum_pattern_library[style_key] = {
-                    "description": f"Placeholder for '{style_key}' (auto-added). Should be defined in rhythm_library.json if used.",
-                    "time_signature": "4/4",
-                    "pattern": []
-                }
-                logger.info(f"DrumGen: Added placeholder for '{style_key}' to internal library.")
+    def __init__(
+        self,
+        drum_pattern_library: Dict[str, Dict[str, Any]] | None = None,
+        *,
+        global_tempo: int = 100,
+        global_time_signature: str = "4/4",
+        default_instrument: m21instrument.Instrument = m21instrument.Percussion(),
+    ) -> None:
+        self.pattern_lib = drum_pattern_library or {}
+        self._ensure_core_patterns() # 必須パターンをここで保証
+        logger.info(f"DrumGen __init__: Pattern library initialized. Keys: {list(self.pattern_lib.keys())}")
 
-        self.default_instrument = default_instrument
-        if hasattr(self.default_instrument, 'midiChannel'): self.default_instrument.midiChannel = 9
-        self.global_tempo = global_tempo
-        self.global_time_signature_str = global_time_signature
-        self.global_time_signature_obj = get_time_signature_object(global_time_signature)
+        self.tempo = global_tempo
+        self.ts_str = global_time_signature
+        self.ts = get_time_signature_object(global_time_signature)
+        if not self.ts:
+            logger.warning(f"DrumGen __init__: Failed to parse time signature '{global_time_signature}'. Defaulting to 4/4.")
+            self.ts = meter.TimeSignature("4/4")
 
-
-    def _create_drum_hit(self, drum_sound_name: str, velocity_val: int, duration_ql_val: float = 0.125) -> Optional[note.Note]:
-        # GM_DRUM_MAP に "ghost_snare" がないため、通常の "snare" として扱うか、新しいMIDIノート番号を割り当てる必要あり
-        actual_sound_name = drum_sound_name.lower().replace(" ","_").replace("-","_")
-        if actual_sound_name == "ghost_snare":
-            actual_sound_name = "snare" # ghost_snare は snare として扱う (ベロシティで区別)
-            logger.debug(f"DrumGen: Treating 'ghost_snare' as 'snare' for MIDI mapping.")
-        
-        # 新しい rhythm_library で tom1, tom2, tom3 が使われているため、GM_DRUM_MAP に追加
-        # これらの値は一般的なGMマッピングの例。必要に応じて調整。
-        extended_gm_drum_map = GM_DRUM_MAP.copy()
-        extended_gm_drum_map.update({"tom1": 48, "tom2": 47, "tom3": 45, "tom_hi":50, "tom_mid":47, "tom_low":45})
-
-
-        midi_val = extended_gm_drum_map.get(actual_sound_name)
-        if midi_val is None: logger.warning(f"DrumGen: Sound '{drum_sound_name}' (mapped to '{actual_sound_name}') not in GM_DRUM_MAP. Skip."); return None
-        try:
-            hit = note.Note()
-            hit.pitch = pitch.Pitch()
-            hit.pitch.midi = midi_val
-            hit.duration = duration.Duration(quarterLength=max(MIN_NOTE_DURATION_QL/4, duration_ql_val))
-            hit.volume = m21volume.Volume(velocity=max(1,min(127,velocity_val)))
-            return hit
-        except Exception as e: logger.error(f"DrumGen: Error creating hit '{drum_sound_name}': {e}", exc_info=True); return None
-
-    def _apply_drum_pattern_to_measure(
-        self, target_part: stream.Part, pattern_events: List[Dict[str, Any]],
-        measure_abs_start_offset: float, measure_duration_ql: float, base_velocity: int,
-        humanize_params_for_hit: Optional[Dict[str, Any]] = None
-    ):
-        if not pattern_events: return
-        for event_def in pattern_events:
-            instrument_name = event_def.get("instrument")
-            event_offset_in_pattern = float(event_def.get("offset", 0.0))
-            event_duration_ql = float(event_def.get("duration", 0.125))
-            event_velocity = event_def.get("velocity"); event_velocity_factor = event_def.get("velocity_factor")
-            if not instrument_name: continue
-            final_velocity = int(event_velocity) if event_velocity is not None else (int(base_velocity * float(event_velocity_factor)) if event_velocity_factor is not None else base_velocity)
-            final_velocity = max(1, min(127, final_velocity))
-            if event_offset_in_pattern < measure_duration_ql:
-                actual_hit_duration_ql = min(event_duration_ql, measure_duration_ql - event_offset_in_pattern)
-                if actual_hit_duration_ql < MIN_NOTE_DURATION_QL / 8: continue
-                drum_hit = self._create_drum_hit(instrument_name, final_velocity, actual_hit_duration_ql)
-                if drum_hit:
-                    if humanize_params_for_hit:
-                        drum_hit = cast(note.Note, apply_humanization_to_element(drum_hit, custom_params=humanize_params_for_hit))
-
-                    insert_at_offset = measure_abs_start_offset + event_offset_in_pattern
-                    if hasattr(drum_hit, 'offset') and drum_hit.offset != 0.0:
-                        insert_at_offset += drum_hit.offset
-                        drum_hit.offset = 0
-                    target_part.insert(insert_at_offset, drum_hit)
-
-
-    def compose(self, processed_chord_stream: List[Dict]) -> stream.Part:
-        drum_part = stream.Part(id="Drums")
-        drum_part.insert(0, self.default_instrument)
-        drum_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
-
-        if self.global_time_signature_obj:
-            ts_copy = meter.TimeSignature(self.global_time_signature_obj.ratioString)
-            drum_part.insert(0, ts_copy)
+        self.instrument = default_instrument
+        if hasattr(self.instrument, "midiChannel"):
+            self.instrument.midiChannel = 9  # Drums on ch‑10 (0‑based 9)
         else:
-            logger.warning("DrumGen: global_time_signature_obj is None. Defaulting to 4/4 for drum_part.")
-            drum_part.insert(0, meter.TimeSignature("4/4"))
+            logger.warning("DrumGen __init__: Default instrument does not have midiChannel attribute.")
 
 
-        if not processed_chord_stream: return drum_part
-        logger.info(f"DrumGen: Starting for {len(processed_chord_stream)} blocks.")
+    # ------------------------------------------------------------------
+    # public API
+    # ------------------------------------------------------------------
+    def compose(self, blocks: List[Dict[str, Any]]) -> stream.Part:
+        part = stream.Part(id="Drums")
+        part.insert(0, self.instrument)
+        part.insert(0, tempo.MetronomeMark(number=self.tempo))
+        
+        ts_clone = self.ts.clone() if self.ts else meter.TimeSignature("4/4").clone()
+        part.insert(0, ts_clone)
 
-        measures_since_last_fill = 0
-        for blk_idx, blk_data in enumerate(processed_chord_stream):
-            block_offset_ql = float(blk_data.get("offset", 0.0))
-            block_duration_ql = float(blk_data.get("q_length", self.global_time_signature_obj.barDuration.quarterLength if self.global_time_signature_obj else 4.0))
-            drum_params = blk_data.get("part_params", {}).get("drums", {})
-            style_key = drum_params.get("drum_style_key", "default_drum_pattern")
-            base_velocity = int(drum_params.get("drum_base_velocity", 80))
-            fill_interval = drum_params.get("drum_fill_interval_bars", 0)
-            fill_options = drum_params.get("drum_fill_keys", [])
-            block_fill_key = drum_params.get("drum_fill_key_override")
+        if not blocks:
+            logger.warning("DrumGen compose: Received empty blocks list. Returning empty drum part.")
+            return part
+        
+        logger.info(f"DrumGen compose: Starting for {len(blocks)} blocks.")
 
-            humanize_this_block = drum_params.get("humanize_opt", drum_params.get("humanize", True))
-            humanize_params_for_hits_in_block: Optional[Dict[str, Any]] = None
-            if humanize_this_block:
-                template_name = drum_params.get("template_name", drum_params.get("humanize_style_template", "drum_loose_fbm"))
-                base_h_params = HUMANIZATION_TEMPLATES.get(template_name, HUMANIZATION_TEMPLATES.get("default_subtle", {}))
-                humanize_params_for_hits_in_block = base_h_params.copy()
+        # bar_len = self.ts.barDuration.quarterLength # ブロックごとに可変長を許容するためここでは未使用
 
-                custom_h_from_translate = drum_params.get("custom_params")
-                if isinstance(custom_h_from_translate, dict):
-                    humanize_params_for_hits_in_block.update(custom_h_from_translate)
-                else:
-                    custom_h_overrides = {
-                        k.replace("humanize_",""):v for k,v in drum_params.items()
-                        if k.startswith("humanize_") and not k.endswith("_template") and not k == "humanize" and not k == "humanize_opt"
-                    }
-                    humanize_params_for_hits_in_block.update(custom_h_overrides)
-                logger.debug(f"DrumGen Blk {blk_idx+1}: Humanize params: {humanize_params_for_hits_in_block}")
+        for blk_idx, blk in enumerate(blocks):
+            block_params = blk.get("part_params", {}).get("drums", {})
+            style_key = block_params.get("drum_style_key", "default_drum_pattern")
+            base_vel = int(block_params.get("drum_base_velocity", 80))
+            
+            # humanize 設定はブロックごとに取得、なければクラスデフォルト
+            humanize_block = block_params.get("humanize", True) # ブロック単位のON/OFF
+            # 詳細なhumanizeパラメータは現時点ではクラスデフォルトのみ使用
+            # 将来的にブロックごとに上書きする場合はここにロジック追加
+            current_humanize_params = self.DEFAULT_HUMANIZE.copy()
+            # 例: block_params から "timing_jitter" など個別パラメータを読み取り current_humanize_params を更新
 
+            pattern_def = self.pattern_lib.get(style_key)
+            if not pattern_def or "pattern" not in pattern_def:
+                logger.warning(
+                    f"DrumGen Blk {blk_idx+1}: Style key '{style_key}' not found or invalid. "
+                    f"Using 'default_drum_pattern'."
+                )
+                pattern_def = self.pattern_lib.get("default_drum_pattern") # _ensure_core_patterns で存在保証
 
-            style_def = self.drum_pattern_library.get(style_key)
-            if not style_def or "pattern" not in style_def: # パターン自体、またはパターン内の "pattern" リストがない場合
-                logger.warning(f"DrumGen: Style key '{style_key}' not found or invalid in drum_pattern_library. Using default_drum_pattern.")
-                style_def = self.drum_pattern_library.get("default_drum_pattern", DEFAULT_DRUM_PATTERNS_LIB["default_drum_pattern"])
+            pattern_events = pattern_def.get("pattern", [])
+            abs_block_offset = float(blk.get("offset", 0.0))
+            block_q_length = float(blk.get("q_length", self.ts.barDuration.quarterLength if self.ts else 4.0))
+            
+            # パターン適用 (フィルインロジックは改修案では省略されているため、ここではメインパターンのみ適用)
+            # 将来的にフィルインを復活させる場合は、このあたりで条件分岐やパターン選択ロジックが必要
+            self._apply_pattern(
+                tgt_part=part,
+                events=pattern_events,
+                abs_offset=abs_block_offset,
+                block_len=block_q_length,
+                base_vel=base_vel,
+                humanize=humanize_block,
+                humanize_params=current_humanize_params # 渡す
+            )
+            logger.debug(f"DrumGen Blk {blk_idx+1}: Applied pattern '{style_key}' at offset {abs_block_offset:.2f} for {block_q_length:.2f} QL. Humanize: {humanize_block}")
 
-            main_pattern_events = style_def.get("pattern", [])
-            pattern_ts_str = style_def.get("time_signature", self.global_time_signature_str)
-            p_ts_obj = get_time_signature_object(pattern_ts_str)
-            p_bar_dur = p_ts_obj.barDuration.quarterLength if p_ts_obj else 4.0
-            if p_bar_dur <= 0:
-                logger.warning(f"DrumGen: Pattern time signature for '{style_key}' results in non-positive bar duration ({p_bar_dur}). Skipping block.")
+        logger.info(f"DrumGen compose: Finished. Part has {len(list(part.flatten().notesAndRests))} elements.")
+        return part
+
+    # ------------------------------------------------------------------
+    # internal helpers
+    # ------------------------------------------------------------------
+    def _apply_pattern(
+        self,
+        tgt_part: stream.Part,
+        events: List[Dict[str, Any]],
+        abs_offset: float,
+        block_len: float,
+        base_vel: int,
+        humanize: bool,
+        humanize_params: Dict[str, Any] # 受ける
+    ) -> None:
+        if not events:
+            return
+
+        for ev_idx, ev in enumerate(events):
+            event_offset_in_pattern = float(ev.get("offset", 0.0))
+            
+            # パターン内のオフセットがブロック長を超える場合はスキップ
+            if event_offset_in_pattern >= block_len:
+                logger.debug(f"DrumGen _apply_pattern: Event {ev_idx} offset {event_offset_in_pattern:.2f} exceeds block_len {block_len:.2f}. Skipping.")
                 continue
 
-            current_block_time_ql = 0.0
-            if blk_data.get("is_first_in_section", False): measures_since_last_fill = 0
+            # デュレーションの計算: パターンで指定されたデュレーションを使いつつ、ブロックの終端を超えないように調整
+            default_hit_duration = 0.1 # ごく短い音価をデフォルトに
+            event_duration_ql = float(ev.get("duration", default_hit_duration))
+            
+            # ヒットの終了がブロックの長さを超えないようにデュレーションをクリップ
+            clipped_duration_ql = min(event_duration_ql, block_len - event_offset_in_pattern)
 
-            while current_block_time_ql < block_duration_ql - MIN_NOTE_DURATION_QL / 4:
-                measure_start_abs = block_offset_ql + current_block_time_ql
-                current_measure_iter_dur = min(p_bar_dur, block_duration_ql - current_block_time_ql)
-                if current_measure_iter_dur < MIN_NOTE_DURATION_QL: break
+            if clipped_duration_ql < MIN_NOTE_DURATION_QL / 8: # あまりに短い音符はスキップ
+                logger.debug(f"DrumGen _apply_pattern: Event {ev_idx} duration {clipped_duration_ql:.3f} too short. Skipping.")
+                continue
+            
+            inst_name_original = ev.get("instrument")
+            if not inst_name_original:
+                logger.warning(f"DrumGen _apply_pattern: Event {ev_idx} has no instrument. Skipping.")
+                continue
+            
+            # Ghost note のエイリアス解決
+            inst_key = GHOST_ALIAS.get(inst_name_original.lower(), inst_name_original.lower())
+            
+            midi_num = GM_DRUM_MAP.get(inst_key)
+            if midi_num is None:
+                logger.warning(f"DrumGen _apply_pattern: Unknown drum token '{inst_name_original}' (mapped to '{inst_key}'). Skipping.")
+                continue
+            
+            # ノートオブジェクトの作成
+            n = note.Note()
+            n.pitch = pitch.Pitch(midi=midi_num)
+            
+            # オフセットの設定 (絶対オフセット + パターン内オフセット)
+            # humanize でオフセットが変更される可能性があるので、humanize 前のオフセットを保持
+            current_hit_offset_in_stream = abs_offset + event_offset_in_pattern
+            n.offset = current_hit_offset_in_stream # 初期オフセット
 
-                pattern_to_apply = main_pattern_events; applied_fill = False
-                is_eff_last_measure_of_block = (current_block_time_ql + current_measure_iter_dur >= block_duration_ql - MIN_NOTE_DURATION_QL / 8)
+            n.duration = duration.Duration(quarterLength=clipped_duration_ql)
+            
+            # ベロシティの設定 (パターンで絶対値指定 or ベースベロシティに対する係数)
+            event_velocity = ev.get("velocity")
+            event_velocity_factor = ev.get("velocity_factor")
+
+            final_velocity: int
+            if event_velocity is not None:
+                final_velocity = int(event_velocity)
+            elif event_velocity_factor is not None:
+                final_velocity = int(base_vel * float(event_velocity_factor))
+            else: # velocity も velocity_factor もない場合は base_vel をそのまま使う
+                final_velocity = base_vel
+            
+            final_velocity = max(1, min(127, final_velocity)) # 1-127 の範囲に収める
+            n.volume = volume.Volume(velocity=final_velocity)
+            
+            if humanize:
+                # _apply_hit_humanization は n の deepcopy を返すので、それで n を置き換える
+                # また、humanize_params を渡す
+                n_before_humanize_offset = n.offset # humanize前のオフセットを記録
+                n = _apply_hit_humanization(n, **humanize_params)
+                # _apply_hit_humanization が n.offset を変更するので、その変更されたオフセットで挿入
+                insert_at_offset = n.offset
+                n.offset = 0 # insert メソッドは要素のオフセットを無視し、指定された位置に挿入するためリセット
+            else:
+                insert_at_offset = current_hit_offset_in_stream
+                n.offset = 0 # 同上
+
+            tgt_part.insert(insert_at_offset, n)
+            logger.debug(f"DrumGen _apply_pattern: Inserted {inst_name_original} (MIDI {midi_num}) at {insert_at_offset:.3f} (orig_offset_in_pattern: {event_offset_in_pattern:.2f}) with vel {final_velocity}, dur {clipped_duration_ql:.3f}")
 
 
-                if block_fill_key and is_eff_last_measure_of_block:
-                    # fill_ins キーが存在するか確認
-                    fill_def = style_def.get("fill_ins", {}).get(block_fill_key) if isinstance(style_def, dict) else None
-                    if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying override fill '{block_fill_key}' at {measure_start_abs:.2f}")
-                elif not applied_fill and fill_interval > 0 and fill_options and \
-                     (measures_since_last_fill + (current_measure_iter_dur / p_bar_dur if p_bar_dur > 0 else 1) >= fill_interval) and \
-                     is_eff_last_measure_of_block :
-                    chosen_f_key = random.choice(fill_options)
-                    fill_def = style_def.get("fill_ins", {}).get(chosen_f_key) if isinstance(style_def, dict) else None
-                    if fill_def: pattern_to_apply = fill_def; applied_fill = True; logger.debug(f"DrumGen: Applying scheduled fill '{chosen_f_key}' at {measure_start_abs:.2f}")
+    def _ensure_core_patterns(self) -> None:
+        """必須のドラムパターンがライブラリに存在することを保証する"""
+        if "default_drum_pattern" not in self.pattern_lib:
+            self.pattern_lib["default_drum_pattern"] = {
+                "description": "Default simple kick and snare (Auto-added if missing).",
+                "time_signature": "4/4", # このTSはパターン固有のものだが、ジェネレータのグローバルTSで解釈される
+                "pattern": [
+                    {"instrument": "kick", "offset": 0.0, "duration": 0.1, "velocity": 90},
+                    {"instrument": "snare", "offset": 1.0, "duration": 0.1, "velocity": 90},
+                    {"instrument": "kick", "offset": 2.0, "duration": 0.1, "velocity": 90},
+                    {"instrument": "snare", "offset": 3.0, "duration": 0.1, "velocity": 90},
+                ],
+            }
+            logger.info("DrumGen _ensure_core_patterns: Added 'default_drum_pattern' to pattern library.")
 
-                self._apply_drum_pattern_to_measure(
-                    drum_part, pattern_to_apply, measure_start_abs,
-                    current_measure_iter_dur, base_velocity,
-                    humanize_params_for_hits_in_block
-                )
-
-                if applied_fill: measures_since_last_fill = 0
-                if current_measure_iter_dur >= p_bar_dur - MIN_NOTE_DURATION_QL / 8 :
-                    measures_since_last_fill +=1
-
-                current_block_time_ql += current_measure_iter_dur
-
-        logger.info(f"DrumGen: Finished. Part has {len(list(drum_part.flatten().notesAndRests))} elements.")
-        return drum_part
-# --- END OF FILE generator/drum_generator.py ---
+        # 改修案では no_drums やその他のプレースホルダーの自動追加は省略されているため、ここでは追加しない。
+        # 必要であれば、元のコードのように追加ロジックをここに記述。
+        # 例:
+        # if "no_drums" not in self.pattern_lib:
+        #     self.pattern_lib["no_drums"] = {"description": "Silence for drums (Auto-added).", "time_signature": "4/4", "pattern": []}
+        #     logger.info("DrumGen _ensure_core_patterns: Added 'no_drums' placeholder to pattern library.")
