@@ -92,7 +92,7 @@ DEFAULT_CONFIG = {
             "default_humanize_time_var": 0.01, "default_humanize_dur_perc": 0.03, "default_humanize_vel_var": 5
         },
         "melody": {
-            "instrument": "Flute",
+            "instrument": "Piano",
             "default_rhythm_key": "default_melody_rhythm", # これは rhythm_library.json の "melody_rhythms" を参照
             "default_octave_range": [4,5],
             "default_density": 0.7,
