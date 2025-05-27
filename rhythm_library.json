@@ -246,6 +246,18 @@
       "description": "Sparse wind-chime or shaker hits; default empty.",
       "time_signature": "4/4",
       "pattern": []
+    },
+    "drums_algo_random_fill": {
+      "description": "タム主体のランダムフィル（フィルキーが指定されたときにのみ使用）",
+      "tags": ["drums", "algorithmic", "fill", "random_tom_fill"],
+      "time_signature": "4/4",
+      "pattern_type": "random_tom_fill",
+      "options": {
+        "fill_density": 0.7,
+        "allow_snare": true,
+        "max_velocity": 110
+      },
+      "pattern": []
     }
   },
   "melody_rhythms": {
@@ -312,7 +324,7 @@
       "options": {
         "approach_note_prob": 0.4,
         "target_octave": 2,
-        "swing_ratio": 0.0 
+        "swing_ratio": 0.0
       }
     },
     "bass_half_time_pop": {
@@ -322,7 +334,7 @@
       "pattern_type": "half_time_pop",
       "velocity_base": 75,
       "options": {
-        "ghost_on_beat_2_and_a_half": true 
+        "ghost_on_beat_2_and_a_half": true
       }
     },
     "bass_syncopated_rnb": {
@@ -368,6 +380,49 @@
         {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.9, "type": "approach"},
         {"offset": 2.0, "duration": 2.0, "velocity_factor": 1.0, "type": "root", "glide_to_next": true}
       ]
+    },
+    "bass_algo_walk_8ths": {
+      "description": "コード進行に合わせてルート→スケール音を8分音符で歩くウォーキング-ベース",
+      "tags": ["bass", "algorithmic", "scale_walk", "eighth_notes"],
+      "pattern_type": "scale_walk",
+      "options": {
+        "note_resolution_ql": 0.5,
+        "direction": "up_down",
+        "start_on": "root",
+        "max_range_octaves": 1,
+        "approach_notes": "chromatic"
+      }
+    },
+    "bass_algo_syncopated_octave_jump": {
+      "description": "ルート音＋オクターブ跳躍をシンコペーション配置で鳴らすポップ／ロック向けベース",
+      "tags": ["bass", "algorithmic", "octave_jump", "syncopated"],
+      "pattern_type": "octave_jump",
+      "options": {
+        "pattern_offsets_ql": [0.0, 1.5, 2.0, 3.0],
+        "accent_velocity_boost": 10,
+        "humanize_timing": 0.02
+      }
+    },
+    "bass_algo_desc_fifths_quarters": {
+      "description": "セクション終端で下降 5 度進行を 4 分で鳴らし終止感を演出",
+      "tags": ["bass", "algorithmic", "descending_fifths", "quarter_notes"],
+      "pattern_type": "descending_fifths",
+      "options": {
+        "note_resolution_ql": 1.0,
+        "length_beats": 4,
+        "velocity_curve": "crescendo"
+      }
+    },
+    "bass_algo_modal_pedal": {
+      "description": "モードのトニック or ドミナントを保持してペダルトーン化（バラード・映画音楽向け）",
+      "tags": ["bass", "algorithmic", "pedal_tone", "modal"],
+      "pattern_type": "pedal_tone",
+      "options": {
+        "pedal_choice": "tonic",
+        "pedal_length_beats": 8,
+        "fill_every_n_measures": 2,
+        "humanize_velocity": 5
+      }
     }
   },
   "guitar_patterns": {
