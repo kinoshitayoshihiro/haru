@@ -436,7 +436,7 @@
         "humanize_velocity": 5
       }
     }
-　 },
+  },
   "guitar_patterns": {
     "guitar_default_quarters": {
       "description": "Default quarter note strums/hits for guitar.",
