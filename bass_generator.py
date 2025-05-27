@@ -6,7 +6,7 @@ import random
 from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence
 
 try:
-    from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL, _ROOT_RE # _ROOT_RE をインポート
+    from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL, _ROOT_RE_STRICT # _ROOT_RE -> _ROOT_RE_STRICT に変更
     from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES
     from utilities.scale_registry import ScaleRegistry
 except ImportError as e:
@@ -22,7 +22,8 @@ except ImportError as e:
             return music21.scale.MajorScale(tonic_str or "C")
     # _ROOT_REのダミー (core_music_utilsからインポートできなかった場合)
     import re
-    _ROOT_RE = re.compile(r'^[A-G](?:[#b])?(?![#b])')
+    _ROOT_RE_STRICT = re.compile(r'^([A-G](?:[#b]{1,2}|[ns])?)(?![#b])') # ダミーも合わせる
+
 
 
 class BassGenerator:
