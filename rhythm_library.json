@@ -166,6 +166,13 @@
           {"instrument": "tom2", "offset": 0.25, "velocity": 105, "duration": 0.125},
           {"instrument": "tom3", "offset": 0.5, "velocity": 115, "duration": 0.125},
           {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
+        ],
+        "snare_buzz_roll": [
+          {"instrument": "snare", "offset": 0.0, "velocity": 60, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.1, "velocity": 65, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.2, "velocity": 70, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.3, "velocity": 80, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.4, "velocity": 90, "duration": 0.05}
         ]
       }
     },
@@ -178,7 +185,7 @@
         {"instrument": "chh", "offset": 0.24, "velocity": 70, "duration": 0.05},
         {"instrument": "chh", "offset": 0.48, "velocity": 78, "duration": 0.05},
         {"instrument": "chh", "offset": 0.72, "velocity": 65, "duration": 0.05},
-        {"instrument": "snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
         {"instrument": "snare", "offset": 1.0, "velocity": 105, "duration": 0.1},
         {"instrument": "chh", "offset": 1.0, "velocity": 85, "duration": 0.05},
         {"instrument": "chh", "offset": 1.24, "velocity": 70, "duration": 0.05},
@@ -190,7 +197,7 @@
         {"instrument": "chh", "offset": 2.24, "velocity": 70, "duration": 0.05},
         {"instrument": "chh", "offset": 2.48, "velocity": 78, "duration": 0.05},
         {"instrument": "chh", "offset": 2.72, "velocity": 65, "duration": 0.05},
-        {"instrument": "snare", "offset": 2.9, "velocity": 45, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 2.9, "velocity": 45, "duration": 0.1},
         {"instrument": "snare", "offset": 3.0, "velocity": 105, "duration": 0.1},
         {"instrument": "chh", "offset": 3.0, "velocity": 85, "duration": 0.05},
         {"instrument": "chh", "offset": 3.24, "velocity": 70, "duration": 0.05},
@@ -205,6 +212,20 @@
           {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
         ]
       }
+    },
+    "lofi_hh_half_time": {
+      "description": "Lo‑fi hip‑hop style half‑time drums with swing hats.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick",  "offset": 0.0,  "velocity": 85, "duration": 0.05},
+        {"instrument": "snare", "offset": 2.0,  "velocity": 90, "duration": 0.05},
+        {"instrument": "ohh",   "offset": 0.0,  "velocity": 60, "duration": 0.05},
+        {"instrument": "chh",   "offset": 1.4,  "velocity": 50, "duration": 0.05},
+        {"instrument": "chh",   "offset": 1.9,  "velocity": 45, "duration": 0.05},
+        {"instrument": "ohh",   "offset": 2.0,  "velocity": 62, "duration": 0.05},
+        {"instrument": "chh",   "offset": 3.4,  "velocity": 52, "duration": 0.05},
+        {"instrument": "chh",   "offset": 3.9,  "velocity": 47, "duration": 0.05}
+      ]
     },
     "no_drums": {
       "description": "Silence for drums.",
@@ -280,6 +301,72 @@
         {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
         {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
         {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "bass_walking_8ths": {
+      "description": "コードトーン + アプローチノートで歩く 8分。Swing‑feel walking bass in straight 8ths (root ➜ approach ➜ chord‑tone ➜ approach).",
+      "tags": ["bass", "walking", "swing", "eighth_notes", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "walking_8ths",
+      "velocity_base": 70,
+      "options": {
+        "approach_note_prob": 0.4,
+        "target_octave": 2,
+        "swing_ratio": 0.0 
+      }
+    },
+    "bass_half_time_pop": {
+      "description": "2拍目裏にゴーストを入れるハーフタイム POP。Half‑time pop groove: long roots with eighth‑anticipation pickup on beat 4&.",
+      "tags": ["bass", "pop", "half_time", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "half_time_pop",
+      "velocity_base": 75,
+      "options": {
+        "ghost_on_beat_2_and_a_half": true 
+      }
+    },
+    "bass_syncopated_rnb": {
+      "description": "16 分シンコペで跳ねる RnB スタイル。16th‑syncopated R&B / neo‑soul motif with ghost 16ths.",
+      "tags": ["bass", "rnb", "syncopated", "sixteenth_notes", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "syncopated_rnb",
+      "velocity_base": 78,
+      "options": {
+        "ghost_velocity_ratio": 0.5
+      }
+    },
+    "bass_pump_8th_octaves": {
+      "description": "Driving rock/punk pump on root octaves in straight 8ths.",
+      "tags": ["bass", "rock", "octave", "eighth_notes", "fixed_pattern"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 1.0, "type": "root"},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 1.0, "type": "root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 1.0, "type": "root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 1.0, "type": "root"},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"}
+      ]
+    },
+    "bass_reggae_offbeat": {
+      "description": "Reggae one‑drop off‑beat 8ths with muted pickup.",
+      "tags": ["bass", "reggae", "offbeat", "fixed_pattern"],
+      "pattern": [
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.85, "type": "root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.8,  "type": "fifth"},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9,  "type": "root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85, "type": "fifth"}
+      ]
+    },
+    "bass_808_trap": {
+      "description": "808 slide & hold pattern for modern trap.",
+      "tags": ["bass", "trap", "808", "slide", "fixed_pattern"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 1.0, "type": "root", "glide_to_next": true},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.95, "type": "fifth"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.9, "type": "approach"},
+        {"offset": 2.0, "duration": 2.0, "velocity_factor": 1.0, "type": "root", "glide_to_next": true}
       ]
     }
   },
