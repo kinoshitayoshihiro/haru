@@ -292,6 +292,7 @@ def parse_vocal_midi_data_for_context(midivocal_data_list: Optional[List[Dict]])
     logger.info(f"Composer: Parsed {len(parsed_notes)} valid notes from vocal MIDI data for context.")
     return parsed_notes
 
+# --- START OF FUNCTION prepare_processed_stream (in modular_composer.py) ---
 def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_all: Dict,
                              parsed_vocal_track: List[Dict]) -> List[Dict]:
     processed_stream: List[Dict] = []
@@ -299,14 +300,19 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
     g_settings = chordmap_data.get("global_settings", {})
     ts_str = g_settings.get("time_signature", main_config["global_time_signature"])
     ts_obj = get_time_signature_object(ts_str)
-    if ts_obj is None:
-        logger.error("Failed to get TimeSignature object. Defaulting to 4/4 time.")
+    if ts_obj is None: # get_time_signature_object は常に TimeSignature オブジェクトを返すはずだが念のため
+        logger.error("CRITICAL: get_time_signature_object returned None. Defaulting to 4/4.")
         ts_obj = music21.meter.TimeSignature("4/4") 
-    beats_per_measure = ts_obj.barDuration.quarterLength # o3さん指摘: beatCountの方が良い場合もあるが、現状のduration_beatsが拍数なので、これで小節長を計算
+    
+    #拍子記号の分母が4でない場合（例：6/8拍子など）も考慮した1小節あたりの拍数
+    # music21.meter.TimeSignature.beatCount は、例えば6/8なら2を返す（2つの付点四分音符）
+    # ここでは四分音符ベースの拍数を計算する
+    beats_per_measure = ts_obj.barDuration.quarterLength 
 
     g_key_t, g_key_m = g_settings.get("key_tonic", main_config["global_key_tonic"]), g_settings.get("key_mode", main_config["global_key_mode"])
 
     sections_items = chordmap_data.get("sections", {}).items()
+    # セクションの order に基づいてソート
     sorted_sections = sorted(sections_items, key=lambda item: item[1].get("order", float('inf')) if isinstance(item[1], dict) else float('inf'))
 
     for sec_name, sec_info_any in sorted_sections:
@@ -329,8 +335,8 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
         if sec_len_meas and len(chord_prog) > 0:
             try:
                 default_beats_per_chord_block = (float(sec_len_meas) * beats_per_measure) / len(chord_prog)
-            except (ValueError, TypeError):
-                logger.warning(f"Could not calculate default_beats_per_chord_block for section {sec_name}.")
+            except (ValueError, TypeError, ZeroDivisionError) as e_calc: # ZeroDivisionErrorも考慮
+                logger.warning(f"Could not calculate default_beats_per_chord_block for section {sec_name}: {e_calc}")
 
         for c_idx, c_def_any in enumerate(chord_prog):
             if not isinstance(c_def_any, dict):
@@ -338,73 +344,111 @@ def prepare_processed_stream(chordmap_data: Dict, main_config: Dict, rhythm_lib_
                 continue
             c_def: Dict[str, Any] = c_def_any
 
-            original_chord_label = c_def.get("label", "C")
-            # sanitize_chord_label は bass_generator 側でも呼ばれるが、ここでもログ取りや早期判定のために行う
-            sanitized_chord_label_for_block : Optional[str] = sanitize_chord_label(original_chord_label)
-            
-            if not sanitized_chord_label_for_block:
-                logger.error(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' could not be sanitized nor root extracted. Will be treated as 'C'. Please review chordmap.json.")
-                c_lbl_for_block = "C" # フォールバック
-            elif sanitized_chord_label_for_block.lower() == "rest":
-                c_lbl_for_block = "Rest"
-            else:
-                c_lbl_for_block = sanitized_chord_label_for_block
+            original_chord_label = c_def.get("label") # デフォルトを "C" にしない
 
+            c_lbl_for_block: str
+            is_rest_block = False
+
+            if original_chord_label is None: # chordmap.json で label: null の場合
+                logger.info(f"Section '{sec_name}', Chord {c_idx+1}: Label is null (JSON null). Treating as Rest.")
+                c_lbl_for_block = "Rest"
+                is_rest_block = True
+            elif isinstance(original_chord_label, str):
+                stripped_label = original_chord_label.strip()
+                if not stripped_label or stripped_label.lower() in {"rest", "r", "nc", "n.c.", "silence", "-"}:
+                    logger.info(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' is a Rest keyword. Treating as Rest.")
+                    c_lbl_for_block = "Rest"
+                    is_rest_block = True
+                else:
+                    # sanitize_chord_label は music21 の figure 文字列か、ルート音文字列か、None (Rest扱い) を返す
+                    sanitized_output = sanitize_chord_label(original_chord_label)
+                    if sanitized_output is None: # sanitize_chord_labelがNoneを返したらRest扱い
+                        logger.warning(f"Section '{sec_name}', Chord {c_idx+1}: Label '{original_chord_label}' sanitized to None by core_music_utils. Treating as Rest for block.")
+                        c_lbl_for_block = "Rest"
+                        is_rest_block = True
+                    else:
+                        c_lbl_for_block = sanitized_output
+                        logger.debug(f"Section '{sec_name}', Chord {c_idx+1}: Original '{original_chord_label}' -> Processed for block as '{c_lbl_for_block}'")
+            else: # 文字列でもNoneでもない予期せぬ型の場合
+                logger.error(f"Section '{sec_name}', Chord {c_idx+1}: Invalid label type for '{original_chord_label}'. Treating as 'C' (fallback).")
+                c_lbl_for_block = "C" # フォールバック
 
             dur_b_val = c_def.get("duration_beats")
             if dur_b_val is not None:
                 try: dur_b = float(dur_b_val)
                 except (ValueError, TypeError):
+                    logger.warning(f"Invalid duration_beats '{dur_b_val}' for chord '{original_chord_label}' in section '{sec_name}'. Using default.")
                     dur_b = default_beats_per_chord_block if default_beats_per_chord_block is not None else beats_per_measure
             elif default_beats_per_chord_block is not None: dur_b = default_beats_per_chord_block
             else: dur_b = beats_per_measure
+            if dur_b <= 0: # デュレーションが0以下になるのを防ぐ
+                logger.warning(f"Calculated duration for chord '{original_chord_label}' is {dur_b}. Setting to 1.0 beat as fallback.")
+                dur_b = 1.0
+
 
             blk_intent = sec_intent.copy();
             if "emotion" in c_def: blk_intent["emotion"] = c_def["emotion"]
             if "intensity" in c_def: blk_intent["intensity"] = c_def["intensity"]
+            
             blk_hints_for_translate = {"part_settings": sec_part_settings_for_all_instruments.copy()}
-            current_block_mode = c_def.get("mode", sec_m)
+            current_block_mode = c_def.get("mode", sec_m) # コード固有のモードがあればそれを優先
             blk_hints_for_translate["mode_of_block"] = current_block_mode
+            
+            # "label", "duration_beats" など予約済みキー以外をヒントとして渡す
             reserved_keys = {"label", "duration_beats", "order", "musical_intent", "part_settings", "tensions_to_add", "emotion", "intensity", "mode"}
             for k_hint, v_hint in c_def.items():
                 if k_hint not in reserved_keys: blk_hints_for_translate[k_hint] = v_hint
 
-            vocal_notes_in_this_block = [] # (vocal関連の処理は変更なし)
-            # ... (vocal_notes_in_this_block の設定ロジック) ...
+            vocal_notes_in_this_block = []
+            # ... (vocal_notes_in_this_block の設定ロジックは変更なし) ...
 
             blk_data = {
-                "offset": current_abs_offset, "q_length": dur_b, "chord_label": c_lbl_for_block, # ここでサニタイズ後のラベルを使用
-                "section_name": sec_name, "tonic_of_section": sec_t, "mode": current_block_mode,
-                "is_first_in_section":(c_idx==0), "is_last_in_section":(c_idx==len(chord_prog)-1),
+                "offset": current_abs_offset, 
+                "q_length": dur_b, 
+                "chord_label": c_lbl_for_block, # "Rest" またはサニタイズ/フォールバックされたコードラベル
+                "section_name": sec_name, 
+                "tonic_of_section": sec_t, 
+                "mode": current_block_mode, # ブロック固有のモードを使用
+                "is_first_in_section":(c_idx==0), 
+                "is_last_in_section":(c_idx==len(chord_prog)-1),
                 "vocal_notes_in_block": vocal_notes_in_this_block,
                 "part_params":{}
             }
+
             for p_key_name, generate_flag in main_config.get("parts_to_generate", {}).items():
                 if generate_flag:
                     default_params_for_instrument = main_config["default_part_parameters"].get(p_key_name, {})
-                    chord_specific_settings_for_part = c_def.get("part_specific_hints", {}).get(p_key_name, {})
-                    final_hints_for_translate = blk_hints_for_translate.copy()
-                    final_hints_for_translate.update(chord_specific_settings_for_part)
+                    # セクションレベルのpart_settingsとコードブロックレベルのpart_specific_hintsをマージ
+                    # コードブロック固有の設定を優先する
+                    final_hints_for_translate_for_part = blk_hints_for_translate.copy() # まずセクションとコードの共通ヒント
                     
-                    # translate_keywords_to_params を呼び出す前に、part_params[p_key_name] を初期化しておく
-                    blk_data["part_params"][p_key_name] = {} 
-                    
-                    translated_params = translate_keywords_to_params(
-                        blk_intent, final_hints_for_translate, default_params_for_instrument,
-                        p_key_name, rhythm_lib_all
-                    )
-                    blk_data["part_params"][p_key_name].update(translated_params) # updateでマージ
+                    # セクションレベルの楽器別設定 (part_settings内)
+                    section_instrument_specific_settings = sec_part_settings_for_all_instruments.get(p_key_name, {})
+                    final_hints_for_translate_for_part.update(section_instrument_specific_settings)
 
-                    # --- o3さん提案#3: bass_params を必ずセット ---
+                    # コードブロックレベルの楽器別設定 (part_specific_hints内)
+                    chord_specific_settings_for_part = c_def.get("part_specific_hints", {}).get(p_key_name, {})
+                    final_hints_for_translate_for_part.update(chord_specific_settings_for_part)
+                    
+                    blk_data["part_params"][p_key_name] = translate_keywords_to_params(
+                        blk_intent, # ブロックの音楽的意図
+                        final_hints_for_translate_for_part, # マージされたヒント
+                        default_params_for_instrument, # グローバルデフォルト
+                        p_key_name, 
+                        rhythm_lib_all
+                    )
+                    
+                    # ベースパートの場合、デフォルトのリズムキーとパラメータを確実に設定 (o3さん提案#3)
                     if p_key_name == "bass":
-                        # translate_keywords_to_params の結果に必要なキーがなければデフォルトを設定
-                        if "rhythm_key" not in blk_data["part_params"]["bass"] and "style" not in blk_data["part_params"]["bass"]:
-                            blk_data["part_params"]["bass"]["rhythm_key"] = "basic_chord_tone_quarters"
-                            logger.debug(f"Block {sec_name}-{c_idx+1}: No bass rhythm/style in chordmap, setting default 'basic_chord_tone_quarters'.")
-                        if "velocity" not in blk_data["part_params"]["bass"]:
-                            blk_data["part_params"]["bass"]["velocity"] = main_config["default_part_parameters"].get("bass",{}).get("default_velocity", 70)
-                        if "octave" not in blk_data["part_params"]["bass"]:
-                             blk_data["part_params"]["bass"]["octave"] = main_config["default_part_parameters"].get("bass",{}).get("default_octave", 2)
+                        bass_p = blk_data["part_params"]["bass"]
+                        if "rhythm_key" not in bass_p and "style" not in bass_p:
+                            bass_p["rhythm_key"] = "basic_chord_tone_quarters" # BassGenerator内のデフォルト
+                            logger.debug(f"Block {sec_name}-{c_idx+1}: No bass rhythm/style in chordmap for bass, setting default 'basic_chord_tone_quarters'.")
+                        if "velocity" not in bass_p:
+                            bass_p["velocity"] = main_config["default_part_parameters"].get("bass",{}).get("default_velocity", 70)
+                        if "octave" not in bass_p:
+                             bass_p["octave"] = main_config["default_part_parameters"].get("bass",{}).get("default_octave", 2)
+            
             processed_stream.append(blk_data)
             current_abs_offset += dur_b
     logger.info(f"Prepared {len(processed_stream)} blocks. Total duration: {current_abs_offset:.2f} beats.")
