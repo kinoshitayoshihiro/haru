@@ -7,7 +7,7 @@ import logging
 from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence
 
 logger = logging.getLogger(__name__)
-
+_ROOT_RE_STRICT = re.compile(r'^([A-G](?:[#b]{1,2}|[ns])?)(?![#b])')
 MIN_NOTE_DURATION_QL = 0.0625 # 64分音符程度を最小音価とする
 
 def get_time_signature_object(ts_str: Optional[str]) -> Optional[meter.TimeSignature]:
