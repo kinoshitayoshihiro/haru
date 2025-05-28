@@ -1,4 +1,4 @@
-# --- START OF FILE utilities/core_music_utils.py (sanitize_chord_label修正版) ---
+# --- START OF FILE utilities/core_music_utils.py (sanitize_chord_label再修正版) ---
 import music21
 from music21 import pitch, harmony, key, meter, stream, note, chord # chordを追加
 import re
@@ -8,7 +8,6 @@ logger = logging.getLogger(__name__)
 
 MIN_NOTE_DURATION_QL = 0.0625 # 64分音符程度を最小音価とする
 
-# (他の関数 ... get_time_signature_object, get_key_signature_object, calculate_note_times は変更なし)
 def get_time_signature_object(ts_str: Optional[str]) -> Optional[meter.TimeSignature]:
     if not ts_str: return None
     try: return meter.TimeSignature(ts_str)
@@ -31,71 +30,81 @@ def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
     - 全角英数を半角に
     - 不要な空白削除
     - ルート音のフラットを'-'に (例: Bb -> B-)
+    - テンションのフラット 'b' はそのまま保持
     - '△'や'M'を'maj'に
     - 'ø'や'Φ'を'm7b5'に (ハーフディミニッシュ)
     - 'NC', 'N.C.', 'Rest' などは "Rest" に統一
     - 括弧やカンマは削除 (music21は非対応)
-    - テンションのフラット 'b' はそのまま保持 (music21がb表記を解釈するため)
     """
     if label is None or not str(label).strip():
-        return "Rest" # 空やNoneはRest扱い
+        logger.debug(f"CoreUtils (sanitize): Empty or None label received, returning 'Rest'.")
+        return "Rest"
 
     original_label = str(label)
     s = original_label.strip()
 
-    # 全角を半角に (簡易版、より包括的なライブラリ使用も検討可)
+    # 全角を半角に
     s = s.translate(str.maketrans('ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ＃♭＋－／．（）０１２３４５６７８9',
                                   'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz#b+-/.()0123456789'))
     s = s.replace(' ', '') # 空白除去
 
     # No Chord / Rest 系の統一
     if s.upper() in ['NC', 'N.C.', 'NOCHORD', 'SILENCE', '-', 'REST']:
+        logger.debug(f"CoreUtils (sanitize): Label '{original_label}' identified as Rest.")
         return "Rest"
 
-    # ルート音のフラット記号の正規化 (例: Bb -> B-)
-    # A-G の直後の 'b' のみを '-' に置換する
-    s = re.sub(r'([A-G])b', r'\1-', s)
+    # --- ルート音のフラット記号の正規化 (例: Bb -> B-) ---
+    #   A-G の直後の 'b' のみを '-' に置換する。ただし、その後に数字が続く場合はテンションの可能性があるため除外。
+    #   例: Bbmaj7 -> B-maj7,   Ebm7 -> E-m7
+    #   ただし、 C7b9 のようなテンションの 'b' は変更しない。
+    #   正規表現を修正して、ルート音のフラットのみを対象とする
+    #   (?<![0-9]) は「直前に数字がない」という否定的後読み表明
+    #   (?!#[0-9]) は「直後に#と数字が続かない」という否定的先読み表明 (例: Cb#9 のような稀なケースを考慮)
+    #   (?!sus)(?![a-zA-Z]) は sus や maj のような品質表記の直前のbを避ける (例: Cbsus)
+    
+    # より安全なアプローチ: まずルート音とそれ以外を分離しようと試みる
+    root_match = re.match(r"([A-G])([#b-]?)", s)
+    if root_match:
+        root_note = root_match.group(1)
+        accidental = root_match.group(2)
+        remaining_part = s[len(root_match.group(0)):]
+
+        if accidental == 'b':
+            accidental = '-'
+        
+        # テンションやadd/omit部分の 'b' はそのままにする
+        # remaining_part は変更しない
+        s = root_note + accidental + remaining_part
+    # --- ルート音のフラット正規化ここまで ---
+
 
     # 品質に関するエイリアス変換
-    s = s.replace('△', 'maj').replace('M', 'maj') # M7はmaj7になる
-    s = s.replace('ø', 'm7b5').replace('Φ', 'm7b5') # ハーフディミニッシュ
-    s = s.replace('aug', '+') # augを+に
-    s = s.replace('diminished', 'dim').replace('°', 'dim') # diminished, ° を dim に
+    s = s.replace('△', 'maj').replace('M', 'maj') 
+    s = s.replace('ø', 'm7b5').replace('Φ', 'm7b5') 
+    s = s.replace('aug', '+') 
+    s = s.replace('diminished', 'dim').replace('°', 'dim')
 
     # 括弧とカンマの除去
     s = s.replace('(', '').replace(')', '').replace(',', '')
-
-    # 'omit'の前の数字がない場合 (例: Comit -> Comit3) はmusic21がエラーを出すことがあるので、
-    # 基本的にはomitXの形を期待するが、ここでは何もしない (music21のパーサーに委ねる)
-
+    
     # 'power' は music21 が解釈できる
     # 'sus' は music21 が解釈できる (sus2, sus4)
 
-    # 最終チェック: music21でパース試行 (ルート音抽出のため)
+    # 最終チェック: music21でパース試行
     try:
-        # ここでのChordSymbolはあくまでルート音抽出と簡易的な検証のため
-        # 厳密なパースは呼び出し元で行う
         cs_test = harmony.ChordSymbol(s)
-        if cs_test.root(): # ルート音が取れればOKとする
-            logger.debug(f"CoreUtils (sanitize): Original='{original_label}', Sanitized='{s}', ParsedRoot='{cs_test.root().name}'")
+        # music21が解釈できても、ルート音が取れない場合がある (例: "major" だけなど)
+        if cs_test.root():
+            logger.debug(f"CoreUtils (sanitize): Original='{original_label}', SanitizedTo='{s}', ParsedRoot='{cs_test.root().nameWithOctave}'")
             return s
-        else: # ルート音が取れない場合は、元のラベルからルート音だけを抽出試行
-            logger.warning(f"CoreUtils (sanitize): Sanitized form '{s}' (from '{original_label}') parsed by music21 but no root. Attempting root extraction from original.")
-            match_root = re.match(r"([A-G][#-]?)", original_label.strip())
-            if match_root:
-                extracted_root = match_root.group(1).replace('b', '-')
-                logger.info(f"CoreUtils (sanitize): Extracted root '{extracted_root}' from '{original_label}' as fallback.")
-                return extracted_root # ルート音だけでも返す
-            return None # どうしてもダメならNone
+        else:
+            logger.warning(f"CoreUtils (sanitize): Sanitized form '{s}' (from '{original_label}') parsed by music21 but NO ROOT. Treating as potentially invalid.")
+            # ルートが取れない場合は、元のラベルから強引にルート音だけを抽出する試みは危険なので、
+            # ここではNoneを返して、呼び出し元でエラーとして扱うか、デフォルトコードにする。
+            # ただし、"Rest"と明確に判断できるものは既に上で処理済み。
+            return None # または、エラーを示す特別な値を返す
     except Exception as e_parse:
-        # music21がパースできない場合、元のラベルからルート音だけを抽出試行
-        logger.warning(f"CoreUtils (sanitize): Final form '{s}' (from '{original_label}') FAILED music21 parsing ({e_parse}). Attempting root extraction from original.")
-        match_root = re.match(r"([A-G][#-]?)", original_label.strip())
-        if match_root:
-            extracted_root = match_root.group(1).replace('b', '-') # ここでもフラットはハイフンに
-            logger.info(f"CoreUtils (sanitize): Extracted root '{extracted_root}' from '{original_label}' as fallback after parse failure.")
-            return extracted_root # ルート音だけでも返す
-        logger.error(f"CoreUtils (sanitize): Could not extract root from '{original_label}' after sanitization and parse failure.")
+        logger.warning(f"CoreUtils (sanitize): Final form '{s}' (from '{original_label}') FAILED music21 parsing ({type(e_parse).__name__}: {e_parse}). Returning None.")
         return None
 
 # --- END OF FILE utilities/core_music_utils.py ---
