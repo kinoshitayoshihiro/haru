@@ -1,10 +1,9 @@
-# --- START OF FILE utilities/core_music_utils.py (sanitize_chord_label再修正版) ---
+# --- START OF FILE utilities/core_music_utils.py (インデントエラーと自己参照インポート修正版) ---
 import music21
-from music21 import pitch, harmony, key, meter, stream, note, chord # chordを追加
+from music21 import pitch, harmony, key, meter, stream, note, chord
 import re
-from utilities.core_music_utils import sanitize_chord_label # sanitize_chord_label をインポート
-from music21 import harmony # music21.harmony を直接使う
 import logging
+# typingモジュールからのインポートはここで行う
 from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence
 
 logger = logging.getLogger(__name__)
@@ -28,17 +27,7 @@ def calculate_note_times(current_beat: float, duration_beats: float, bpm: float)
     return start_time_seconds, end_time_seconds
 
 def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
-# コードオブジェクトを取得したい場合
-sanitized_label = sanitize_chord_label(chord_label_str)
-chord_obj = None
-if sanitized_label and sanitized_label != "Rest":
-    try:
-        chord_obj = harmony.ChordSymbol(sanitized_label)
-        if not chord_obj.pitches: # ルート音などがなければ無効とみなす
-            chord_obj = None
-    except Exception as e:
-        logger.warning(f"Failed to create ChordSymbol from '{sanitized_label}': {e}")
-        chord_obj = None    """
+    """
     入力されたコードラベルを music21 が解釈しやすい形式に近づける。
     - 全角英数を半角に
     - 不要な空白削除
@@ -66,30 +55,26 @@ if sanitized_label and sanitized_label != "Rest":
         logger.debug(f"CoreUtils (sanitize): Label '{original_label}' identified as Rest.")
         return "Rest"
 
-    # --- ルート音のフラット記号の正規化 (例: Bb -> B-) ---
-    #   A-G の直後の 'b' のみを '-' に置換する。ただし、その後に数字が続く場合はテンションの可能性があるため除外。
-    #   例: Bbmaj7 -> B-maj7,   Ebm7 -> E-m7
-    #   ただし、 C7b9 のようなテンションの 'b' は変更しない。
-    #   正規表現を修正して、ルート音のフラットのみを対象とする
-    #   (?<![0-9]) は「直前に数字がない」という否定的後読み表明
-    #   (?!#[0-9]) は「直後に#と数字が続かない」という否定的先読み表明 (例: Cb#9 のような稀なケースを考慮)
-    #   (?!sus)(?![a-zA-Z]) は sus や maj のような品質表記の直前のbを避ける (例: Cbsus)
-    
+    # ルート音のフラット記号の正規化 (例: Bb -> B-)
+    # A-G の直後の 'b' のみを '-' に置換する。
+    # ただし、その後に数字が続く場合はテンションの可能性があるため、ここでは単純な置換は避ける。
     # より安全なアプローチ: まずルート音とそれ以外を分離しようと試みる
     root_match = re.match(r"([A-G])([#b-]?)", s)
     if root_match:
-        root_note = root_match.group(1)
-        accidental = root_match.group(2)
-        remaining_part = s[len(root_match.group(0)):]
+        root_note_str = root_match.group(1)
+        accidental_str = root_match.group(2)
+        remaining_part_str = s[len(root_match.group(0)):]
 
-        if accidental == 'b':
-            accidental = '-'
+        if accidental_str == 'b':
+            accidental_str = '-'
         
-        # テンションやadd/omit部分の 'b' はそのままにする
-        # remaining_part は変更しない
-        s = root_note + accidental + remaining_part
-    # --- ルート音のフラット正規化ここまで ---
-
+        # テンションやadd/omit部分の 'b' はそのままにするため、remaining_part_str は変更しない
+        s = root_note_str + accidental_str + remaining_part_str
+    else:
+        # ルート音すらマッチしない場合は、予期せぬ形式の可能性が高い
+        logger.warning(f"CoreUtils (sanitize): Could not match a valid root note in '{s}' (from '{original_label}').")
+        # この時点でエラーとして None を返すか、あるいはさらに処理を試みるか
+        # ここでは、後続の処理に任せるが、最終的に music21 がパースできなければ None になる
 
     # 品質に関するエイリアス変換
     s = s.replace('△', 'maj').replace('M', 'maj') 
@@ -112,10 +97,7 @@ if sanitized_label and sanitized_label != "Rest":
             return s
         else:
             logger.warning(f"CoreUtils (sanitize): Sanitized form '{s}' (from '{original_label}') parsed by music21 but NO ROOT. Treating as potentially invalid.")
-            # ルートが取れない場合は、元のラベルから強引にルート音だけを抽出する試みは危険なので、
-            # ここではNoneを返して、呼び出し元でエラーとして扱うか、デフォルトコードにする。
-            # ただし、"Rest"と明確に判断できるものは既に上で処理済み。
-            return None # または、エラーを示す特別な値を返す
+            return None 
     except Exception as e_parse:
         logger.warning(f"CoreUtils (sanitize): Final form '{s}' (from '{original_label}') FAILED music21 parsing ({type(e_parse).__name__}: {e_parse}). Returning None.")
         return None
