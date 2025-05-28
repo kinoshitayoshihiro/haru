@@ -3,6 +3,7 @@ import music21
 from music21 import pitch, harmony, key, meter, stream, note, chord # chordを追加
 import re
 import logging
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
