@@ -367,8 +367,7 @@
       "length_beats": 1,
       "tags": ["drums", "algorithmic", "fill"]
     }
-  }
-}
+  },
 "drums_algo_random_fill": {
       "description": "タム主体のランダムフィル（フィルキーが指定されたときにのみ使用）",
       "tags": ["drums", "algorithmic", "fill", "random_tom_fill"],
@@ -612,4 +611,3 @@
       ]
     }
   }
-}
