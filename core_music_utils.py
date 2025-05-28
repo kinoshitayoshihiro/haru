@@ -2,6 +2,8 @@
 import music21
 from music21 import pitch, harmony, key, meter, stream, note, chord # chordを追加
 import re
+from utilities.core_music_utils import sanitize_chord_label # sanitize_chord_label をインポート
+from music21 import harmony # music21.harmony を直接使う
 import logging
 from typing import List, Dict, Optional, Any, Tuple, Union, cast, Sequence
 
@@ -26,7 +28,17 @@ def calculate_note_times(current_beat: float, duration_beats: float, bpm: float)
     return start_time_seconds, end_time_seconds
 
 def sanitize_chord_label(label: Optional[str]) -> Optional[str]:
-    """
+# コードオブジェクトを取得したい場合
+sanitized_label = sanitize_chord_label(chord_label_str)
+chord_obj = None
+if sanitized_label and sanitized_label != "Rest":
+    try:
+        chord_obj = harmony.ChordSymbol(sanitized_label)
+        if not chord_obj.pitches: # ルート音などがなければ無効とみなす
+            chord_obj = None
+    except Exception as e:
+        logger.warning(f"Failed to create ChordSymbol from '{sanitized_label}': {e}")
+        chord_obj = None    """
     入力されたコードラベルを music21 が解釈しやすい形式に近づける。
     - 全角英数を半角に
     - 不要な空白削除
