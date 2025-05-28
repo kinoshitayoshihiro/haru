@@ -455,6 +455,12 @@ class BassGenerator:
                 else: # sanitized_labelがRestだった場合などm21_cs_objがNoneになるケースも考慮
                     self.logger.info(f"DEBUG Bass Insert (Chord may be Rest or Unparsed): OriginalLabel='{chord_label_str}', Sanitized='{sanitized_label}', BlockOffset={block_abs_offset:.2f}, NoteAbsOffset={abs_note_offset:.2f}, Pitch={note_obj.pitch.nameWithOctave if note_obj.pitch else 'N/A'}, Duration={note_obj.duration.quarterLength:.2f}")
                 # === Haruさん確認用ログ追加 END ===
+                                    # === Haruさん確認用ログ追加 START ===
+                    if m21_cs_obj: 
+                        self.logger.info(f"DEBUG Bass Insert: Chord='{m21_cs_obj.figure}', BlockOffset={block_abs_offset:.2f}, NoteAbsOffset={abs_note_offset:.2f}, Pitch={note_obj.pitch.nameWithOctave if note_obj.pitch else 'N/A'}, Duration={note_obj.duration.quarterLength:.2f}")
+                    else: # sanitized_labelがRestだった場合などm21_cs_objがNoneになるケースも考慮
+                        self.logger.info(f"DEBUG Bass Insert (Chord may be Rest or Unparsed): OriginalLabel='{chord_label_str}', Sanitized='{sanitized_label}', BlockOffset={block_abs_offset:.2f}, NoteAbsOffset={abs_note_offset:.2f}, Pitch={note_obj.pitch.nameWithOctave if note_obj.pitch else 'N/A'}, Duration={note_obj.duration.quarterLength:.2f}")
+                    # === Haruさん確認用ログ追加 END ===
                 if note_obj.duration.quarterLength >= MIN_NOTE_DURATION_QL / 2:
                      bass_part.insert(abs_note_offset, note_obj)
 
