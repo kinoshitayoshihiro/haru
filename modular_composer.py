@@ -18,7 +18,7 @@ import music21.pitch # pitch.Pitch のためにインポート
 from music21 import exceptions21
 
 from pathlib import Path
-from typing import List, Dict, Optional, Any, cast, Sequence
+from typing import List, Dict, Optional, Tuple, Any, cast, Sequence
 import random
 
 # --- ユーティリティとジェネレータクラスのインポート ---
