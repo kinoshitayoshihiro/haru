@@ -1,788 +1,670 @@
 {
-  "project_title": "OreNoNyoubou_Shudaika",
-  "global_settings": {
-    "tempo": 88,
-    "time_signature": "4/4",
-    "key_tonic": "F",
-    "key_mode": "major"
+  "piano_patterns": {
+    "piano_block_quarters_simple": {
+      "description": "Simple quarter note block chords for piano.",
+      "tags": ["piano", "simple", "block_chord", "quarter_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75}
+      ]
+    },
+    "piano_lh_quarter_roots": {
+      "description": "Simple quarter note roots for LH piano.",
+      "tags": ["piano", "simple", "root_notes", "quarter_notes", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "root"}
+      ]
+    },
+    "piano_flowing_arpeggio_eighths_rh": {
+      "description": "Flowing eighth note arpeggio for RH piano.",
+      "tags": ["piano", "arpeggio", "eighth_notes", "right_hand"],
+      "arpeggio_type": "up",
+      "note_duration_ql": 0.5,
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_chordal_moving_rh_pattern": {
+      "description": "Chordal and moving rhythm pattern for RH piano.",
+      "tags": ["piano", "chordal", "moving", "right_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.5, "velocity_factor": 0.75},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_powerful_block_8ths_rh": {
+      "description": "Powerful 8th note block chords for RH piano.",
+      "tags": ["piano", "powerful", "block_chord", "eighth_notes", "right_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.85},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.85},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.85}
+      ]
+    },
+    "piano_sustained_root_lh": {
+      "description": "Sustained root notes for LH piano.",
+      "tags": ["piano", "sustained", "root_notes", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+      ]
+    },
+    "piano_walking_bass_like_lh": {
+      "description": "Walking bass like pattern for LH piano.",
+      "tags": ["piano", "walking_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.65, "type": "approaching_next_beat_or_chord_tone"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root_or_fifth"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.65, "type": "leading_to_next_chord"}
+      ]
+    },
+    "piano_active_octave_bass_lh": {
+      "description": "Active octave bass pattern for LH piano.",
+      "tags": ["piano", "active", "octave_bass", "left_hand"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.7},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 0.75, "type": "octave_root"},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.7}
+      ]
+    },
+    "default_piano_quarters": {
+      "description": "Piano default quarter note rhythm (Fallback).",
+      "tags": ["piano", "default", "quarter_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.7},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.7},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7}
+      ]
+    },
+    "piano_lh_whole_notes": {
+      "description": "Simple whole note roots for LH piano (fallback).",
+      "tags": ["piano", "simple", "root_notes", "whole_notes", "left_hand", "fallback"],
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6, "type": "root"}
+      ]
+    },
+    "piano_fallback_block": {
+      "description": "Piano fallback block chords (simple).",
+      "tags": ["piano", "fallback", "block_chord"],
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}
+      ]
+    }
   },
-  "sections": {
-    "Verse 1": {
-      "order": 1,
-      "length_in_measures": 9,
-      "tonic": "D",
-      "mode": "dorian",
-      "musical_intent": {
-        "emotion": "quiet_pain_and_nascent_strength",
-        "intensity": "low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 55,
-        "piano_velocity_lh": 50,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 8.0
-      },
-      "chord_progression": [
-        {
-          "label": "Dsus2",
-          "duration_beats": 4,
-          "nuance": "transparent_longing_dorian_i_sus2"
-        },
-        {
-          "label": "Gsus2/D",
-          "duration_beats": 4,
-          "nuance": "gentle_movement_dorian_iv_sus2_over_tonic_pedal"
-        },
-        {
-          "label": "Cadd9",
-          "duration_beats": 4,
-          "nuance": "hint_of_light_dorian_VII_add9"
-        },
-        {
-          "label": "Amadd9",
-          "duration_beats": 4,
-          "nuance": "reflective_dorian_v_add9"
-        },
-        {
-          "label": "Dsus2",
-          "duration_beats": 4,
-          "nuance": "return_to_longing_dorian_i_sus2"
-        },
-        {
-          "label": "B-add9",
-          "duration_beats": 4,
-          "nuance": "introspective_color_dorian_bVI_add9"
-        },
-        {
-          "label": "Csus4/G",
-          "duration_beats": 4,
-          "nuance": "yearning_dorian_VIIsus4_over_V"
-        },
-        {
-          "label": "Dm",
-          "duration_beats": 7,
-          "nuance": "quiet_resolve_lingering_dorian_i"
-        }
-      ],
-      "adjusted_start_beat": 0.0
+  "drum_patterns": {
+    "default_drum_pattern": {
+      "description": "Default simple kick and snare (Global Fallback).",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick", "offset": 0.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.0, "velocity": 90, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 90, "duration": 0.1}
+      ]
     },
-    "Pre-Chorus 1": {
-      "order": 2,
-      "length_in_measures": 10,
-      "tonic": "A",
-      "mode": "aeolian",
-      "musical_intent": {
-        "emotion": "deep_regret_gratitude_and_realization",
-        "intensity": "medium_low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_chordal_moving_rh",
-        "piano_lh_style_keyword": "piano_walking_bass_like_lh",
-        "piano_velocity_rh": 60,
-        "piano_velocity_lh": 55,
-        "piano_apply_pedal": true,
-        "drum_style_key": "ballad_soft_kick_snare_8th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 37.25
-      },
-      "chord_progression": [
-        {
-          "label": "Am7add11",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "G13",
-          "duration_beats": 4
-        },
-        {
-          "label": "Cmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Bdim7",
-          "duration_beats": 4,
-          "nuance": "passing_diminished_tension"
-        },
-        {
-          "label": "E7b9",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 5.25
-        },
-        {
-          "label": "Rest",
-          "duration_beats": 2.75
-        }
-      ],
-      "adjusted_start_beat": 35.0
+    "ballad_soft_kick_snare_8th_hat": {
+      "description": "Refined soft ballad with subtle ghost snare and expressive hats.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick", "offset": 0.0, "velocity": 75, "duration": 0.2},
+        {"instrument": "chh", "offset": 0.0, "velocity": 60, "duration": 0.1},
+        {"instrument": "chh", "offset": 0.48, "velocity": 50, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 78, "duration": 0.2},
+        {"instrument": "chh", "offset": 1.0, "velocity": 58, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.52, "velocity": 53, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.0, "velocity": 72, "duration": 0.2},
+        {"instrument": "ghost_snare", "offset": 2.25, "velocity": 40, "duration": 0.1},
+        {"instrument": "chh", "offset": 2.0, "velocity": 60, "duration": 0.1},
+        {"instrument": "chh", "offset": 2.48, "velocity": 52, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 78, "duration": 0.2},
+        {"instrument": "chh", "offset": 3.0, "velocity": 60, "duration": 0.1},
+        {"instrument": "chh", "offset": 3.5, "velocity": 55, "duration": 0.1}
+      ]
     },
-    "Chorus 1": {
-      "order": 3,
-      "length_in_measures": 9,
-      "tonic": "F",
-      "mode": "ionian",
-      "musical_intent": {
-        "emotion": "acceptance_of_love_and_pain_hopeful_belief",
-        "intensity": "medium_high"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_powerful_block_chords_rh",
-        "piano_lh_style_keyword": "piano_active_octave_bass_lh",
-        "piano_velocity_rh": 75,
-        "piano_velocity_lh": 70,
-        "piano_apply_pedal": true,
-        "drum_style_key": "anthem_rock_chorus_16th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 77.25
-      },
-      "chord_progression": [
-        {
-          "label": "Fmaj7add9",
-          "duration_beats": 4
-        },
-        {
-          "label": "C/E",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7sus4",
-          "duration_beats": 2
-        },
-        {
-          "label": "C7",
-          "duration_beats": 2
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "F/A",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 2.0
-        }
+    "rock_ballad_build_up_8th_hat": {
+      "description": "Rock ballad with dynamic crescendos and ghost textures.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick", "offset": 0.0, "velocity": 88, "duration": 0.1},
+        {"instrument": "chh", "offset": 0.0, "velocity": 70, "duration": 0.1},
+        {"instrument": "kick", "offset": 0.75, "velocity": 80, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
+        {"instrument": "chh", "offset": 0.5, "velocity": 63, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 92, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.0, "velocity": 68, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.5, "velocity": 64, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.0, "velocity": 85, "duration": 0.1},
+        {"instrument": "chh", "offset": 2.0, "velocity": 70, "duration": 0.1},
+        {"instrument": "kick", "offset": 2.5, "velocity": 80, "duration": 0.1},
+        {"instrument": "chh", "offset": 2.5, "velocity": 65, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 93, "duration": 0.1},
+        {"instrument": "ghost_snare", "offset": 3.25, "velocity": 35, "duration": 0.1},
+        {"instrument": "chh", "offset": 3.0, "velocity": 70, "duration": 0.1},
+        {"instrument": "chh", "offset": 3.5, "velocity": 65, "duration": 0.1}
       ],
-      "adjusted_start_beat": 75.0
+      "fill_ins": {
+        "expressive_fill": [
+          {"instrument": "tom1", "offset": 0.0, "velocity": 95, "duration": 0.125},
+          {"instrument": "tom2", "offset": 0.25, "velocity": 105, "duration": 0.125},
+          {"instrument": "tom3", "offset": 0.5, "velocity": 115, "duration": 0.125},
+          {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
+        ],
+        "snare_buzz_roll": [
+          {"instrument": "snare", "offset": 0.0, "velocity": 60, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.1, "velocity": 65, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.2, "velocity": 70, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.3, "velocity": 80, "duration": 0.05},
+          {"instrument": "snare", "offset": 0.4, "velocity": 90, "duration": 0.05}
+        ]
+      }
     },
-    "Verse 2": {
-      "order": 4,
-      "length_in_measures": 8,
-      "tonic": "C",
-      "mode": "phrygian",
-      "musical_intent": {
-        "emotion": "self_reproach_regret_deep_sadness",
-        "intensity": "medium_low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 50,
-        "piano_velocity_lh": 45,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums_or_sparse_cymbal"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 112.5
-      },
-      "chord_progression": [
-        {
-          "label": "Cm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "D-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "E-m7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fm",
-          "duration_beats": 4
-        },
-        {
-          "label": "Cm",
-          "duration_beats": 4
-        },
-        {
-          "label": "A-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7b5",
-          "duration_beats": 2
-        },
-        {
-          "label": "C7#9b13",
-          "duration_beats": 2,
-          "nuance": "phrygian_dominant_flavor"
-        },
-        {
-          "label": "Cm",
-          "duration_beats": 3.0
-        }
+    "anthem_rock_chorus_16th_hat": {
+      "description": "Pro-style anthem rock chorus with nuanced 16th hats and ghost notes.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick", "offset": 0.0, "velocity": 110, "duration": 0.1},
+        {"instrument": "chh", "offset": 0.0, "velocity": 85, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 0.72, "velocity": 65, "duration": 0.05},
+        {"instrument": "ghost_snare", "offset": 0.9, "velocity": 40, "duration": 0.1},
+        {"instrument": "snare", "offset": 1.0, "velocity": 105, "duration": 0.1},
+        {"instrument": "chh", "offset": 1.0, "velocity": 85, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 1.72, "velocity": 65, "duration": 0.05},
+        {"instrument": "kick", "offset": 2.0, "velocity": 110, "duration": 0.1},
+        {"instrument": "crash", "offset": 2.0, "velocity": 100, "duration": 0.5},
+        {"instrument": "chh", "offset": 2.0, "velocity": 85, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 2.72, "velocity": 65, "duration": 0.05},
+        {"instrument": "ghost_snare", "offset": 2.9, "velocity": 45, "duration": 0.1},
+        {"instrument": "snare", "offset": 3.0, "velocity": 105, "duration": 0.1},
+        {"instrument": "chh", "offset": 3.0, "velocity": 85, "duration": 0.05},
+        {"instrument": "chh", "offset": 3.24, "velocity": 70, "duration": 0.05},
+        {"instrument": "chh", "offset": 3.48, "velocity": 78, "duration": 0.05},
+        {"instrument": "chh", "offset": 3.72, "velocity": 65, "duration": 0.05}
       ],
-      "adjusted_start_beat": 109.0
+      "fill_ins": {
+        "soulful_tom_roll": [
+          {"instrument": "tom1", "offset": 0.0, "velocity": 90, "duration": 0.125},
+          {"instrument": "tom2", "offset": 0.25, "velocity": 100, "duration": 0.125},
+          {"instrument": "tom3", "offset": 0.5, "velocity": 115, "duration": 0.125},
+          {"instrument": "crash", "offset": 0.75, "velocity": 127, "duration": 1.0}
+        ]
+      }
     },
-    "Chorus 2": {
-      "order": 5,
-      "length_in_measures": 7,
-      "tonic": "D",
-      "mode": "dorian",
-      "musical_intent": {
-        "emotion": "supported_light_longing_for_rebirth",
-        "intensity": "medium"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_chordal_moving_rh",
-        "piano_lh_style_keyword": "piano_walking_bass_like_lh",
-        "piano_velocity_rh": 65,
-        "piano_velocity_lh": 60,
-        "piano_apply_pedal": true,
-        "drum_style_key": "rock_ballad_build_up_8th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 32.0
-      },
-      "chord_progression": [
-        {
-          "label": "Dm7add13",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Em7b5",
-          "duration_beats": 4
-        },
-        {
-          "label": "A7b9",
-          "duration_beats": 1.0
-        }
-      ],
-      "adjusted_start_beat": 140.0
+    "lofi_hh_half_time": {
+      "description": "Lo‑fi hip‑hop style half‑time drums with swing hats.",
+      "time_signature": "4/4",
+      "pattern": [
+        {"instrument": "kick",  "offset": 0.0,  "velocity": 85, "duration": 0.05},
+        {"instrument": "snare", "offset": 2.0,  "velocity": 90, "duration": 0.05},
+        {"instrument": "ohh",   "offset": 0.0,  "velocity": 60, "duration": 0.05},
+        {"instrument": "chh",   "offset": 1.4,  "velocity": 50, "duration": 0.05},
+        {"instrument": "chh",   "offset": 1.9,  "velocity": 45, "duration": 0.05},
+        {"instrument": "ohh",   "offset": 2.0,  "velocity": 62, "duration": 0.05},
+        {"instrument": "chh",   "offset": 3.4,  "velocity": 52, "duration": 0.05},
+        {"instrument": "chh",   "offset": 3.9,  "velocity": 47, "duration": 0.05}
+      ]
     },
-    "Interlude": {
-      "order": 6,
-      "length_in_measures": 4,
-      "tonic": "F",
-      "mode": "major",
-      "musical_intent": {
-        "emotion": "reflective_transition_instrumental_passage",
-        "intensity": "medium_low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 60,
-        "piano_velocity_lh": 55,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums_or_gentle_cymbal_swell"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 24.0
-      },
-      "chord_progression": [
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 3.0
-        }
-      ],
-      "adjusted_start_beat": 165.0
+    "no_drums": {
+      "description": "Silence for drums.",
+      "time_signature": "4/4",
+      "pattern": []
     },
-    "Bridge 1": {
-      "order": 7,
-      "length_in_measures": 8,
-      "tonic": "C",
-      "mode": "mixolydian",
-      "musical_intent": {
-        "emotion": "trial_cry_prayer_unbreakable_heart",
-        "intensity": "medium_high"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_powerful_block_chords_rh",
-        "piano_lh_style_keyword": "piano_active_octave_bass_lh",
-        "piano_velocity_rh": 70,
-        "piano_velocity_lh": 65,
-        "piano_apply_pedal": true,
-        "drum_style_key": "rock_ballad_build_up_8th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 32.0
-      },
-      "chord_progression": [
-        {
-          "label": "C13",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "F/A",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4,
-          "nuance": "temporary_resolve_to_F"
-        }
-      ],
-      "adjusted_start_beat": 180.0
+    "no_drums_or_sparse_cymbal": {
+      "description": "Silence or very sparse cymbal swells (verse / intro).",
+      "time_signature": "4/4",
+      "pattern": []
     },
-    "Verse 3": {
-      "order": 8,
-      "length_in_measures": 8,
-      "tonic": "A",
-      "mode": "aeolian",
-      "musical_intent": {
-        "emotion": "memory_unresolved_feelings_silence",
-        "intensity": "low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 50,
-        "piano_velocity_lh": 45,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 32.0
-      },
-      "chord_progression": [
-        {
-          "label": "Am7",
-          "duration_beats": 4,
-          "nuance": "add sus2 feeling"
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "G7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Cmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "E7sus4",
-          "duration_beats": 2
-        },
-        {
-          "label": "E7",
-          "duration_beats": 2
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 8
-        }
-      ],
-      "adjusted_start_beat": 212.0
+    "no_drums_or_gentle_cymbal_swell": {
+      "description": "Gentle swell on crash / ride; otherwise silence.",
+      "time_signature": "4/4",
+      "pattern": []
     },
-    "Pre-Chorus 2": {
-      "order": 9,
-      "length_in_measures": 12,
-      "tonic": "D",
-      "mode": "dorian",
-      "musical_intent": {
-        "emotion": "wavering_heart_gratitude_chosen_strength",
-        "intensity": "medium"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_chordal_moving_rh",
-        "piano_lh_style_keyword": "piano_walking_bass_like_lh",
-        "piano_velocity_rh": 65,
-        "piano_velocity_lh": 60,
-        "piano_apply_pedal": true,
-        "drum_style_key": "ballad_soft_kick_snare_8th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 46.0
-      },
-      "chord_progression": [
-        {
-          "label": "Dm7add11",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C/B-",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 4
-        },
-        {
-          "label": "D7sus4",
-          "duration_beats": 2,
-          "nuance": "turnaround_to_Gm_or_Dm"
-        },
-        {
-          "label": "D7",
-          "duration_beats": 2
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "A7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 6
-        },
-        {
-          "label": "Rest",
-          "duration_beats": 1.0
-        }
-      ],
-      "adjusted_start_beat": 244.0
+    "no_drums_or_sparse_chimes": {
+      "description": "Sparse wind-chime or shaker hits; default empty.",
+      "time_signature": "4/4",
+      "pattern": []
     },
-    "Chorus 3": {
-      "order": 10,
-      "length_in_measures": 9,
-      "tonic": "F",
-      "mode": "ionian",
-      "musical_intent": {
-        "emotion": "reaffirmed_strength_of_love_positive_determination",
-        "intensity": "high"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_powerful_block_chords_rh",
-        "piano_lh_style_keyword": "piano_active_octave_bass_lh",
-        "piano_velocity_rh": 80,
-        "piano_velocity_lh": 75,
-        "piano_apply_pedal": true,
-        "drum_style_key": "anthem_rock_chorus_16th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 48.0,
-        "drum_fill_at_end": "chorus_end_fill"
-      },
-      "chord_progression": [
-        {
-          "label": "Fmaj7add13",
-          "duration_beats": 4
-        },
-        {
-          "label": "C/E",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4,
-          "nuance": "strong_dominant"
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 1.0
-        }
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "drum_patterns": {
+    "base_4_4_straight_kick_snare": {
+      "description": "Basic 4/4 straight kick on 1 & 3, snare on 2 & 4.",
+      "time_signature": "4/4",
+      "length_beats": 4,
+      "swing": { "type": "eighth", "ratio": 0.50 },
+      "density_level": "low",
+      "pattern": [
+        { "instrument": "kick",  "offset": 0.0, "velocity": 90 },
+        { "instrument": "snare", "offset": 1.0, "velocity": 90 },
+        { "instrument": "kick",  "offset": 2.0, "velocity": 90 },
+        { "instrument": "snare", "offset": 3.0, "velocity": 90 }
       ],
-      "adjusted_start_beat": 291.0
+      "fill_ins": {}
     },
-    "Bridge 2": {
-      "order": 11,
-      "length_in_measures": 8,
-      "tonic": "Bb",
-      "mode": "lydian",
-      "musical_intent": {
-        "emotion": "hope_dawn_light_gentle_guidance",
-        "intensity": "medium"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 60,
-        "piano_velocity_lh": 55,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums_or_gentle_cymbal_swell"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 32.0
-      },
-      "chord_progression": [
-        {
-          "label": "B-maj7#11add9",
-          "duration_beats": 4
-        },
-        {
-          "label": "C/B-",
-          "duration_beats": 4
-        },
-        {
-          "label": "Am7",
-          "duration_beats": 4,
-          "nuance": "contrast_to_lydian_brightness"
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4,
-          "nuance": "return_to_global_tonic_area"
-        },
-        {
-          "label": "B-maj7#11",
-          "duration_beats": 4,
-          "nuance": "add sus2 feeling"
-        }
+
+    "rock_beat_A_8th_hat": {
+      "inherit": "base_4_4_straight_kick_snare",
+      "description": "Rock beat with 8th‑note closed hats.",
+      "density_level": "medium",
+      "tags": ["drums", "rock", "8th_hat", "groove_mid"],
+      "pattern": [
+        { "instrument": "kick",  "offset": 0.0, "velocity": 100 },
+        { "instrument": "chh",   "offset": 0.0, "velocity": 72 },
+        { "instrument": "chh",   "offset": 0.5, "velocity": 60 },
+        { "instrument": "snare", "offset": 1.0, "velocity": 100 },
+        { "instrument": "chh",   "offset": 1.0, "velocity": 70 },
+        { "instrument": "chh",   "offset": 1.5, "velocity": 60 },
+        { "instrument": "kick",  "offset": 2.0, "velocity": 98 },
+        { "instrument": "ghost_snare", "offset": 2.25, "velocity": 40, "duration": 0.05, "probability": 0.6 },
+        { "instrument": "chh",   "offset": 2.0, "velocity": 72 },
+        { "instrument": "chh",   "offset": 2.5, "velocity": 60 },
+        { "instrument": "snare", "offset": 3.0, "velocity": 100 },
+        { "instrument": "chh",   "offset": 3.0, "velocity": 70 },
+        { "instrument": "chh",   "offset": 3.5, "velocity": 60 }
       ],
-      "adjusted_start_beat": 324.0
+      "fill_ins": {
+        "rock_fill_1": [
+          { "instrument": "tom1", "offset": 0.0,  "velocity": 95,  "duration": 0.125 },
+          { "instrument": "tom2", "offset": 0.25, "velocity": 105, "duration": 0.125 },
+          { "instrument": "tom3", "offset": 0.5,  "velocity": 115, "duration": 0.125 },
+          { "instrument": "crash", "offset": 0.75, "velocity": 120, "duration": 1.0 }
+        ]
+      }
     },
-    "Verse 4": {
-      "order": 12,
-      "length_in_measures": 8,
-      "tonic": "Bb",
-      "mode": "lydian",
-      "musical_intent": {
-        "emotion": "nature_memory_floating_sensation_forgiveness",
-        "intensity": "medium_low"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_reflective_arpeggio_rh",
-        "piano_lh_style_keyword": "piano_sustained_root_lh",
-        "piano_velocity_rh": 55,
-        "piano_velocity_lh": 50,
-        "piano_apply_pedal": true,
-        "drum_style_key": "no_drums_or_sparse_chimes"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 64.0
-      },
-      "chord_progression": [
-        {
-          "label": "B-maj7#11add9",
-          "duration_beats": 4
-        },
-        {
-          "label": "F/A",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7sus4",
-          "duration_beats": 2,
-          "nuance": "gentle_suspension"
-        },
-        {
-          "label": "C7",
-          "duration_beats": 2
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4,
-          "nuance": "momentary_grounding"
-        },
-        {
-          "label": "E-maj7#11",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7/D",
-          "duration_beats": 4
-        },
-        {
-          "label": "Cm7",
-          "duration_beats": 4
-        }
+
+    "rock_beat_A_16th_hat_slight_swing": {
+      "inherit": "rock_beat_A_8th_hat",
+      "description": "Rock beat variant with 16‑note hats and slight swing.",
+      "swing": { "type": "sixteenth", "ratio": 0.55 },
+      "density_level": "high",
+      "tags": ["drums", "rock", "16th_hat", "anthem_high"],
+      "pattern": [
+        { "instrument": "kick",  "offset": 0.0,  "velocity": 100 },
+        { "instrument": "snare", "offset": 1.0,  "velocity": 105 },
+        { "instrument": "kick",  "offset": 2.0,  "velocity": 100 },
+        { "instrument": "snare", "offset": 3.0,  "velocity": 105 },
+
+        { "instrument": "chh", "offset": 0.0,  "velocity": 74 },
+        { "instrument": "chh", "offset": 0.25, "velocity": 58 },
+        { "instrument": "chh", "offset": 0.5,  "velocity": 68 },
+        { "instrument": "chh", "offset": 0.75, "velocity": 58 },
+
+        { "instrument": "chh", "offset": 1.0,  "velocity": 74 },
+        { "instrument": "chh", "offset": 1.25, "velocity": 58 },
+        { "instrument": "chh", "offset": 1.5,  "velocity": 68 },
+        { "instrument": "chh", "offset": 1.75, "velocity": 58 },
+
+        { "instrument": "chh", "offset": 2.0,  "velocity": 74 },
+        { "instrument": "chh", "offset": 2.25, "velocity": 58 },
+        { "instrument": "chh", "offset": 2.5,  "velocity": 68 },
+        { "instrument": "chh", "offset": 2.75, "velocity": 58 },
+
+        { "instrument": "chh", "offset": 3.0,  "velocity": 74 },
+        { "instrument": "chh", "offset": 3.25, "velocity": 58 },
+        { "instrument": "chh", "offset": 3.5,  "velocity": 68 },
+        { "instrument": "chh", "offset": 3.75, "velocity": 58 }
       ],
-      "adjusted_start_beat": 356.0
+      "fill_ins": {
+        "fast_tom_roll": [
+          { "instrument": "tom1", "offset": 0.0,  "velocity": 92, "duration": 0.1 },
+          { "instrument": "tom2", "offset": 0.16, "velocity": 100, "duration": 0.1 },
+          { "instrument": "tom3", "offset": 0.32, "velocity": 108, "duration": 0.1 },
+          { "instrument": "crash", "offset": 0.48, "velocity": 124, "duration": 1.0 }
+        ]
+      }
     },
-    "Chorus 4": {
-      "order": 13,
-      "length_in_measures": 8,
-      "tonic": "F",
-      "mode": "ionian",
-      "musical_intent": {
-        "emotion": "future_cooperation_our_path_final_resolve_and_liberation",
-        "intensity": "high_to_very_high_then_fade"
-      },
-      "part_settings": {
-        "piano_rh_style_keyword": "piano_powerful_block_chords_rh",
-        "piano_lh_style_keyword": "piano_active_octave_bass_lh",
-        "piano_velocity_rh": 85,
-        "piano_velocity_lh": 80,
-        "piano_apply_pedal": true,
-        "drum_style_key": "anthem_rock_chorus_16th_hat"
-      },
-      "part_specific_hints": {
-        "lyrics_end_actual_beats_from_section_start": 129.5,
-        "mode_shift_to_lydian_beat_offset": 96.0
-      },
-      "chord_progression": [
-        {
-          "label": "Fmaj7add9",
-          "duration_beats": 4
-        },
-        {
-          "label": "C/E",
-          "duration_beats": 4
-        },
-        {
-          "label": "Dm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Gm7",
-          "duration_beats": 4
-        },
-        {
-          "label": "C7",
-          "duration_beats": 4
-        },
-        {
-          "label": "Fmaj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "B-maj7",
-          "duration_beats": 4
-        },
-        {
-          "label": "F/A",
-          "duration_beats": 4
-        }
+
+    "lofi_hh_half_time": {
+      "description": "Lo‑fi hip‑hop half‑time groove with lazy swing.",
+      "time_signature": "4/4",
+      "length_beats": 4,
+      "swing": { "type": "eighth", "ratio": 0.60 },
+      "density_level": "low",
+      "tags": ["drums", "lofi", "hiphop", "half_time", "swing"],
+      "pattern": [
+        { "instrument": "kick",  "offset": 0.0,  "velocity": 82 },
+        { "instrument": "snare", "offset": 2.0,  "velocity": 88 },
+        { "instrument": "ohh",   "offset": 0.0,  "velocity": 60 },
+        { "instrument": "chh",   "offset": 1.4,  "velocity": 52 },
+        { "instrument": "chh",   "offset": 1.9,  "velocity": 46 },
+        { "instrument": "ohh",   "offset": 2.0,  "velocity": 64 },
+        { "instrument": "chh",   "offset": 3.4,  "velocity": 54 },
+        { "instrument": "chh",   "offset": 3.9,  "velocity": 48 }
       ],
-      "adjusted_start_beat": 388.0
+      "fill_ins": {}
+    },
+    "drums_algo_random_fill": {
+      "description": "Algorithmic tom‑driven random fill (triggered via pattern_type).",
+      "pattern_type": "random_tom_fill",
+      "options": {
+        "fill_density": 0.7,
+        "allow_snare": true,
+        "max_velocity": 112
+      },
+      "time_signature": "4/4",
+      "length_beats": 1,
+      "tags": ["drums", "algorithmic", "fill"]
+    }
+  },
+"drums_algo_random_fill": {
+      "description": "タム主体のランダムフィル（フィルキーが指定されたときにのみ使用）",
+      "tags": ["drums", "algorithmic", "fill", "random_tom_fill"],
+      "time_signature": "4/4",
+      "pattern_type": "random_tom_fill",
+      "options": {
+        "fill_density": 0.7,
+        "allow_snare": true,
+        "max_velocity": 110
+      },
+      "pattern": []
+    }
+  },
+
+  "bass_patterns": {
+    "bass_quarter_notes": {
+      "description": "Simple quarter-note roots (default).",
+      "tags": ["bass", "default", "quarter_notes", "root"],
+      "time_signature": "4/4",
+      "pattern_type": "fixed_pattern",
+      "velocity_base": 72,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.70, "type": "root"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.70, "type": "root"}
+      ]
+    },
+
+    "root_only": {
+      "description": "Whole‑ or half‑note roots only (very low intensity).",
+      "tags": ["bass", "simple", "long_notes", "root"],
+      "time_signature": "4/4",
+      "pattern_type": "algorithmic_root_only",
+      "velocity_base": 65,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.60}
+      ]
+    },
+
+    "root_fifth": {
+      "description": "Root‑fifth alternation pattern (ballad feel).",
+      "tags": ["bass", "ballad", "root_fifth"],
+      "time_signature": "4/4",
+      "pattern_type": "algorithmic_root_fifth",
+      "velocity_base": 70,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 0.0, "duration": 2.0, "velocity_factor": 0.70},
+        {"offset": 2.0, "duration": 2.0, "velocity_factor": 0.65}
+      ]
+    },
+
+    "walking": {
+      "description": "4‑beat walking bass (quarter notes).",
+      "tags": ["bass", "walking", "jazz"],
+      "time_signature": "4/4",
+      "pattern_type": "algorithmic_walking",
+      "velocity_base": 73,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.70},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.70}
+      ]
+    },
+
+    "bass_walking_8ths": {
+      "description": "Swing‑feel walking bass in straight 8ths (root ➜ approach ➜ chord‑tone ➜ approach).",
+      "tags": ["bass", "walking", "swing", "eighth_notes", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "walking_8ths",
+      "velocity_base": 70,
+      "target_octave": 2,
+      "options": {"approach_note_prob": 0.4, "swing_ratio": 0.0},
+      "pattern": [
+        {"offset": 0.0, "scale_degree": 1, "velocity_factor": 1.00},
+        {"offset": 0.5, "scale_degree": 3, "velocity_factor": 0.90},
+        {"offset": 1.0, "scale_degree": 5, "velocity_factor": 0.95},
+        {"offset": 1.5, "scale_degree": 6, "velocity_factor": 0.85},
+        {"offset": 2.0, "scale_degree": 1, "octave": -1, "velocity_factor": 1.05},
+        {"offset": 2.5, "scale_degree": 4, "velocity_factor": 0.90},
+        {"offset": 3.0, "scale_degree": "♭7", "velocity_factor": 0.95},
+        {"offset": 3.5, "scale_degree": 5, "velocity_factor": 1.00}
+      ]
+    },
+
+    "bass_walking_blues": {
+      "description": "8分音符のスウィング・ウォーキング (Blues).",
+      "tags": ["bass", "walking", "blues", "eighth_notes", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "walking_blues",
+      "velocity_base": 72,
+      "target_octave": 2,
+      "options": {"shuffle": 0.67}
+    },
+
+    "bass_funk_octave": {
+      "description": "ファンク的な2オクターブ跳躍リック",
+      "tags": ["bass", "funk", "octave", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "funk_octave_pops",
+      "velocity_base": 80,
+      "target_octave": 2
+    },
+
+    "bass_latin_tumbao": {
+      "description": "ラテン系トゥンバオ",
+      "tags": ["bass", "latin", "tumbao", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "latin_tumbao",
+      "velocity_base": 75,
+      "target_octave": 2
+    },
+
+    "bass_half_time_pop": {
+      "description": "Half‑time pop groove: long roots with eighth‑anticipation pickup on beat 4&.",
+      "tags": ["bass", "pop", "half_time", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "half_time_pop",
+      "velocity_base": 75,
+      "target_octave": 2,
+      "options": {"ghost_on_beat_2_and_a_half": true}
+    },
+
+    "bass_syncopated_rnb": {
+      "description": "16th‑syncopated R&B / neo‑soul motif with ghost 16ths.",
+      "tags": ["bass", "rnb", "syncopated", "sixteenth_notes", "algorithmic"],
+      "time_signature": "4/4",
+      "pattern_type": "syncopated_rnb",
+      "velocity_base": 78,
+      "target_octave": 2,
+      "options": {"ghost_velocity_ratio": 0.5}
+    },
+
+    "bass_pump_8th_octaves": {
+      "description": "Driving rock/punk pump on root octaves in straight 8ths.",
+      "tags": ["bass", "rock", "octave", "eighth_notes", "fixed_pattern"],
+      "time_signature": "4/4",
+      "pattern_type": "fixed_pattern",
+      "velocity_base": 78,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 1.00, "type": "root"},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 1.00, "type": "root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 1.00, "type": "root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 1.00, "type": "root"},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.95, "type": "octave_root"}
+      ]
+    },
+
+    "bass_reggae_offbeat": {
+      "description": "Reggae one‑drop off‑beat 8ths with muted pickup.",
+      "tags": ["bass", "reggae", "offbeat", "fixed_pattern"],
+      "time_signature": "4/4",
+      "pattern_type": "fixed_pattern",
+      "velocity_base": 75,
+      "target_octave": 2,
+      "pattern": [
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.85, "type": "root"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.80, "type": "fifth"},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.90, "type": "root"},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.85, "type": "fifth"}
+      ]
+    },
+
+    "bass_808_trap": {
+      "description": "808 slide & hold pattern for modern trap.",
+      "tags": ["bass", "trap", "808", "slide", "fixed_pattern"],
+      "time_signature": "4/4",
+      "pattern_type": "fixed_pattern",
+      "velocity_base": 82,
+      "target_octave": 1,
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 1.00, "type": "root", "glide_to_next": true},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 0.95, "type": "fifth"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.90, "type": "approach"},
+        {"offset": 2.0, "duration": 2.0, "velocity_factor": 1.00, "type": "root", "glide_to_next": true}
+      ]
+    },
+
+    "bass_algo_walk_8ths": {
+      "description": "Scale‑walk 8ths based on chord progression.",
+      "tags": ["bass", "algorithmic", "scale_walk", "eighth_notes"],
+      "time_signature": "4/4",
+      "pattern_type": "scale_walk",
+      "velocity_base": 70,
+      "target_octave": 2,
+      "options": {
+        "note_resolution_ql": 0.5,
+        "direction": "up_down",
+        "start_on": "root",
+        "max_range_octaves": 1,
+        "approach_notes": "chromatic"
+      }
+    },
+
+    "bass_algo_syncopated_octave_jump": {
+      "description": "Syncopated root + octave jumps for pop/rock.",
+      "tags": ["bass", "algorithmic", "octave_jump", "syncopated"],
+      "time_signature": "4/4",
+      "pattern_type": "octave_jump",
+      "velocity_base": 78,
+      "target_octave": 2,
+      "options": {
+        "pattern_offsets_ql": [0.0, 1.5, 2.0, 3.0],
+        "accent_velocity_boost": 10,
+        "humanize_timing": 0.02
+      }
+    },
+
+    "bass_algo_desc_fifths_quarters": {
+      "description": "Descending fifths in quarter notes for cadence.",
+      "tags": ["bass", "algorithmic", "descending_fifths", "quarter_notes"],
+      "time_signature": "4/4",
+      "pattern_type": "descending_fifths",
+      "velocity_base": 74,
+      "target_octave": 2,
+      "options": {
+        "note_resolution_ql": 1.0,
+        "length_beats": 4,
+        "velocity_curve": "crescendo"
+      }
+    },
+    "bass_algo_modal_pedal": {
+      "description": "Modal pedal tone for ballads/film score.",
+      "tags": ["bass", "algorithmic", "pedal_tone", "modal"],
+      "time_signature": "4/4",
+      "pattern_type": "pedal_tone",
+      "velocity_base": 70,
+      "target_octave": 2,
+      "options": {
+        "pedal_choice": "tonic",
+        "pedal_length_beats": 8,
+        "fill_every_n_measures": 2,
+        "humanize_velocity": 5
+      }
+    }
+  },
+  "guitar_patterns": {
+    "guitar_default_quarters": {
+      "description": "Default quarter note strums/hits for guitar.",
+      "tags": ["guitar", "default", "strum", "quarter_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.8, "strum_direction": "down", "articulation": "normal"},
+        {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.75, "strum_direction": "down", "articulation": "normal"},
+        {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.8, "strum_direction": "down", "articulation": "normal"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.75, "strum_direction": "down", "articulation": "normal"}
+      ]
+    },
+    "guitar_folk_strum_simple": {
+      "description": "Simple folk strum D _ D U _ D _ (D=Down, U=Up).",
+      "tags": ["guitar", "folk", "strum"],
+      "pattern": [
+        {"offset": 0.0, "duration": 1.0, "velocity_factor": 0.9, "strum_direction": "down"},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.7, "strum_direction": "down"},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 0.8, "strum_direction": "up"},
+        {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.85, "strum_direction": "down"}
+      ]
+    },
+    "guitar_ballad_arpeggio": {
+      "description": "Gentle arpeggio for ballads.",
+      "tags": ["guitar", "arpeggio", "ballad"],
+      "pattern_type": "arpeggio_standard",
+      "note_duration_ql": 0.5,
+      "pattern": [
+        {"offset": 0.0, "duration": 4.0, "velocity_factor": 0.7}
+      ]
+    },
+    "guitar_rock_mute_16th": {
+      "description": "Fast 16th note muted rhythm for rock/funk.",
+      "tags": ["guitar", "rock", "funk", "mute", "sixteenth_notes"],
+      "pattern_type": "mute_fixed_step",
+      "step_duration_ql": 0.25,
+      "note_articulation_factor": 0.3,
+      "pattern": []
+    },
+    "guitar_power_chord_8ths": {
+      "description": "Basic 8th note power chord rhythm.",
+      "tags": ["guitar", "power_chord", "eighth_notes"],
+      "pattern": [
+        {"offset": 0.0, "duration": 0.5, "velocity_factor": 1.0},
+        {"offset": 0.5, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 1.0, "duration": 0.5, "velocity_factor": 1.0},
+        {"offset": 1.5, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 2.0, "duration": 0.5, "velocity_factor": 1.0},
+        {"offset": 2.5, "duration": 0.5, "velocity_factor": 0.9},
+        {"offset": 3.0, "duration": 0.5, "velocity_factor": 1.0},
+        {"offset": 3.5, "duration": 0.5, "velocity_factor": 0.9}
+      ]
     }
   }
 }
+
