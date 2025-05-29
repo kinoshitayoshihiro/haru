@@ -128,8 +128,13 @@ def apply_humanization_to_part(
         logger.error("Humanizer: apply_humanization_to_part expects a music21.stream.Part object.")
         return part_to_humanize 
 
-    humanized_part = stream.Part(id=part_to_humanize.id + "_humanized" if part_to_humanize.id else "HumanizedPart") 
-    
+    # part_to_humanize.id が int の場合もあるので、文字列に変換してから連結する
+    if part_to_humanize.id:
+        base_id = str(part_to_humanize.id)
+        new_id = f"{base_id}_humanized"
+    else:
+        new_id = "HumanizedPart"
+    humanized_part = stream.Part(id=new_id)    
     for el_class_item in [instrument.Instrument, tempo.MetronomeMark, meter.TimeSignature, key.KeySignature, expressions.TextExpression]: 
         for item_el in part_to_humanize.getElementsByClass(el_class_item): 
             humanized_part.insert(item_el.offset, copy.deepcopy(item_el)) 
