@@ -1,4 +1,4 @@
-# --- START OF FILE generator/bass_generator.py (アプローチノート強化・弱拍3rd/5th実装版) ---
+# --- START OF FILE generator/bass_generator.py (アプローチノート強化・弱拍充実版) ---
 import music21
 import logging
 from music21 import stream, note, chord as m21chord, harmony, pitch, tempo, meter, instrument as m21instrument, key, interval, scale
@@ -9,7 +9,7 @@ try:
     from utilities.core_music_utils import get_time_signature_object, sanitize_chord_label, MIN_NOTE_DURATION_QL, _ROOT_RE_STRICT
     from utilities.humanizer import apply_humanization_to_part, HUMANIZATION_TEMPLATES
     from utilities.scale_registry import ScaleRegistry
-    from .bass_utils import get_approach_note_to_target # ★★★ 新しいヘルパー関数をインポート ★★★
+    from .bass_utils import get_approach_note # ★★★ 新しいヘルパー関数をインポート ★★★
 except ImportError as e:
     print(f"BassGenerator: Warning - could not import all utilities: {e}")
     MIN_NOTE_DURATION_QL = 0.125 
@@ -23,8 +23,7 @@ except ImportError as e:
             return music21.scale.MajorScale(tonic_str or "C")
     import re
     _ROOT_RE_STRICT = re.compile(r'^([A-G](?:[#b]{1,2}|[ns])?)(?![#b])')
-    # ダミーの get_approach_note_to_target (インポート失敗時)
-    def get_approach_note_to_target(curr, target, scale, allow_chromatic=True, max_interval=2): return target if target else curr
+    def get_approach_note(from_p, to_p, scale_o, style="chromatic_or_diatonic", max_s=2, pref_dir=None): return to_p # Dummy
 
 # --- (EMOTION_TO_BUCKET_BASS, BUCKET_TO_PATTERN_BASS, choose_bass_pattern_key は変更なし) ---
 EMOTION_TO_BUCKET_BASS: dict[str, str] = { "quiet_pain_and_nascent_strength": "calm", "deep_regret_gratitude_and_realization": "calm", "self_reproach_regret_deep_sadness": "calm", "memory_unresolved_feelings_silence": "calm", "nature_memory_floating_sensation_forgiveness": "calm", "supported_light_longing_for_rebirth": "groovy", "wavering_heart_gratitude_chosen_strength": "groovy", "hope_dawn_light_gentle_guidance": "groovy", "acceptance_of_love_and_pain_hopeful_belief": "energetic", "trial_cry_prayer_unbreakable_heart": "energetic", "reaffirmed_strength_of_love_positive_determination": "energetic", "future_cooperation_our_path_final_resolve_and_liberation": "energetic", "default": "groovy" }
@@ -37,7 +36,6 @@ def choose_bass_pattern_key(section_musical_intent: dict) -> str:
     return pattern_key
 
 class BassGenerator:
-    # ... (__init__, _get_rhythm_pattern_details, _get_bass_pitch_in_octave, _generate_notes_from_fixed_pattern は変更なし) ...
     def __init__(self, rhythm_library: Optional[Dict[str, Dict]] = None, default_instrument: m21instrument.Instrument = m21instrument.AcousticBass(), global_tempo: int = 120, global_time_signature: str = "4/4", global_key_tonic: str = "C", global_key_mode: str = "major", rng_seed: Optional[int] = None):
         self.logger = logging.getLogger(__name__); self.bass_rhythm_library = rhythm_library if rhythm_library else {};
         if not self.bass_rhythm_library: self.logger.warning("BassGenerator: No bass rhythm patterns provided. Using internal defaults only.")
@@ -47,7 +45,7 @@ class BassGenerator:
         self.global_key_tonic = global_key_tonic; self.global_key_mode = global_key_mode
         if rng_seed is not None: self.rng = random.Random(rng_seed)
         else: self.rng = random.Random()
-        if "basic_chord_tone_quarters" not in self.bass_rhythm_library: self.bass_rhythm_library["basic_chord_tone_quarters"] = {"description": "Basic quarter note pattern with configurable weak beats and approach.", "tags": ["bass", "default", "algorithmic"], "pattern_type": "algorithmic_chord_tone_quarters", "options": {"base_velocity": 85, "strong_beat_velocity_boost": 15, "off_beat_velocity_reduction": 5, "target_octave": 2, "weak_beat_style": "root", "approach_on_4th_beat": True, "allow_chromatic_approach_on_4th": True}} # allow_chromatic_approach_on_4th を追加
+        if "basic_chord_tone_quarters" not in self.bass_rhythm_library: self.bass_rhythm_library["basic_chord_tone_quarters"] = {"description": "Basic quarter note pattern with configurable weak beats and approach.", "tags": ["bass", "default", "algorithmic"], "pattern_type": "algorithmic_chord_tone_quarters", "options": {"base_velocity": 85, "strong_beat_velocity_boost": 15, "off_beat_velocity_reduction": 5, "target_octave": 2, "weak_beat_style": "root", "approach_on_4th_beat": True, "approach_style_on_4th": "chromatic_or_diatonic", "allow_chromatic_approach_on_4th": True}} # approach_style_on_4th を追加
         if "bass_quarter_notes" not in self.bass_rhythm_library: self.bass_rhythm_library["bass_quarter_notes"] = {"description": "Default fixed quarter notes.", "tags": ["bass", "default", "fixed_pattern"], "pattern_type":"fixed_pattern", "pattern": [{"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"}, {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}, {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"}, {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}]}
         if "root_only" not in self.bass_rhythm_library: self.bass_rhythm_library["root_only"] = {"description": "Fallback whole-note roots.", "tags": ["bass", "fallback", "algorithmic"], "pattern_type": "algorithmic_root_only", "pattern": [{"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}]}
     def _get_rhythm_pattern_details(self, rhythm_key: str) -> Dict[str, Any]:
@@ -104,17 +102,16 @@ class BassGenerator:
             off_beat_vel_reduction = options.get("off_beat_velocity_reduction", 5)
             weak_beat_style = options.get("weak_beat_style", "root")
             approach_on_4th_beat_opt = options.get("approach_on_4th_beat", True)
-            allow_chromatic_approach = options.get("allow_chromatic_approach_on_4th", True) # 新オプション
+            approach_style_on_4th = options.get("approach_style_on_4th", "chromatic_or_diatonic") # 新オプション
+            allow_chromatic_approach = options.get("allow_chromatic_approach_on_4th", True) # 既存オプション
 
             beats_per_measure_in_block = self.global_time_signature_obj.beatCount 
             num_beats_to_generate = int(block_duration)
-            
-            last_generated_pitch = root_note_obj # アプローチノート選択のために直前の音を保持
+            last_generated_pitch = root_note_obj 
 
             for beat_idx in range(num_beats_to_generate):
                 current_rel_offset = beat_idx * 1.0 
                 if current_rel_offset >= block_duration - MIN_NOTE_DURATION_QL / 2 : break
-                
                 beat_in_measure = beat_idx % beats_per_measure_in_block
                 chosen_pitch_base: Optional[pitch.Pitch] = None
                 current_velocity = base_velocity
@@ -129,29 +126,25 @@ class BassGenerator:
                     else: chosen_pitch_base = root_note_obj
                     current_velocity = min(127, base_velocity + (strong_beat_vel_boost // 2))
                 elif approach_on_4th_beat_opt and next_chord_root and beat_in_measure == (beats_per_measure_in_block - 1) and beat_idx < num_beats_to_generate -1 :
-                    # ★★★ bass_utils.get_approach_note_to_target を使用 ★★★
-                    approach_pitch = get_approach_note_to_target(
-                        last_generated_pitch, # 直前の音を渡す
+                    approach_pitch = get_approach_note( # ★★★ bass_utils の関数呼び出し ★★★
+                        last_generated_pitch, 
                         next_chord_root, 
                         current_scale, 
-                        allow_chromatic=allow_chromatic_approach
+                        approach_style=approach_style_on_4th, # オプションでスタイル指定
+                        # allow_chromatic は get_approach_note 内部で approach_style により解釈される
                     )
-                    if approach_pitch:
-                        chosen_pitch_base = approach_pitch
-                        self.logger.debug(f"BassGen: Approaching next chord {next_chord_root.name} with {chosen_pitch_base.name} on beat {beat_idx+1}")
-                    else: 
-                        chosen_pitch_base = root_note_obj # アプローチが見つからなければルート
+                    if approach_pitch: chosen_pitch_base = approach_pitch
+                    else: chosen_pitch_base = root_note_obj 
                     current_velocity = max(1, base_velocity - off_beat_vel_reduction)
                 else: 
                     current_velocity = max(1, base_velocity - off_beat_vel_reduction)
                     if weak_beat_style == "third_or_fifth":
-                        # 5度があれば5度、なければ3度、それもなければルート
+                        # 5度、3度の順で存在し、かつスケール音か確認
                         if m21_cs.fifth and (not current_scale or current_scale.getScaleDegreeFromPitch(m21_cs.fifth) is not None):
                             chosen_pitch_base = m21_cs.fifth
                         elif m21_cs.third and (not current_scale or current_scale.getScaleDegreeFromPitch(m21_cs.third) is not None):
                             chosen_pitch_base = m21_cs.third
-                        else:
-                            chosen_pitch_base = root_note_obj
+                        else: chosen_pitch_base = root_note_obj # どちらもなければルート
                     elif weak_beat_style == "eighth_roots":
                         for i in range(2):
                             eighth_offset = current_rel_offset + (i * 0.5)
@@ -160,16 +153,19 @@ class BassGenerator:
                             if eighth_duration_ql < MIN_NOTE_DURATION_QL: continue
                             midi_pitch_8th = self._get_bass_pitch_in_octave(root_note_obj, target_octave); n8 = music21.note.Note(); n8.pitch.midi = midi_pitch_8th
                             n8.duration.quarterLength = eighth_duration_ql; n8.volume.velocity = current_velocity - (i * 3) 
-                            notes.append((eighth_offset, n8)); last_generated_pitch = root_note_obj # 8分音符でも更新
+                            notes.append((eighth_offset, n8)); last_generated_pitch = root_note_obj 
                         continue 
-                    else: 
-                        chosen_pitch_base = root_note_obj
+                    elif weak_beat_style == "rest": # ★★★ 休符オプション ★★★
+                        # この拍には音符を追加しない
+                        last_generated_pitch = last_generated_pitch # 直前の音を維持 (次のアプローチ計算用)
+                        continue
+                    else: chosen_pitch_base = root_note_obj
                 
                 if chosen_pitch_base:
                     if note_duration_ql < MIN_NOTE_DURATION_QL: continue
                     midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave); n = music21.note.Note(); n.pitch.midi = midi_pitch
                     n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity; notes.append((current_rel_offset, n))
-                    last_generated_pitch = chosen_pitch_base # 生成された音で更新
+                    last_generated_pitch = chosen_pitch_base 
         
         elif pattern_type == "algorithmic_root_only":
             note_duration_ql = options.get("note_duration_ql", block_duration);
@@ -185,7 +181,7 @@ class BassGenerator:
         return notes
 
     def compose(self, processed_blocks: Sequence[Dict[str, Any]], return_pretty_midi: bool = False) -> Union[stream.Part, Any]:
-        # ... (composeメソッドの前半は変更なし) ...
+        # ... (composeメソッドの前半は変更なし、ただし choose_bass_pattern_key の呼び出しで blk_data["musical_intent"] を渡すようにする) ...
         bass_part = stream.Part(id="Bass"); bass_part.insert(0, self.default_instrument)
         if self.global_tempo: bass_part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
         if self.global_time_signature_obj: bass_part.insert(0, meter.TimeSignature(self.global_time_signature_obj.ratioString))
@@ -199,12 +195,10 @@ class BassGenerator:
         part_overall_humanize_params = None
         for blk_idx, blk_data in enumerate(processed_blocks):
             bass_params_from_chordmap = blk_data.get("part_params", {}).get("bass", {})
-            block_musical_intent = blk_data.get("musical_intent", {}) 
+            block_musical_intent = blk_data.get("musical_intent", {}) # ★★★ prepare_processed_stream で設定されたものを取得 ★★★
             rhythm_key_from_params = bass_params_from_chordmap.get("rhythm_key", bass_params_from_chordmap.get("style"))
             if not rhythm_key_from_params:
-                # ★★★ blk_data から musical_intent を取得して渡すように修正 ★★★
-                # (prepare_processed_stream で blk_data に musical_intent が設定されている前提)
-                rhythm_key_from_params = choose_bass_pattern_key(block_musical_intent) 
+                rhythm_key_from_params = choose_bass_pattern_key(block_musical_intent) # ★★★ musical_intent を渡す ★★★
                 self.logger.info(f"Bass rhythm key for block {blk_idx} chosen by emotion: {rhythm_key_from_params}")
             if not rhythm_key_from_params: rhythm_key_from_params = "basic_chord_tone_quarters"
             if not bass_params_from_chordmap: bass_params_from_chordmap = {"rhythm_key": rhythm_key_from_params, "velocity": 70, "octave": 2}; self.logger.debug(f"BassGenerator: No bass params for block {blk_idx+1}. Using emotion-driven or hardcoded defaults.")
@@ -245,11 +239,13 @@ class BassGenerator:
             generated_notes_for_block: List[Tuple[float, music21.note.Note]] = []
             if m21_cs_obj:
                 if "pattern_type" in pattern_details and isinstance(pattern_details["pattern_type"], str):
-                    algo_options = pattern_details.get("options", {}); algo_options.update(bass_params_from_chordmap.get("options", {})) # chordmapのoptionsを優先
+                    algo_options = pattern_details.get("options", {}); algo_options.update(bass_params_from_chordmap.get("options", {})) 
                     algo_options["base_velocity"] = base_vel; algo_options["target_octave"] = target_oct
                     algo_options["weak_beat_style"] = bass_params_from_chordmap.get("weak_beat_style", algo_options.get("weak_beat_style", "root"))
                     algo_options["approach_on_4th_beat"] = bass_params_from_chordmap.get("approach_on_4th_beat", algo_options.get("approach_on_4th_beat", True))
+                    algo_options["approach_style_on_4th"] = bass_params_from_chordmap.get("approach_style_on_4th", algo_options.get("approach_style_on_4th", "chromatic_or_diatonic")) # 新オプションを反映
                     algo_options["allow_chromatic_approach_on_4th"] = bass_params_from_chordmap.get("allow_chromatic_approach_on_4th", algo_options.get("allow_chromatic_approach_on_4th", True))
+
 
                     generated_notes_for_block = self._generate_algorithmic_pattern( pattern_details["pattern_type"], m21_cs_obj, algo_options, base_vel, target_oct, 0.0, block_q_length, current_m21_scale, next_chord_root_pitch)
                 elif "pattern" in pattern_details and isinstance(pattern_details["pattern"], list):
