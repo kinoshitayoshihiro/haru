@@ -1,13 +1,10 @@
-# --- START OF FILE generator/bass_utils.py (アプローチノート関数追加版) ---
+# --- START OF FILE generator/bass_utils.py (get_approach_note追加版) ---
 from __future__ import annotations
 """bass_utils.py
-Low-level helpers for *bass line generation*, now with vocal context awareness (Phase 1).
-Generates pitch templates for bass lines, considering current and next chords,
-section tonality, and vocal notes within the current block for basic collision avoidance.
-Uses music21's getScaleDegreeFromPitch for scale membership testing.
+Low-level helpers for *bass line generation*.
 """
 
-from typing import List, Sequence, Optional, Any, Dict
+from typing import List, Sequence, Optional, Any, Dict, Tuple
 import random as _rand
 import logging
 
@@ -18,83 +15,98 @@ try:
 except ImportError:
     logger_fallback_sr_bass = logging.getLogger(__name__ + ".fallback_sr_bass")
     logger_fallback_sr_bass.error("BassUtils: Could not import ScaleRegistry from utilities. Scale-aware functions might fail.")
-    class SR: # Dummy ScaleRegistry
+    class SR: 
         @staticmethod
         def get(tonic_str: Optional[str], mode_str: Optional[str]) -> m21_scale.ConcreteScale:
-            logger_fallback_sr_bass.warning("BassUtils: Using dummy ScaleRegistry.get(). This may not produce correct scales.")
+            logger_fallback_sr_bass.warning("BassUtils: Using dummy ScaleRegistry.get().")
             effective_tonic = tonic_str if tonic_str else "C"
             try: return m21_scale.MajorScale(pitch.Pitch(effective_tonic))
-            except Exception as e_pitch: logger_fallback_sr_bass.error(f"Error creating pitch for dummy SR: {e_pitch}. Defaulting to C Major."); return m21_scale.MajorScale(pitch.Pitch("C"))
+            except Exception: return m21_scale.MajorScale(pitch.Pitch("C"))
 
 logger = logging.getLogger(__name__)
 
-def get_approach_note_to_target(
-    current_bass_pitch: pitch.Pitch, 
-    target_pitch: pitch.Pitch, 
+def get_approach_note(
+    from_pitch: pitch.Pitch,
+    to_pitch: pitch.Pitch,
     scale_obj: Optional[m21_scale.ConcreteScale],
-    allow_chromatic: bool = True,
-    max_interval_semitones: int = 2 # 半音または全音でのアプローチを基本とする
+    approach_style: str = "chromatic_or_diatonic", # "chromatic_优先", "diatonic_only", "chromatic_only"
+    max_step: int = 2, # 半音単位での最大距離 (2なら全音まで)
+    preferred_direction: Optional[str] = None # "above", "below", None (近い方)
 ) -> Optional[pitch.Pitch]:
     """
-    指定されたターゲットピッチに対して、現在のベースピッチからスムーズに繋がる
-    アプローチノート（1音）を選択して返します。
+    指定された2音間を繋ぐのに適したアプローチノート（1音）を提案します。
 
     Args:
-        current_bass_pitch (pitch.Pitch): 現在のベースラインの最後の音のピッチ。
-        target_pitch (pitch.Pitch): 次のコードのルート音など、目標となるピッチ。
-        scale_obj (Optional[m21_scale.ConcreteScale]): 現在のキーのスケールオブジェクト。
-        allow_chromatic (bool): スケール外の半音アプローチを許容するか。
-        max_interval_semitones (int): 考慮するアプローチの最大インターバル（半音単位）。
+        from_pitch (pitch.Pitch): アプローチを開始する音。
+        to_pitch (pitch.Pitch): 目標とする音。
+        scale_obj (Optional[m21_scale.ConcreteScale]): 使用するスケール。
+        approach_style (str): アプローチのスタイル。
+        max_step (int): 考慮する最大ステップ（半音単位）。
+        preferred_direction (Optional[str]): "above" または "below" で優先方向を指定。
 
     Returns:
-        Optional[pitch.Pitch]: 最適なアプローチノートのピッチオブジェクト。見つからなければNone。
+        Optional[pitch.Pitch]: 提案されるアプローチノート。見つからなければNone。
     """
-    if not target_pitch:
+    if not from_pitch or not to_pitch:
         return None
 
-    possible_approaches: List[Tuple[int, pitch.Pitch]] = [] # (優先度, ピッチ)
+    candidates: List[Tuple[int, pitch.Pitch]] = [] # (優先度, ピッチ) - 数値が小さいほど高優先度
 
-    # 1. 半音下からのアプローチ
-    p_lower_chrom = target_pitch.transpose(-1)
-    if scale_obj and scale_obj.getScaleDegreeFromPitch(p_lower_chrom) is not None:
-        possible_approaches.append((1, p_lower_chrom)) # スケール音なら優先度高
-    elif allow_chromatic:
-        possible_approaches.append((3, p_lower_chrom)) # クロマチックなら優先度中
+    for step in range(1, max_step + 1):
+        # 下からのアプローチ
+        p_below = to_pitch.transpose(-step)
+        is_diatonic_below = scale_obj and scale_obj.getScaleDegreeFromPitch(p_below) is not None
+        
+        # 上からのアプローチ
+        p_above = to_pitch.transpose(step)
+        is_diatonic_above = scale_obj and scale_obj.getScaleDegreeFromPitch(p_above) is not None
 
-    # 2. 半音上からのアプローチ
-    p_upper_chrom = target_pitch.transpose(1)
-    if scale_obj and scale_obj.getScaleDegreeFromPitch(p_upper_chrom) is not None:
-        possible_approaches.append((1, p_upper_chrom))
-    elif allow_chromatic:
-        possible_approaches.append((3, p_upper_chrom))
+        # 優先度付け:
+        # 1: スケール内の半音
+        # 2: スケール内の全音
+        # 3: スケール外の半音 (クロマチック)
+        # 4: スケール外の全音 (クロマチック) - 通常は避けるがスタイルによる
 
-    if max_interval_semitones >= 2:
-        # 3. 全音下からのアプローチ (スケール音のみ)
-        p_lower_diatonic = target_pitch.transpose(-2)
-        if scale_obj and scale_obj.getScaleDegreeFromPitch(p_lower_diatonic) is not None:
-            possible_approaches.append((2, p_lower_diatonic)) # 全音スケールアプローチは優先度やや低
-
-        # 4. 全音上からのアプローチ (スケール音のみ)
-        p_upper_diatonic = target_pitch.transpose(2)
-        if scale_obj and scale_obj.getScaleDegreeFromPitch(p_upper_diatonic) is not None:
-            possible_approaches.append((2, p_upper_diatonic))
+        if approach_style == "diatonic_only":
+            if is_diatonic_below: candidates.append((step, p_below))
+            if is_diatonic_above: candidates.append((step, p_above))
+        elif approach_style == "chromatic_only":
+            if step == 1: # 半音のみ
+                candidates.append((1, p_below))
+                candidates.append((1, p_above))
+        elif approach_style == "chromatic_or_diatonic": # デフォルト
+            priority_below = 0
+            if step == 1: priority_below = 1 if is_diatonic_below else 3
+            elif step == 2 and is_diatonic_below: priority_below = 2
             
-    if not possible_approaches:
+            priority_above = 0
+            if step == 1: priority_above = 1 if is_diatonic_above else 3
+            elif step == 2 and is_diatonic_above: priority_above = 2
+
+            if priority_below > 0: candidates.append((priority_below, p_below))
+            if priority_above > 0: candidates.append((priority_above, p_above))
+            
+    if not candidates:
         return None
 
-    # 優先度でソートし、最も優先度の高いものの中からランダムに選択（もし複数あれば）
-    # ここでは、さらに current_bass_pitch からの距離が近いものを優先するロジックも追加可能
-    possible_approaches.sort(key=lambda x: (x[0], abs(x[1].ps - current_bass_pitch.ps))) # 優先度、次に現在の音からの距離
+    # 優先方向と現在の音からの距離でソート
+    def sort_key(candidate_tuple):
+        priority, p = candidate_tuple
+        distance_from_current = abs(p.ps - from_pitch.ps)
+        direction_score = 0
+        if preferred_direction == "above" and p.ps < to_pitch.ps: direction_score = 100 # ペナルティ
+        if preferred_direction == "below" and p.ps > to_pitch.ps: direction_score = 100 # ペナルティ
+        return (priority, direction_score, distance_from_current)
 
-    logger.debug(f"BassUtils (get_approach): Target={target_pitch.name}, Current={current_bass_pitch.name}, PossibleApproaches={[(p.name, prio) for prio, p in possible_approaches]}")
+    candidates.sort(key=sort_key)
     
-    return possible_approaches[0][1] if possible_approaches else None
+    logger.debug(f"BassUtils (get_approach): From={from_pitch.name}, To={to_pitch.name}, Style='{approach_style}', Candidates (Prio, Pitch, Dist): {[(c[0], c[1].nameWithOctave, abs(c[1].ps - from_pitch.ps)) for c in candidates]}")
+    
+    return candidates[0][1] if candidates else None
 
 
-# --- 既存の関数 (approach_note, walking_quarters, root_fifth_half, STYLE_DISPATCH, generate_bass_measure) は変更なし ---
-def approach_note(cur_note_pitch: pitch.Pitch, next_target_pitch: pitch.Pitch, direction: Optional[int] = None) -> pitch.Pitch:
-    if direction is None: direction = 1 if next_target_pitch.midi > cur_note_pitch.midi else -1
-    return cur_note_pitch.transpose(direction)
+# --- 既存の関数 (walking_quarters, root_fifth_half, STYLE_DISPATCH, generate_bass_measure) は変更なし ---
+# (ただし、STYLE_DISPATCH内のlambda関数でのlogger呼び出しは、このファイルスコープのloggerを使うように修正を推奨)
 def walking_quarters(cs_now: harmony.ChordSymbol, cs_next: harmony.ChordSymbol, tonic: str, mode: str, octave: int = 3, vocal_notes_in_block: Optional[List[Dict]] = None) -> List[pitch.Pitch]:
     if vocal_notes_in_block: logger.debug(f"walking_quarters for {cs_now.figure if cs_now else 'N/A'}: Received {len(vocal_notes_in_block)} vocal notes.")
     scl = SR.get(tonic, mode)
@@ -115,21 +127,26 @@ def walking_quarters(cs_now: harmony.ChordSymbol, cs_next: harmony.ChordSymbol, 
         beat3_candidate_pitch = _rand.choice(temp_options_b3) if temp_options_b3 else root_now_init
         beat3 = beat3_candidate_pitch.transpose((octave - beat3_candidate_pitch.octave) * 12)
     else: beat3 = beat3_candidate_pitch
-    beat4 = approach_note(beat3, root_next)
+    # approach_note はシンプルな半音/全音移動なので、ここでは get_approach_note を使うか検討
+    beat4 = approach_note(beat3, root_next) # もし get_approach_note を使うなら: get_approach_note(beat3, root_next, scl) or root_next
     if scl.getScaleDegreeFromPitch(beat4) is None:
         if scl.getScaleDegreeFromPitch(root_next) is not None: beat4 = root_next
         else:
             beat4_alt = scl.nextPitch(beat3, direction=m21_scale.Direction.ASCENDING if root_next.ps > beat3.ps else m21_scale.Direction.DESCENDING)
             if isinstance(beat4_alt, pitch.Pitch) and (scl.getScaleDegreeFromPitch(beat4_alt) is not None): beat4 = beat4_alt
+            elif isinstance(beat4_alt, list) and beat4_alt and isinstance(beat4_alt[0], pitch.Pitch) and (scl.getScaleDegreeFromPitch(beat4_alt[0]) is not None) : beat4 = beat4_alt[0] # nextPitchがリストを返す場合
+            else: beat4 = root_next # 最終フォールバック
     return [beat1, beat2, beat3, beat4]
+
 def root_fifth_half(cs_now: harmony.ChordSymbol, cs_next: harmony.ChordSymbol, tonic: str, mode: str, octave: int = 3, vocal_notes_in_block: Optional[List[Dict]] = None) -> List[pitch.Pitch]:
     if vocal_notes_in_block: logger.debug(f"root_fifth_half for {cs_now.figure if cs_now else 'N/A'}: Received {len(vocal_notes_in_block)} vocal notes.")
     if not cs_now or not cs_now.root(): return [pitch.Pitch(f"C{octave}")] * 4
     root_init = cs_now.root(); root = root_init.transpose((octave - root_init.octave) * 12)
     fifth_init = cs_now.fifth
-    if fifth_init is None: fifth_init = root_init.transpose(12)
+    if fifth_init is None: fifth_init = root_init.transpose(12) # 5度がない場合はオクターブ上のルート
     fifth = fifth_init.transpose((octave - fifth_init.octave) * 12)
     return [root, fifth, root, fifth]
+
 STYLE_DISPATCH: Dict[str, Any] = {
     "root_only": lambda cs_now, cs_next, tonic, mode, octave, vocal_notes_in_block, **k: ([cs_now.root().transpose((octave - cs_now.root().octave) * 12)] * 4 if cs_now and cs_now.root() else [pitch.Pitch(f"C{octave}")]*4),
     "simple_roots": lambda cs_now, cs_next, tonic, mode, octave, vocal_notes_in_block, **k: ([cs_now.root().transpose((octave - cs_now.root().octave) * 12)] * 4 if cs_now and cs_now.root() else [pitch.Pitch(f"C{octave}")]*4),
