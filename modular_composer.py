@@ -349,15 +349,25 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         logger.error(f"Error setting score globals: {e}. Defaults.", exc_info=True)
         if not final_score.getElementsByClass(meter.TimeSignature).first(): final_score.insert(0, meter.TimeSignature("4/4"))
         if not final_score.getElementsByClass(key.Key).first(): final_score.insert(0, key.Key(main_cfg.get("global_key_tonic","C"), main_cfg.get("global_key_mode","major")))
-    parsed_vocal_track_for_context: List[Dict] = []
+    
+    parsed_vocal_track_for_context: List[Dict] = [] # 初期化
+    # vocal_data_paths は main_cfg から取得するように修正 (以前は chordmap_data からも見ていた)
     vocal_data_paths = main_cfg.get("default_part_parameters", {}).get("vocal", {}).get("data_paths", {})
     midivocal_p_str_context = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths.get("midivocal_data_path"))
+
+    # parse_vocal_midi_data_for_context の呼び出しを修正 (定義が見当たらないためコメントアウト、または適切な関数に置き換える必要あり)
     if midivocal_p_str_context:
         vocal_midi_data_content = load_json_file(Path(str(midivocal_p_str_context)), "Vocal MIDI Data for Context")
-        if isinstance(vocal_midi_data_content, list): parsed_vocal_track_for_context = parse_vocal_midi_data_for_context(vocal_midi_data_content)
+        if isinstance(vocal_midi_data_content, list):
+            # parsed_vocal_track_for_context = parse_vocal_midi_data_for_context(vocal_midi_data_content) # この関数定義が見当たらない
+            logger.warning("Function 'parse_vocal_midi_data_for_context' is not defined. Vocal context will be empty.")
+            parsed_vocal_track_for_context = [] # 空のリストで初期化
+            
     if not parsed_vocal_track_for_context: logger.info("No vocal track data for context. Bass/Melody generated without direct vocal reference.")
+
     proc_blocks = prepare_processed_stream(chordmap_data, main_cfg, rhythm_lib_data, parsed_vocal_track_for_context)
     if not proc_blocks: logger.error("No blocks to process. Aborting."); return
+    
     cv_inst = ChordVoicer(global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
     gens: Dict[str, Any] = {}
     for part_name, generate_flag in main_cfg.get("parts_to_generate", {}).items():
@@ -370,6 +380,7 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
         elif part_name == "piano": rhythm_category_key = "piano_patterns"
         elif part_name == "guitar": rhythm_category_key = "guitar_patterns"
         if rhythm_category_key: rhythm_lib_for_instrument = rhythm_lib_data.get(rhythm_category_key, {})
+        
         instrument_obj = None
         try: instrument_obj = m21instrument.fromString(instrument_str)
         except exceptions21.InstrumentException:
@@ -378,15 +389,23 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
             if instrument_class and callable(instrument_class): instrument_obj = instrument_class()
             else: instrument_obj = m21instrument.Piano()
         except Exception: instrument_obj = m21instrument.Piano()
+
         if part_name == "piano": gens[part_name] = PianoGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), chord_voicer_instance=cv_inst, default_instrument_rh=instrument_obj, default_instrument_lh=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "drums": gens[part_name] = DrumGenerator(lib=cast(Dict[str,Dict[str,Any]], rhythm_lib_for_instrument), tempo_bpm=main_cfg["global_tempo"], time_sig=main_cfg["global_time_signature"])
-        elif part_name == "guitar": gens[part_name] = GuitarGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),# default_instrument=instrument_obj,# global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
+        elif part_name == "guitar": 
+            gens[part_name] = GuitarGenerator(
+                rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument),
+                default_instrument=instrument_obj, # コメント解除
+                global_tempo=main_cfg["global_tempo"], # コメント解除
+                global_time_signature=main_cfg["global_time_signature"] # コメント解除
+            ) # 閉じ括弧を追加
         elif part_name == "vocal":
             if main_cfg["parts_to_generate"].get("vocal"): gens[part_name] = VocalGenerator(default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"])
         elif part_name == "bass": gens[part_name] = BassGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_tonic=main_cfg["global_key_tonic"], global_key_mode=main_cfg["global_key_mode"], rng_seed=main_cfg.get("rng_seed")) # rng_seed を渡す
         elif part_name == "melody": gens[part_name] = MelodyGenerator(rhythm_library=cast(Dict[str,Dict], rhythm_lib_for_instrument), default_instrument=instrument_obj, global_tempo=main_cfg["global_tempo"], global_time_signature=main_cfg["global_time_signature"], global_key_signature_tonic=main_cfg["global_key_tonic"], global_key_signature_mode=main_cfg["global_key_mode"])
         elif part_name == "chords": gens[part_name] = cv_inst;
         if part_name == "chords" and instrument_obj : cv_inst.default_instrument = instrument_obj
+    
     for p_n, p_g_inst in gens.items():
         if p_g_inst and main_cfg["parts_to_generate"].get(p_n):
             logger.info(f"Generating {p_n} part...")
@@ -394,27 +413,48 @@ def run_composition(cli_args: argparse.Namespace, main_cfg: Dict, chordmap_data:
                 part_obj: Optional[stream.Stream] = None
                 if p_n == "vocal":
                     vocal_params_for_compose = proc_blocks[0]["part_params"].get("vocal") if proc_blocks else main_cfg["default_part_parameters"].get("vocal", {})
-                    midivocal_data_for_compose_list : Optional[List[Dict]] = None
+                    midivocal_data_for_compose_list : Optional[List[Dict]] = None # 初期化
                     vocal_data_paths_call = main_cfg["default_part_parameters"].get("vocal", {}).get("data_paths", {})
                     midivocal_p_str_call = cli_args.vocal_mididata_path or chordmap_data.get("global_settings",{}).get("vocal_mididata_path", vocal_data_paths_call.get("midivocal_data_path"))
-                    if midivocal_p_str_call: loaded_data = load_json_file(Path(str(midivocal_p_str_call)), "Vocal MIDI Data for VocalGenerator.compose");
+                    loaded_data = None # 初期化
+                    if midivocal_p_str_call: 
+                        loaded_data = load_json_file(Path(str(midivocal_p_str_call)), "Vocal MIDI Data for VocalGenerator.compose")
+                    
                     if isinstance(loaded_data, list): midivocal_data_for_compose_list = loaded_data
-                    if midivocal_data_for_compose_list: part_obj = p_g_inst.compose(midivocal_data=midivocal_data_for_compose_list, processed_chord_stream=proc_blocks, humanize_opt=vocal_params_for_compose.get("humanize_opt", True), humanize_template_name=vocal_params_for_compose.get("template_name"), humanize_custom_params=vocal_params_for_compose.get("custom_params"))
-                    else: logger.warning(f"Vocal generation skipped in compose: No MIDI data from '{midivocal_p_str_call}'."); continue
-                else: part_obj = p_g_inst.compose(proc_blocks)
+                    
+                    if midivocal_data_for_compose_list: 
+                        part_obj = p_g_inst.compose(
+                            midivocal_data=midivocal_data_for_compose_list, 
+                            processed_chord_stream=proc_blocks, 
+                            humanize_opt=vocal_params_for_compose.get("humanize_opt", True), 
+                            humanize_template_name=vocal_params_for_compose.get("template_name"), 
+                            humanize_custom_params=vocal_params_for_compose.get("custom_params")
+                        )
+                    else: 
+                        logger.warning(f"Vocal generation skipped in compose: No MIDI data from '{midivocal_p_str_call}'.")
+                        continue
+                else: 
+                    part_obj = p_g_inst.compose(proc_blocks)
+
                 if isinstance(part_obj, stream.Score) and part_obj.parts:
                     for sub_part in part_obj.parts:
                         if sub_part.flatten().notesAndRests: final_score.insert(0, sub_part)
                 elif isinstance(part_obj, stream.Part) and part_obj.flatten().notesAndRests: final_score.insert(0, part_obj)
             except Exception as e_gen: logger.error(f"Error in {p_n} generation: {e_gen}", exc_info=True)
+    
     title = chordmap_data.get("project_title","untitled").replace(" ","_").lower()
     out_fname_template = main_cfg.get("output_filename_template", "output_{song_title}.mid")
     actual_out_fname = cli_args.output_filename if cli_args.output_filename else out_fname_template.format(song_title=title)
     out_fpath = cli_args.output_dir / actual_out_fname; out_fpath.parent.mkdir(parents=True,exist_ok=True)
+    
     try:
-        if final_score.flatten().notesAndRests: final_score.write('midi',fp=str(out_fpath)); logger.info(f"🎉 MIDI exported to {out_fpath}")
-        else: logger.warning(f"Score is empty. No MIDI file generated at {out_fpath}.")
-    except Exception as e_w: logger.error(f"General MIDI write error to {out_fpath}: {e_w}", exc_info=True)
+        if final_score.flatten().notesAndRests: 
+            final_score.write('midi',fp=str(out_fpath))
+            logger.info(f"🎉 MIDI exported to {out_fpath}")
+        else: 
+            logger.warning(f"Score is empty. No MIDI file generated at {out_fpath}.")
+    except Exception as e_w: 
+        logger.error(f"General MIDI write error to {out_fpath}: {e_w}", exc_info=True)
 
 def main_cli():
     parser = argparse.ArgumentParser(description="Modular Music Composer")
