@@ -1,4 +1,4 @@
-# --- START OF FILE generator/bass_generator.py (弱拍バリエーション追加版) ---
+# --- START OF FILE generator/bass_generator.py (4拍目アプローチノート追加版) ---
 import music21
 import logging
 from music21 import stream, note, chord as m21chord, harmony, pitch, tempo, meter, instrument as m21instrument, key, interval, scale
@@ -35,23 +35,21 @@ class BassGenerator:
         self.global_key_tonic = global_key_tonic; self.global_key_mode = global_key_mode
         if rng_seed is not None: self.rng = random.Random(rng_seed)
         else: self.rng = random.Random()
-        
-        # "basic_chord_tone_quarters" の options に weak_beat_style を追加
         if "basic_chord_tone_quarters" not in self.bass_rhythm_library:
             self.bass_rhythm_library["basic_chord_tone_quarters"] = {
-                "description": "Basic quarter note pattern emphasizing root and fifth/third on strong beats, with configurable weak beats.",
-                "tags": ["bass", "default", "quarter_notes", "chord_tones", "algorithmic"],
+                "description": "Basic quarter note pattern emphasizing root and fifth/third on strong beats, with configurable weak beats and approach to next chord.",
+                "tags": ["bass", "default", "quarter_notes", "chord_tones", "algorithmic", "approach_note"],
                 "pattern_type": "algorithmic_chord_tone_quarters", 
                 "options": {
                     "base_velocity": 85,
                     "strong_beat_velocity_boost": 15, 
                     "off_beat_velocity_reduction": 5,  
                     "target_octave": 2,
-                    "weak_beat_style": "root" # デフォルトはルート音 ("root", "third_or_fifth", "eighth_roots")
+                    "weak_beat_style": "root", 
+                    "approach_on_4th_beat": True # 4拍目で次のコードへのアプローチを試みるか
                 }
             }
-            self.logger.info("BassGenerator: Added 'basic_chord_tone_quarters' algorithmic pattern to internal library with weak_beat_style option.")
-        
+            self.logger.info("BassGenerator: Added 'basic_chord_tone_quarters' algorithmic pattern with approach_on_4th_beat option.")
         if "bass_quarter_notes" not in self.bass_rhythm_library: self.bass_rhythm_library["bass_quarter_notes"] = {"description": "Default bass line - simple quarter notes on root.", "tags": ["bass", "default", "quarter_notes", "root"], "pattern": [{"offset": 0.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"}, {"offset": 1.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}, {"offset": 2.0, "duration": 1.0, "velocity_factor": 0.75, "type": "root"}, {"offset": 3.0, "duration": 1.0, "velocity_factor": 0.7, "type": "root"}]}
         if "root_only" not in self.bass_rhythm_library: self.bass_rhythm_library["root_only"] = {"description": "Fallback whole-note roots only.", "tags": ["bass", "fallback", "long_notes", "root"], "pattern_type": "algorithmic_root_only", "pattern": [{"offset": 0.0, "duration": 4.0, "velocity_factor": 0.6}]}
 
@@ -98,7 +96,8 @@ class BassGenerator:
                 notes.append((offset_in_block, n)) 
         return notes
 
-    def _generate_algorithmic_pattern(self, pattern_type: str, m21_cs: harmony.ChordSymbol, options: Dict[str, Any], base_velocity: int, target_octave: int, block_offset_ignored: float, block_duration: float, current_scale: music21.scale.ConcreteScale) -> List[Tuple[float, music21.note.Note]]:
+    def _generate_algorithmic_pattern(self, pattern_type: str, m21_cs: harmony.ChordSymbol, options: Dict[str, Any], base_velocity: int, target_octave: int, block_offset_ignored: float, block_duration: float, current_scale: music21.scale.ConcreteScale, next_chord_root: Optional[pitch.Pitch] = None) -> List[Tuple[float, music21.note.Note]]:
+        # ★★★ next_chord_root 引数を追加 ★★★
         notes: List[Tuple[float, music21.note.Note]] = []
         if not m21_cs or not m21_cs.pitches: return notes
         root_note_obj = m21_cs.root()
@@ -107,72 +106,82 @@ class BassGenerator:
         if pattern_type == "algorithmic_chord_tone_quarters":
             strong_beat_vel_boost = options.get("strong_beat_velocity_boost", 15)
             off_beat_vel_reduction = options.get("off_beat_velocity_reduction", 5)
-            weak_beat_style = options.get("weak_beat_style", "root") # 新しいオプションを取得
+            weak_beat_style = options.get("weak_beat_style", "root")
+            approach_on_4th_beat = options.get("approach_on_4th_beat", True) # 新しいオプション
 
             beats_per_measure_in_block = self.global_time_signature_obj.beatCount 
-            num_beats_to_generate = int(block_duration)
+            num_beats_to_generate = int(block_duration) # ブロックの拍数
             
             for beat_idx in range(num_beats_to_generate):
                 current_rel_offset = beat_idx * 1.0 
                 if current_rel_offset >= block_duration - MIN_NOTE_DURATION_QL / 2 : break
                 
                 beat_in_measure = beat_idx % beats_per_measure_in_block
+                chosen_pitch_base: Optional[pitch.Pitch] = None
+                current_velocity = base_velocity
+                note_duration_ql = min(1.0, block_duration - current_rel_offset) # 基本は四分音符
 
-                if beat_in_measure == 0 : # 1拍目 (小節の頭)
+                if beat_in_measure == 0 : # 1拍目
                     chosen_pitch_base = root_note_obj
                     current_velocity = min(127, base_velocity + strong_beat_vel_boost)
-                    note_duration_ql = min(1.0, block_duration - current_rel_offset)
-                    if note_duration_ql < MIN_NOTE_DURATION_QL: continue
-                    midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave)
-                    n = music21.note.Note(); n.pitch.midi = midi_pitch
-                    n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity
-                    notes.append((current_rel_offset, n))
-
                 elif beats_per_measure_in_block >= 4 and beat_in_measure == (beats_per_measure_in_block // 2) : # 3拍目など
                     if m21_cs.fifth: chosen_pitch_base = m21_cs.fifth
                     elif m21_cs.third: chosen_pitch_base = m21_cs.third
                     else: chosen_pitch_base = root_note_obj
                     current_velocity = min(127, base_velocity + (strong_beat_vel_boost // 2))
-                    note_duration_ql = min(1.0, block_duration - current_rel_offset)
-                    if note_duration_ql < MIN_NOTE_DURATION_QL: continue
-                    midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave)
-                    n = music21.note.Note(); n.pitch.midi = midi_pitch
-                    n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity
-                    notes.append((current_rel_offset, n))
-                
-                else: # 2拍目、4拍目などの弱拍
+                # ★★★ 4拍目のアプローチノート処理 (beat_in_measure == beats_per_measure_in_block - 1 で最後の拍を判定) ★★★
+                elif approach_on_4th_beat and next_chord_root and beat_in_measure == (beats_per_measure_in_block - 1) and beat_idx < num_beats_to_generate -1 : # 最後の拍で、かつ曲の最後のブロックの最後の拍ではない
+                    # 次のコードのルート音へ半音または全音でアプローチする音を探す
+                    # (より洗練されたアプローチノート選択ロジックは bass_utils に移譲も検討)
+                    possible_approaches = []
+                    # 半音下から
+                    approach_lower_chrom = next_chord_root.transpose(-1)
+                    if current_scale and current_scale.getScaleDegreeFromPitch(approach_lower_chrom) is not None: possible_approaches.append(approach_lower_chrom)
+                    else: possible_approaches.append(approach_lower_chrom) # スケール外でもクロマチックアプローチとして許容する場合
+                    # 半音上から
+                    approach_upper_chrom = next_chord_root.transpose(1)
+                    if current_scale and current_scale.getScaleDegreeFromPitch(approach_upper_chrom) is not None: possible_approaches.append(approach_upper_chrom)
+                    else: possible_approaches.append(approach_upper_chrom)
+                    # 全音下から (スケール音なら)
+                    approach_lower_diatonic = next_chord_root.transpose(-2)
+                    if current_scale and current_scale.getScaleDegreeFromPitch(approach_lower_diatonic) is not None: possible_approaches.append(approach_lower_diatonic)
+                    # 全音上から (スケール音なら)
+                    approach_upper_diatonic = next_chord_root.transpose(2)
+                    if current_scale and current_scale.getScaleDegreeFromPitch(approach_upper_diatonic) is not None: possible_approaches.append(approach_upper_diatonic)
+                    
+                    if possible_approaches:
+                        chosen_pitch_base = self.rng.choice(possible_approaches)
+                        self.logger.debug(f"BassGen: Approaching next chord {next_chord_root.name} with {chosen_pitch_base.name} on beat {beat_idx+1}")
+                    else: # アプローチノートが見つからなければ現在のコードのルート
+                        chosen_pitch_base = root_note_obj
+                    current_velocity = max(1, base_velocity - off_beat_vel_reduction)
+                else: # その他の弱拍
                     current_velocity = max(1, base_velocity - off_beat_vel_reduction)
                     if weak_beat_style == "third_or_fifth":
                         chosen_pitch_base = self.rng.choice([p for p in [m21_cs.third, m21_cs.fifth] if p] or [root_note_obj])
-                        note_duration_ql = min(1.0, block_duration - current_rel_offset)
-                        if note_duration_ql < MIN_NOTE_DURATION_QL: continue
-                        midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave)
-                        n = music21.note.Note(); n.pitch.midi = midi_pitch
-                        n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity
-                        notes.append((current_rel_offset, n))
                     elif weak_beat_style == "eighth_roots":
                         # 8分音符を2つ生成
                         for i in range(2):
                             eighth_offset = current_rel_offset + (i * 0.5)
                             if eighth_offset >= block_duration - MIN_NOTE_DURATION_QL / 2: break
-                            note_duration_ql = min(0.5, block_duration - eighth_offset)
-                            if note_duration_ql < MIN_NOTE_DURATION_QL: continue
-                            
-                            midi_pitch = self._get_bass_pitch_in_octave(root_note_obj, target_octave)
-                            n = music21.note.Note(); n.pitch.midi = midi_pitch
-                            n.duration.quarterLength = note_duration_ql
-                            n.volume.velocity = current_velocity - (i * 3) # 2つ目は少し弱く
-                            notes.append((eighth_offset, n))
+                            eighth_duration_ql = min(0.5, block_duration - eighth_offset)
+                            if eighth_duration_ql < MIN_NOTE_DURATION_QL: continue
+                            midi_pitch_8th = self._get_bass_pitch_in_octave(root_note_obj, target_octave)
+                            n8 = music21.note.Note(); n8.pitch.midi = midi_pitch_8th
+                            n8.duration.quarterLength = eighth_duration_ql
+                            n8.volume.velocity = current_velocity - (i * 3) 
+                            notes.append((eighth_offset, n8))
+                        continue # この拍の処理は完了
                     else: # "root" (デフォルト)
                         chosen_pitch_base = root_note_obj
-                        note_duration_ql = min(1.0, block_duration - current_rel_offset)
-                        if note_duration_ql < MIN_NOTE_DURATION_QL: continue
-                        midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave)
-                        n = music21.note.Note(); n.pitch.midi = midi_pitch
-                        n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity
-                        notes.append((current_rel_offset, n))
+                
+                if chosen_pitch_base: # chosen_pitch_base が None でないことを確認
+                    if note_duration_ql < MIN_NOTE_DURATION_QL: continue
+                    midi_pitch = self._get_bass_pitch_in_octave(chosen_pitch_base, target_octave)
+                    n = music21.note.Note(); n.pitch.midi = midi_pitch
+                    n.duration.quarterLength = note_duration_ql; n.volume.velocity = current_velocity
+                    notes.append((current_rel_offset, n))
         
-        # ... (他のアルゴリズムパターンは変更なし) ...
         elif pattern_type == "algorithmic_root_only":
             note_duration_ql = options.get("note_duration_ql", block_duration);
             if note_duration_ql <= 0: note_duration_ql = block_duration
@@ -181,9 +190,10 @@ class BassGenerator:
                 current_rel_offset = i * note_duration_ql 
                 midi_pitch = self._get_bass_pitch_in_octave(root_note_obj, target_octave); n = music21.note.Note(); n.pitch.midi = midi_pitch; n.duration.quarterLength = note_duration_ql
                 n.volume.velocity = base_velocity; notes.append((current_rel_offset, n)) 
-        else: # フォールバック
+        else: 
             default_algo_options = self.bass_rhythm_library.get("basic_chord_tone_quarters",{}).get("options",{})
-            notes.extend(self._generate_algorithmic_pattern("algorithmic_chord_tone_quarters", m21_cs, default_algo_options, base_velocity, target_octave, 0.0, block_duration, current_scale))
+            # ★★★ next_chord_root をフォールバック呼び出しにも渡す ★★★
+            notes.extend(self._generate_algorithmic_pattern("algorithmic_chord_tone_quarters", m21_cs, default_algo_options, base_velocity, target_octave, 0.0, block_duration, current_scale, next_chord_root))
         return notes
 
     def compose(self, processed_blocks: Sequence[Dict[str, Any]], return_pretty_midi: bool = False) -> Union[stream.Part, Any]:
@@ -198,6 +208,7 @@ class BassGenerator:
             except Exception:
                  if not bass_part.getElementsByClass(key.Key).first(): bass_part.insert(0, key.Key(self.global_key_tonic, self.global_key_mode.lower()))
         part_overall_humanize_params = None
+        
         for blk_idx, blk_data in enumerate(processed_blocks):
             bass_params_for_block = blk_data.get("part_params", {}).get("bass", {})
             if not bass_params_for_block: bass_params_for_block = {"rhythm_key": "basic_chord_tone_quarters", "velocity": 70, "octave": 2}; self.logger.debug(f"BassGenerator: No bass params for block {blk_idx+1}. Using hardcoded defaults.")
@@ -219,6 +230,22 @@ class BassGenerator:
                     except Exception as e_root_parse: self.logger.error(f"BassGen: Could not even parse root '{root_only_match.group(0)}' from '{chord_label_str}': {e_root_parse}. Skipping block."); self.logger.warning(f'Skipped block {blk_idx+1} in compose: chord="{chord_label_str}", reason="Root parse failed after sanitize failure ({parse_failure_reason})"') ; continue
                 else: self.logger.error(f"BassGen: Could not extract root from '{sanitized_label}' after sanitize failure ({parse_failure_reason}). Skipping block."); self.logger.warning(f'Skipped block {blk_idx+1} in compose: chord="{chord_label_str}", reason="No root found after sanitize failure ({parse_failure_reason})"') ; continue
             elif not m21_cs_obj and (not sanitized_label or sanitized_label.lower() != "rest"): self.logger.error(f"BassGen: No valid chord or root for block {blk_idx+1} (Label: '{chord_label_str}', Sanitized: '{sanitized_label}', Reason: {parse_failure_reason}). Skipping."); self.logger.warning(f'Skipped block {blk_idx+1} in compose: chord="{chord_label_str}", reason="Final parse/root extraction failed ({parse_failure_reason})"') ; continue
+            
+            # ★★★ 次のコードのルート音を取得 ★★★
+            next_chord_root_pitch: Optional[pitch.Pitch] = None
+            if blk_idx + 1 < len(processed_blocks):
+                next_blk_data = processed_blocks[blk_idx + 1]
+                next_chord_label_str = next_blk_data.get("chord_label")
+                if next_chord_label_str:
+                    next_sanitized_label = sanitize_chord_label(next_chord_label_str)
+                    if next_sanitized_label and next_sanitized_label.lower() != "rest":
+                        try:
+                            next_cs_obj = harmony.ChordSymbol(next_sanitized_label)
+                            if next_cs_obj.root():
+                                next_chord_root_pitch = next_cs_obj.root()
+                        except Exception:
+                            self.logger.debug(f"Could not parse next chord label '{next_sanitized_label}' for approach note.")
+            
             rhythm_key_from_params = bass_params_for_block.get("rhythm_key", bass_params_for_block.get("style", "basic_chord_tone_quarters")) 
             pattern_details = self._get_rhythm_pattern_details(rhythm_key_from_params)
             if not pattern_details: self.logger.warning(f'Skipped block {blk_idx+1} in compose: chord="{chord_label_str}", reason="No pattern_details for rhythm_key {rhythm_key_from_params}"'); continue
@@ -230,10 +257,9 @@ class BassGenerator:
             if m21_cs_obj:
                 if "pattern_type" in pattern_details and isinstance(pattern_details["pattern_type"], str):
                     algo_options = pattern_details.get("options", {}); algo_options["base_velocity"] = base_vel; algo_options["target_octave"] = target_oct
-                    # ★★★ weak_beat_style を chordmap から取得できるようにする (なければデフォルト) ★★★
                     algo_options["weak_beat_style"] = bass_params_for_block.get("weak_beat_style", algo_options.get("weak_beat_style", "root"))
-
-                    generated_notes_for_block = self._generate_algorithmic_pattern( pattern_details["pattern_type"], m21_cs_obj, algo_options, base_vel, target_oct, 0.0, block_q_length, current_m21_scale)
+                    # ★★★ next_chord_root_pitch を渡す ★★★
+                    generated_notes_for_block = self._generate_algorithmic_pattern( pattern_details["pattern_type"], m21_cs_obj, algo_options, base_vel, target_oct, 0.0, block_q_length, current_m21_scale, next_chord_root_pitch)
                 elif "pattern" in pattern_details and isinstance(pattern_details["pattern"], list):
                     generated_notes_for_block = self._generate_notes_from_fixed_pattern( pattern_details["pattern"], m21_cs_obj, base_vel, target_oct, 0.0, block_q_length, current_m21_scale)
             for rel_offset, note_obj in generated_notes_for_block: 
