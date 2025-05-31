@@ -1,0 +1,385 @@
+はい、そのとおりです。music21 のコードシンボル正規表現には、以下の文字だけが認められています：
+	•	ルート記号：A ～ G
+	•	変化記号：#（シャープ）、-（フラット）
+	•	クオリティ：m、maj、dim、aug、sus2、sus4、power など
+	•	拡張度数：7、9、11、13
+	•	修飾子：#9、b13（テンション）、add9、omit3
+	•	分数／インヴァージョン：/E、/B- など
+
+これらの要素はすべて「連続する英数字と記号」だけで構成され、括弧 () や区切りのカンマ , は許容されません。
+例：
+	•	❌ C7(b9,#11)
+	•	✅ C7b9#11
+
+このルールに沿って表記すれば、music21 で確実にパースされます。
+
+
+music21 がコードシンボルをパースする際には、大きく次のような順序・構造を持つ正規表現パターンを使っています。以下は簡略化した擬似正規表現ですが、実際の実装もほぼ同様の構造です。
+
+^
+(?P<root>[A–G])                # ① ルート（A～G の１文字）
+(?P<accidental>[\-#]? )?       # ② オプショナルな変化記号（♭＝“-” or “b”／♯＝“#”）
+(?P<quality>
+    maj|min|M|m|dim|aug|sus2|sus4|power
+)?                              # ③ コードの種類（メジャー・マイナー等）
+(?P<extension>7|9|11|13)?      # ④ セブンス以降の拡張度数
+(?P<alter>
+    (?:[#b]\d+)*               # ⑤ シャープ／フラットで始まるテンション修飾詞 (#9, b13, #11 など) が 0 個以上
+)
+(?P<add>
+    (?:add\d+)?                # ⑥ “add” 系（add9, add4 など）
+)
+(?P<omit>
+    (?:omit\d+)?               # ⑦ “omit” 系（omit3 など）
+)
+(?:                             # ⑧ サスペンデッドを拡張して書く場合
+    sus2|sus4
+)?
+(?:                             # ⑨ 分数表記（スラッシュ以下はベース音）
+  /[A–G][\-#]?                  
+)?
+$
+
+それぞれのパートをもう少し詳しく解説します。
+	1.	ルート (?P<root>[A–G])
+	•	必須。A～G のいずれか一文字。
+	2.	変化記号 (?P<accidental>[\-#]?)
+	•	オプション。フラットは “-”（あるいは “b”）、シャープは “#” で表現。
+	3.	コード・クォリティ maj|min|M|m|dim|aug|sus2|sus4|power
+	•	省略するとメジャー（major triad）扱い。
+	•	m／min → minor、maj／M → major、dim → diminished、aug／+ → augmented、sus2／sus4 → suspended、power → power chord。
+	4.	拡張度数 7|9|11|13
+	•	入れると dominant/seventh 系統。たとえば 9 と書くと自動的に 7th も含む。
+	5.	テンション修飾 (?:[#b]\d+)*
+	•	#9，b13，#11 のように、度数の前に # または b をつけたものを複数列挙可能。
+	6.	add 系 (?:add\d+)?
+	•	triad に対して 9th や 4th を「加える」場合に使用。例：add9。７度は含まない。
+	7.	omit 系 (?:omit\d+)?
+	•	あえて度数を「抜く」場合。例：omit3。
+	8.	サスペンデッド（再補足） sus2|sus4
+	•	先の quality でも sus2/sus4 を取れますが、拡張度数の後ろで指定する場合はここにマッチ。
+	9.	分数表記（インヴァージョン） (?:/[A–G][\-#]?)?
+	•	/E や /B- のようにベース音を指定。
+
+この規則のおかげで、例えば
+	•	C7b9#11 →
+	•	root=C
+	•	quality=なし（dominant implied）
+	•	extension=7
+	•	alter=b9#11
+	•	CmM9 →
+	•	root=C
+	•	quality=mM（minor-major）
+	•	extension=9
+	•	Cadd9 →
+	•	root=C
+	•	quality=なし（triad）
+	•	add=add9
+	•	G7sus4 →
+	•	root=G
+	•	quality=7＋ sus4
+
+…といった具合に、コード名を一つの文字列で一貫してパース可能になります。もしこのパターンに当てはまらない表記を使うと、「invalid chord abbreviation」として弾かれてしまいます。
+
+⸻
+
+ポイントまとめ
+	•	順序 が厳格：必ず「ルート→変化記号→クォリティ→拡張度数→テンション（修飾）→add/omit→sus→スラッシュ」という並び。
+	•	テンションは連続可：#9#11b13 のように並べられる。
+	•	triad にテンションだけ加える 場合は add を使い、7th を含めたいなら単に 9 と書く。
+	•	省略形：メジャーは何も書かない、マイナーは m、ドミナント7th は 7、など。
+
+このような法則に従ってコード表記をすれば、music21 でも正しく解釈できるはずです。ぜひご活用ください！
+
+
+
+以下のように、主要なコード記号とその意味を「記号 → 日本語説明」の形式でまとめました。ご参考になれば幸いです。
+	•	C → メジャートライアド（長三和音）
+	•	Cm → マイナートライアド（短三和音）
+	•	Cdim → ディミニッシュドトライアド（減三和音）
+	•	Caug または C+ → オーギュメントトライアド（増三和音）
+	•	C6 → 6th（長三和音＋長6度）
+	•	Cm6 → マイナー6th（短三和音＋長6度）
+	•	C7 → ドミナント・セブンス（長三和音＋短7度）
+	•	Cm7 → マイナー・セブンス（短三和音＋短7度）
+	•	Cmaj7 → メジャー・セブンス（長三和音＋長7度）
+	•	CmM7 → マイナー・メジャー7th（短三和音＋長7度）
+	•	Cdim7 → フルディミニッシュド7th（減三和音＋減7度）
+	•	Cm7b5 → ハーフディミニッシュド7th（短三和音＋短7度＋減5度）
+	•	C7+ または C7#5 → オーギュメント・ドミナント7th（ドミナント7th＋増5度）
+	•	C9 → ドミナント・ナインス（C7＋長9度）
+	•	Cmaj9 → メジャー・ナインス（Cmaj7＋長9度）
+	•	Cm9 → マイナー・ナインス（Cm7＋長9度）
+	•	CmM9 → マイナー・メジャー9th（CmM7＋長9度）
+	•	C11 → ドミナント・イレブンス（C9＋11度）
+	•	Cmaj11 → メジャー・イレブンス（Cmaj9＋11度）
+	•	Cm11 → マイナー・イレブンス（Cm9＋11度）
+	•	C13 → ドミナント・サーティーンス（C11＋13度）
+	•	Cmaj13 → メジャー・サーティーンス（Cmaj11＋13度）
+	•	Cm13 → マイナー・サーティーンス（Cm11＋13度）
+	•	Cadd9 → トライアド＋長9度（7度を含まない）
+	•	C9#11 → ドミナント9th＋シャープ11（13度以下省略可）
+	•	C7b9#11 → ドミナント7th＋フラット9度＋シャープ11度
+	•	C13#11 → ドミナント13th＋シャープ11度
+	•	C7b5 → ドミナント7th＋フラット5度
+	•	Csus4 → サスペンデッド4th（3度省略→4度置換）
+	•	Csus2 → サスペンデッド2nd（3度省略→2度置換）
+	•	C7sus4 → ドミナント7th＋サス4
+	•	C7omit3 → ドミナント7thの3度抜き
+	•	Cmaj9omit5 → メジャー9thの5度抜き
+	•	C/E → インヴァージョン（ベース音に E）
+	•	Cm7/B- → インヴァージョン（Cm7 のベースに B♭）
+	•	Cpower → パワーコード（ルート＋5度のみ）
+
+⸻
+
+こちらをベースに、さらに細かなテンションや派生表記を加える場合は、上記ルールに「b」「#」「add」を続けてください。たとえば：
+	•	Cmaj7#11add13 → メジャー7th＋シャープ11度＋13度追加
+	•	Cm9b5 → マイナー9th＋フラット5度
+
+などが有効です。ぜひお試しください！
+
+
+music21 では、休符はコードシンボルのような文字列ではなく、専用の Rest オブジェクトで扱います。主なポイントは以下のとおりです。
+
+⸻
+
+1. note.Rest クラス
+
+from music21 import note
+
+# 1 小節分の全休符（4/4 拍子で）
+r = note.Rest()
+r.duration.quarterLength = 4.0
+
+	•	note.Rest() を生成し、duration.quarterLength で長さ（拍数）を指定します。
+	•	ストリームに入れると、自動的に適切な休符記号が描画されます。
+
+from music21 import stream, meter, note
+
+s = stream.Stream()
+s.append(meter.TimeSignature('4/4'))
+rest = note.Rest(quarterLength=1.0)  # 付点なしの四分休符
+s.append(rest)
+s.show()  # 標準の楽譜ビューア／MuseScore に渡せます
+
+
+
+⸻
+
+2. 文字列から Rest を生成する
+
+解析用に文字列からオブジェクトを作りたい場合は、note.Rest() のほかに music21.converter や CommonFormats のパーサーを使いますが、単純に
+
+rest = note.Rest()
+rest.duration = duration.Duration('quarter')  # 'whole', 'half', 'eighth' なども可
+
+のように書くのが一般的です。
+
+⸻
+
+3. ChordSymbol の休符扱い
+
+harmony.ChordSymbol（コードシンボル）パーサーには休符の文字列表現はありません。
+	•	休符を出したい場所は、ChordSymbol を生成せずに note.Rest を配置するか、
+	•	あるいは前述のように自前のラベル（例："rest"／空文字）を検知して None を返し、
+最終的に Rest() を出すロジックを入れてください。
+
+⸻
+
+まとめ
+	•	文字列上の「休符記号」はない → 必ず note.Rest オブジェクトを使う
+	•	休符の長さは duration.quarterLength もしくは Duration('half') などで指定
+	•	ChordSymbol 解析で休符扱いしたい場合は、ラベル検知 → None → Rest() を挿入 というフローを実装してください
+
+このように扱うことで、music21 上で正しく「休符」としてレンダリング・演奏が行えます。続きを進める際の参考にしていただければ幸いです！
+
+
+{
+  "maj": {
+    "description": "Major triad chord (major 3rd and perfect 5th). By default, a chord symbol with just the root letter is interpreted as a major triad [oai_citation_attribution:0‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%20%20%20%20,3).",
+    "syntax": "No suffix or sometimes \"maj\". For instance, \"C\" or \"Cmaj\" indicates C major triad [oai_citation_attribution:1‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%20%20%20%20,3). (Note: use \"-\" for flat in root, e.g., \"B-\" for B♭ major.)",
+    "examples": ["C", "Cmaj", "F#", "D- (B♭ major)"],
+    "invalid_examples": ["Cmajor (not a recognized abbreviation)"]
+  },
+  "min": {
+    "description": "Minor triad chord (minor 3rd and perfect 5th). Often notated with a lowercase m.",
+    "syntax": "Add \"m\" or \"min\" after the root. E.g., \"Cm\" or \"Cmin\" means C minor triad [oai_citation_attribution:2‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%20%20%20%20,3). (Do NOT use just a hyphen after the root; e.g. \"C-\" means C-flat root, not C minor [oai_citation_attribution:3‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=to%20prevent%20ambiguity%20in%20notation,%E2%80%99%20signs).)",
+    "examples": ["Cm", "Cmin", "F#m", "D-min (D minor; \"min\" can be spelled out)"],
+    "invalid_examples": ["C- (interpreted as C♭ major, not C minor)", "Cminor (unsupported full name)"]
+  },
+  "dim": {
+    "description": "Diminished triad chord (flattened 3rd and 5th).",
+    "syntax": "Use \"dim\" or the degree symbol (°) to denote diminished triad. E.g., \"Cdim\" represents C diminished (C–E♭–G♭) [oai_citation_attribution:4‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%20%20%20%20,3). (\"Co\" or \"C°\" may also be accepted for C diminished.)",
+    "examples": ["Cdim", "Gdim", "F°"],
+    "invalid_examples": ["Cdim5 (invalid modification)"]
+  },
+  "aug": {
+    "description": "Augmented triad chord (major 3rd and augmented 5th). Often notated with a plus sign or \"aug\".",
+    "syntax": "Add \"+\" or \"aug\" after the root. E.g., \"C+\" or \"Caug\" means C augmented (C–E–G#) [oai_citation_attribution:5‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%20%20%20%20,3). This can combine with other qualifiers (e.g., \"+M7\" for augmented major 7th [oai_citation_attribution:6‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27Fm7%27%2C%20%27minor)).",
+    "examples": ["C+", "Caug", "C+M7 (augmented major seventh, i.e. Cmaj7#5)"],
+    "invalid_examples": ["Caug7 (use \"C7+\" or \"C7#5\" for augmented 7th chord)"]
+  },
+  "sus4": {
+    "description": "Suspended 4th chord (major or minor 3rd omitted, 4th scale degree instead).",
+    "syntax": "Use \"sus4\" after the root (and extension if any). E.g., \"Csus4\" yields C–F–G [oai_citation_attribution:7‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Csus2%20%20%20%20,C3%2C%20F3%2C%20G3). Can be combined with sevenths or extensions (e.g., \"C7sus4\" for C7 with suspended 4th).",
+    "examples": ["Csus4", "G7sus4", "C13sus4"],
+    "invalid_examples": ["Csus (must specify 2 or 4)", "Cmsus4 (minor + sus conflict)"]
+  },
+  "sus2": {
+    "description": "Suspended 2nd chord (3rd omitted, 2nd degree instead).",
+    "syntax": "Use \"sus2\" similarly. E.g., \"Csus2\" gives C–D–G [oai_citation_attribution:8‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Csus2%20%20%20%20,C3%2C%20F3%2C%20G3). Can combine with extensions (e.g., \"C9sus4\" uses a suspended 4th with a 9th chord).",
+    "examples": ["Csus2", "Asus2", "D7sus4 (7th chord with sus4)"],
+    "invalid_examples": ["Csus9 (should be C9sus4 or Csus2 etc.)"]
+  },
+  "6": {
+    "description": "Added sixth chord (major triad plus major 6th).",
+    "syntax": "Use \"6\" after the root. \"C6\" = C–E–G–A [oai_citation_attribution:9‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C6%20%20%20%20,C3%2C%20E3%2C%20G3%2C%20B3%2C%20D4). Implies a major chord with added 6th (also called major 6th chord).",
+    "examples": ["C6", "G6", "B♭6"],
+    "invalid_examples": ["Cmaj6 (just use C6)"]
+  },
+  "m6": {
+    "description": "Minor 6th chord (minor triad plus major 6th).",
+    "syntax": "\"m6\" after root. E.g., \"Cm6\" = C–E♭–G–A [oai_citation_attribution:10‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C6%20%20%20%20,C3%2C%20E3%2C%20G3%2C%20B3%2C%20D4).",
+    "examples": ["Cm6", "F#m6"],
+    "invalid_examples": []
+  },
+  "7": {
+    "description": "Dominant seventh chord (major triad + minor 7th).",
+    "syntax": "\"7\" after the root. E.g., \"C7\" = C–E–G–B♭ [oai_citation_attribution:11‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3). This implies a dominant-quality 7th. Extensions 9, 11, 13 without \"maj\" or \"m\" also imply dominant 7th included (e.g., C9 = C7(9)). Alterations are added as \"b\" or \"#\" plus degree: e.g., C7♭9, C7#5 [oai_citation_attribution:12‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27F%23%2BM9%27%2C%20%27augmented). Multiple alterations can be chained (e.g., C7b9#5).",
+    "examples": ["C7", "C9", "C7#5 (augmented fifth) [oai_citation_attribution:13‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3)", "C7b9", "C13#11"],
+    "invalid_examples": ["C7maj7 (conflicting major 7 and dominant 7)"]
+  },
+  "maj7": {
+    "description": "Major seventh chord (major triad + major 7th).",
+    "syntax": "Use \"maj7\" or sometimes \"M7\". E.g., \"Cmaj7\" = C–E–G–B [oai_citation_attribution:14‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=,seventh). Higher extensions with \"maj\" (or \"Maj\") imply major 7th included (e.g., Cmaj9, CMaj11). Alterations can be applied (e.g., Cmaj7#11 adds a sharp 11th).",
+    "examples": ["Cmaj7", "CM7 [oai_citation_attribution:15‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3)", "Cmaj9", "Cmaj7#11"],
+    "invalid_examples": ["Cmaj7b5 (not a standard chord type)"]
+  },
+  "m7": {
+    "description": "Minor seventh chord (minor triad + minor 7th).",
+    "syntax": "\"m7\" or \"min7\" after the root. E.g., \"Cm7\" = C–E♭–G–B♭ [oai_citation_attribution:16‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3). Extensions: m9, m11, m13 imply minor 7th included (e.g., Cm9).",
+    "examples": ["Cm7", "Cmin7", "Fm7", "Cm9", "Cm11"],
+    "invalid_examples": ["Cmin7b5 (use Cm7b5 for half-diminished)"]
+  },
+  "mM7": {
+    "description": "Minor-major seventh chord (minor triad + major 7th).",
+    "syntax": "Notated as \"mM7\" (minor with a major 7). E.g., \"CmM7\" = C–E♭–G–B [oai_citation_attribution:17‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cm7b5%20%20%20%20,3%2C%20G3%2C%20B3). Extensions like mM9, mM11, mM13 are also recognized [oai_citation_attribution:18‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27B) [oai_citation_attribution:19‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%3E%3E%3E%20c%20%3D%20chord.Chord%28%5B%27C3%27%2C%20%27E,11th).",
+    "examples": ["CmM7", "CmM9", "FmM7 (F minor-major 7th)", "CmM13"],
+    "invalid_examples": ["CmMaj7 (must use mM7 format)"]
+  },
+  "dim7": {
+    "description": "Diminished seventh chord (diminished triad + diminished 7th).",
+    "syntax": "\"dim7\" or \"°7\" after root. E.g., \"Cdim7\" = C–E♭–G♭–B𝄫 [oai_citation_attribution:20‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3) (fully diminished seventh).",
+    "examples": ["Cdim7", "Co7", "G°7"],
+    "invalid_examples": []
+  },
+  "m7b5": {
+    "description": "Half-diminished seventh chord (minor 7th flat-5, i.e., diminished triad + minor 7th).",
+    "syntax": "Use \"m7b5\" (or \"ø7\" symbolically) for half-diminished. E.g., \"Cm7b5\" = C–E♭–G♭–B♭ [oai_citation_attribution:21‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cm7b5%20%20%20%20,3%2C%20G3%2C%20B3). Often notated as Cø7 in jazz. Can take extensions like ♭9 (e.g., Cm7b5b9).",
+    "examples": ["Cm7b5 [oai_citation_attribution:22‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cm7b5%20%20%20%20,3%2C%20G3%2C%20B3)", "Cø7", "Cm7b5b9 (adds a flat 9th)"],
+    "invalid_examples": []
+  },
+  "7+": {
+    "description": "Augmented dominant seventh chord (dominant 7th with augmented 5th).",
+    "syntax": "Notated as \"7+\" or \"7#5\". E.g., \"C7+\" = C–E–G#–B♭ [oai_citation_attribution:23‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C7%20%20%20%20,3) (also written C7♯5). This is effectively C augmented triad with a minor 7th.",
+    "examples": ["C7+", "C7#5", "G7+ (Gaug7)"],
+    "invalid_examples": []
+  },
+  "9": {
+    "description": "Dominant ninth chord (dominant 7th + major 9th).",
+    "syntax": "Just the number 9 implies a dominant 9th (includes ♭7). \"C9\" = C–E–G–B♭–D [oai_citation_attribution:24‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C9%20%20%20%20,3%2C%20D4). Alterations: e.g., C9♯5, C9♭5, C9♭13, etc., modify chord tones or extensions [oai_citation_attribution:25‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27F%23%2BM9%27%2C%20%27augmented).",
+    "examples": ["C9", "A9", "G9#5 [oai_citation_attribution:26‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27F%23%2BM9%27%2C%20%27augmented)", "C9b13"],
+    "invalid_examples": ["Cadd9 (use add9 only for adding a 9 to a triad without 7)"]
+  },
+  "maj9": {
+    "description": "Major ninth chord (major 7th + major 9th).",
+    "syntax": "\"maj9\" (or \"Maj9\") after root. E.g., \"Cmaj9\" = C–E–G–B–D [oai_citation_attribution:27‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C9%20%20%20%20,3%2C%20D4). Implies a major seventh chord with added 9th.",
+    "examples": ["Cmaj9", "CMaj9 [oai_citation_attribution:28‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C9%20%20%20%20,3%2C%20D4)", "Fmaj9"],
+    "invalid_examples": []
+  },
+  "m9": {
+    "description": "Minor ninth chord (minor 7th + major 9th).",
+    "syntax": "\"m9\" after root. E.g., \"Cm9\" = C–E♭–G–B♭–D [oai_citation_attribution:29‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C9%20%20%20%20,3%2C%20D4).",
+    "examples": ["Cm9", "F#m9"],
+    "invalid_examples": []
+  },
+  "mM9": {
+    "description": "Minor-major ninth chord (minor triad, major 7th, add 9).",
+    "syntax": "\"mM9\" after root. E.g., \"CmM9\" is C–E♭–G–B–D (minor-major 7th plus 9) [oai_citation_attribution:30‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%28%27B).",
+    "examples": ["CmM9", "GmM9"],
+    "invalid_examples": []
+  },
+  "11": {
+    "description": "Dominant eleventh chord (dominant 7th + 9th + 11th).",
+    "syntax": "\"11\" implies a dominant 11th chord. E.g., \"C11\" (usually understood as C–G–B♭–D–F, often omitting the 3rd) [oai_citation_attribution:31‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=ELEVENTHS).",
+    "examples": ["C11 [oai_citation_attribution:32‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=ELEVENTHS)", "G11"],
+    "invalid_examples": []
+  },
+  "maj11": {
+    "description": "Major eleventh chord (major 7th + 9th + 11th).",
+    "syntax": "\"Maj11\" or \"maj11\" after root. E.g., \"Cmaj11\" = Cmaj7 plus 9th and 11th [oai_citation_attribution:33‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=,11th).",
+    "examples": ["Cmaj11", "CMaj11 [oai_citation_attribution:34‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C11%20%20%20%20,2%2C%20D3%2C%20F3)"],
+    "invalid_examples": []
+  },
+  "m11": {
+    "description": "Minor eleventh chord (minor 7th + 9th + 11th).",
+    "syntax": "\"m11\" after root. E.g., \"Cm11\" = Cm7 plus 9th and 11th [oai_citation_attribution:35‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%3E%3E%3E%20c%20%3D%20chord.Chord%28%5B%27F,11th).",
+    "examples": ["Cm11", "Dm11"],
+    "invalid_examples": []
+  },
+  "mM11": {
+    "description": "Minor-major eleventh chord (minor triad, major 7th, plus 9th & 11th).",
+    "syntax": "\"mM11\" after root. E.g., \"CmM11\" = C–E♭–G–B–D–F [oai_citation_attribution:36‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%3E%3E%3E%20c%20%3D%20chord.Chord%28%5B%27C3%27%2C%20%27E,11th).",
+    "examples": ["CmM11", "FmM11"],
+    "invalid_examples": []
+  },
+  "13": {
+    "description": "Dominant thirteenth chord (dominant 7th + 9th + 11th + 13th).",
+    "syntax": "\"13\" implies a dominant 13th. E.g., \"C13\" = C–E–G–B♭–(D)–(F)–A [oai_citation_attribution:37‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=,13th) (some lower extensions often omitted). Alterations like ♯11 can be added (e.g., C13#11).",
+    "examples": ["C13 [oai_citation_attribution:38‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=,13th)", "A13", "C13#11"],
+    "invalid_examples": ["C7add13 (should be C13)"]
+  },
+  "maj13": {
+    "description": "Major thirteenth chord (major 7th + all extensions up to 13).",
+    "syntax": "\"Maj13\" or \"maj13\". E.g., \"Cmaj13\" = Cmaj7 plus 9, 11, 13 [oai_citation_attribution:39‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=,13th).",
+    "examples": ["Cmaj13", "CMaj13 [oai_citation_attribution:40‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C13%20%20%20%20,2%2C%20D3%2C%20F3%2C%20A3)"],
+    "invalid_examples": []
+  },
+  "m13": {
+    "description": "Minor thirteenth chord (minor 7th with extensions up to 13).",
+    "syntax": "\"m13\" after root. E.g., \"Cm13\" = Cm7 plus 9, 11, 13 [oai_citation_attribution:41‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%3E%3E%3E%20c%20%3D%20chord.Chord%28%5B%27C3%27%2C%20%27E,13th).",
+    "examples": ["Cm13", "Fm13"],
+    "invalid_examples": []
+  },
+  "mM13": {
+    "description": "Minor-major thirteenth chord (minor triad, major 7th, extensions to 13).",
+    "syntax": "\"mM13\" after root. E.g., \"CmM13\" (C–E♭–G–B–D–F–A) [oai_citation_attribution:42‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=%3E%3E%3E%20c%20%3D%20chord.Chord%28%5B%27C3%27%2C%20%27E,13th).",
+    "examples": ["CmM13"],
+    "invalid_examples": []
+  },
+  "add9": {
+    "description": "Added tone chord (add2, add4, add9). Used to add a scale degree without implying a seventh.",
+    "syntax": "Use \"addN\" after a triad. E.g., \"Cadd9\" or \"Cadd2\" adds a D to C triad, but no seventh (C–E–G–D) [oai_citation_attribution:43‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%2FE%20%20%20%20,3). Similarly, \"Cadd4\" adds the fourth (F) without omitting the third.",
+    "examples": ["Cadd2 [oai_citation_attribution:44‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cm7%2FE,3)", "Cadd9", "Gmadd9", "Fadd4"],
+    "invalid_examples": []
+  },
+  "omit": {
+    "description": "Omitted tone notation. Indicates leaving out a chord tone.",
+    "syntax": "\"omit\" followed by the scale degree to omit. E.g., \"C7omit3\" means a C7 chord without the 3rd (C–G–B♭) [oai_citation_attribution:45‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=C%2FE%20%20%20%20,3). Often used for chords where a tone is intentionally omitted.",
+    "examples": ["C7omit3 [oai_citation_attribution:46‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cm7%2FE,3)", "Gmaj9omit5"],
+    "invalid_examples": []
+  },
+  "power": {
+    "description": "Power chord (just root and fifth, no third). Common in rock music.",
+    "syntax": "Denoted by \"power\". E.g., \"Cpower\" yields C and G only [oai_citation_attribution:47‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4). (Often written as \"C5\" in tablature, but music21 uses \"power\".)",
+    "examples": ["Cpower [oai_citation_attribution:48‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4)", "Gpower"],
+    "invalid_examples": ["C5 (not explicitly recognized, use 'power')"]
+  },
+  "inversion": {
+    "description": "Inversion slash notation for specifying a bass note.",
+    "syntax": "Append \"/<bass>\" to the chord symbol. E.g., \"C/E\" means C major with E in the bass [oai_citation_attribution:49‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4). Bass note can include accidentals (use \"-\" for flat, e.g. \"Cm7/E-\" for Cm7 over E♭ bass) [oai_citation_attribution:50‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4).",
+    "examples": ["C/E [oai_citation_attribution:51‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4)", "Cm7/E- (Cm7/E♭) [oai_citation_attribution:52‡music21.org](https://www.music21.org/music21docs/moduleReference/moduleHarmony.html#:~:text=Cpower%20%20%20%20,3%2C%20C4)"],
+    "invalid_examples": []
+  }
+}

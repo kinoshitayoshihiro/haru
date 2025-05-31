@@ -1,15 +1,17 @@
-# --- START OF FILE generator/drum_generator.py (Harugoro-OTO KOTOBA Engine - Schema & Inherit Edition) ---
+# --- START OF FILE generator/drum_generator.py (Harugoro-OTO KOTOBA Engine - Schema & Inherit & Override修正版) ---
 from __future__ import annotations
 
-import logging, random, math, copy # copy を追加
-from typing import Any, Dict, List, Optional, Sequence, Union # Union を追加
+import logging, random, math, copy
+from typing import Any, Dict, List, Optional, Sequence, Union, Set # Set を追加
 
 from music21 import (
     stream, note, pitch, volume as m21volume, duration as m21dur, tempo,
     meter, instrument as m21instrument,
 )
 
+# ▼▼▼ override_loader のインポートは残すが、トップレベルでの呼び出しは削除 ▼▼▼
 try:
+    from utilities.override_loader import load_overrides, get_part_override # get_part_override は compose 内で使用
     from utilities.core_music_utils import MIN_NOTE_DURATION_QL, get_time_signature_object
     from utilities.humanizer import apply_humanization_to_element
 except ImportError:
@@ -22,10 +24,14 @@ except ImportError:
         except Exception: return meter.TimeSignature("4/4")
     def apply_humanization_to_element(element, template_name=None, custom_params=None):
         return element
+    # ダミーの get_part_override (インポート失敗時)
+    class DummyPartOverride: model_config = {}; model_fields = {} # pydantic.BaseModelのダミー
+    def get_part_override(overrides, section, part, cli_override=None) -> DummyPartOverride: return DummyPartOverride()
+
 
 logger = logging.getLogger(__name__)
 
-# GM Drum Map (o3-san feedback 반영판 / v2025‑05‑27 brush‑up 版ベースの包括的なもの)
+# ... (GM_DRUM_MAP, GHOST_ALIAS, EMOTION_TO_BUCKET, BUCKET_INTENSITY_TO_STYLE, _resolve_style は変更なし) ...
 GM_DRUM_MAP: Dict[str, int] = {
     "kick": 36, "bd": 36, "acoustic_bass_drum": 35,
     "snare": 38, "sd": 38, "acoustic_snare": 38, "electric_snare": 40,
@@ -56,7 +62,6 @@ GM_DRUM_MAP: Dict[str, int] = {
 }
 GHOST_ALIAS: Dict[str, str] = {"ghost_snare": "snare", "gs": "snare"}
 
-# Look-up tables (前回版と同様)
 EMOTION_TO_BUCKET: Dict[str, str] = {
     "quiet_pain_and_nascent_strength": "ballad_soft", "self_reproach_regret_deep_sadness": "ballad_soft",
     "memory_unresolved_feelings_silence": "ballad_soft", "reflective_transition_instrumental_passage": "ballad_soft",
@@ -84,16 +89,22 @@ def _resolve_style(emotion:str, intensity:str, pattern_lib: Dict[str, Any]) -> s
     resolved_style = style_map_for_bucket.get(intensity.lower())
     if not resolved_style:
         resolved_style = style_map_for_bucket.get("default", "default_drum_pattern")
-    if resolved_style not in pattern_lib: # pattern_lib を参照して存在確認
-        logger.warning(f"DrumGen _resolve_style: Resolved style '{resolved_style}' not in pattern_lib. Falling back.")
+    if resolved_style not in pattern_lib:
+        logger.warning(f"DrumGen _resolve_style: Resolved style '{resolved_style}' not in pattern_lib. Falling back to 'default_drum_pattern'.")
+        # フォールバック先も存在するか確認 (念のため)
+        if "default_drum_pattern" not in pattern_lib:
+            logger.error(f"DrumGen _resolve_style: CRITICAL - Fallback 'default_drum_pattern' also not in pattern_lib. This should not happen.")
+            # ここでさらに安全なフォールバックを考えるか、エラーを出すか
+            # 例えば、空のパターンを返すなど
+            return "no_drums" # より安全なフォールバック
         return "default_drum_pattern"
     return resolved_style
 
 class DrumGenerator:
     def __init__(self, lib: Optional[Dict[str,Dict[str,Any]]] = None,
                  tempo_bpm:int = 120, time_sig:str="4/4"):
-        self.raw_pattern_lib = copy.deepcopy(lib) if lib is not None else {} # 元のライブラリを保持
-        self.pattern_lib_cache: Dict[str, Dict[str, Any]] = {} # 継承解決済みパターンをキャッシュ
+        self.raw_pattern_lib = copy.deepcopy(lib) if lib is not None else {}
+        self.pattern_lib_cache: Dict[str, Dict[str, Any]] = {}
         self.rng = random.Random()
         logger.info(f"DrumGen __init__: Received raw_pattern_lib with {len(self.raw_pattern_lib)} keys.")
 
@@ -102,10 +113,10 @@ class DrumGenerator:
             "no_drums":{"description": "Silence", "pattern":[],"time_signature":"4/4", "swing": 0.5, "length_beats": 4.0, "fill_ins": {}}
         }
         for k, v_def in core_defaults.items():
-            if k not in self.raw_pattern_lib: # raw_pattern_lib になければ追加
+            if k not in self.raw_pattern_lib:
                 self.raw_pattern_lib[k] = v_def
                 logger.info(f"DrumGen __init__: Added core default '{k}' to raw pattern library.")
-        
+
         all_referenced_styles_in_luts = set()
         for bucket_styles in BUCKET_INTENSITY_TO_STYLE.values():
             for style_key_in_lut in bucket_styles.values():
@@ -133,10 +144,6 @@ class DrumGenerator:
             self.instrument.midiChannel = 9
 
     def _get_effective_pattern_def(self, style_key: str, visited: Optional[Set[str]] = None) -> Dict[str, Any]:
-        """
-        Resolves pattern inheritance ("inherit" key) and returns the effective pattern definition.
-        Caches resolved patterns.
-        """
         if visited is None: visited = set()
         if style_key in visited:
             logger.error(f"DrumGen: Circular inheritance detected involving '{style_key}'. Returning base default.")
@@ -146,54 +153,49 @@ class DrumGenerator:
         if style_key in self.pattern_lib_cache:
             return copy.deepcopy(self.pattern_lib_cache[style_key])
 
-        pattern_def = copy.deepcopy(self.raw_pattern_lib.get(style_key))
-        if not pattern_def:
+        pattern_def_original = self.raw_pattern_lib.get(style_key)
+        if not pattern_def_original:
             logger.warning(f"DrumGen: Style key '{style_key}' not found in raw_pattern_lib. Returning default.")
-            return copy.deepcopy(self.raw_pattern_lib.get("default_drum_pattern", {}))
+            # default_drum_pattern が存在しない極端なケースも考慮
+            default_pattern = self.raw_pattern_lib.get("default_drum_pattern")
+            if not default_pattern:
+                logger.error("DrumGen: CRITICAL - 'default_drum_pattern' is also missing. Returning minimal empty pattern.")
+                return {"description": "Minimal Empty Pattern", "pattern":[], "time_signature":"4/4", "swing": 0.5, "length_beats": 4.0, "fill_ins": {}}
+            return copy.deepcopy(default_pattern)
+        pattern_def = copy.deepcopy(pattern_def_original)
+
 
         inherit_key = pattern_def.get("inherit")
         if inherit_key and isinstance(inherit_key, str):
             logger.debug(f"DrumGen: Pattern '{style_key}' inherits from '{inherit_key}'.")
-            base_def = self._get_effective_pattern_def(inherit_key, visited) # Recursive call
-            
-            # Merge: current pattern_def overrides base_def
-            # For "pattern" and "fill_ins", we might want smarter merging or complete override.
-            # For now, simple dictionary update (pattern_def takes precedence).
-            merged_def = base_def.copy() # Start with a copy of the resolved base
-            
-            # Deep merge for nested dicts like 'options' or 'fill_ins' if needed in future.
-            # For now, top-level keys from pattern_def will overwrite.
-            # Special handling for 'pattern' list: if pattern_def has one, it overrides.
-            # If pattern_def doesn't have 'pattern' but base does, base's pattern is used.
-            # If pattern_def's pattern is empty and base has one, use base.
-            
-            current_pattern_list = pattern_def.get("pattern")
-            if current_pattern_list is not None: # If current def has 'pattern' (even if empty list) it overrides base.
-                 merged_def["pattern"] = current_pattern_list
-            # else: base_def's pattern (if any) is kept.
+            base_def = self._get_effective_pattern_def(inherit_key, visited)
 
-            # For fill_ins, merge dictionaries (specific fills override base fills)
+            merged_def = base_def.copy()
+            current_pattern_list = pattern_def.get("pattern")
+            if current_pattern_list is not None:
+                 merged_def["pattern"] = current_pattern_list
+
             base_fills = merged_def.get("fill_ins", {})
             current_fills = pattern_def.get("fill_ins", {})
             if isinstance(base_fills, dict) and isinstance(current_fills, dict):
                 merged_fills = base_fills.copy()
                 merged_fills.update(current_fills)
                 merged_def["fill_ins"] = merged_fills
-            elif current_fills is not None: # If current_fills exists (even if not dict), it overrides
+            elif current_fills is not None:
                  merged_def["fill_ins"] = current_fills
 
-
-            # Other keys are simply overridden by pattern_def
             for key, value in pattern_def.items():
-                if key not in ["inherit", "pattern", "fill_ins"]: # Don't copy 'inherit' itself, pattern/fills handled
+                if key not in ["inherit", "pattern", "fill_ins"]:
                     merged_def[key] = value
             pattern_def = merged_def
-        
+
         self.pattern_lib_cache[style_key] = copy.deepcopy(pattern_def)
-        visited.remove(style_key)
+        if style_key in visited: visited.remove(style_key) # 正常終了時にも削除
         return pattern_def
 
-    def compose(self, blocks: List[Dict[str,Any]]) -> stream.Part:
+    # ▼▼▼ compose メソッドのシグネチャを修正 ▼▼▼
+    def compose(self, blocks: List[Dict[str,Any]], overrides: Optional[Any] = None) -> stream.Part:
+    # ▲▲▲ overrides の型を Optional[Any] に (Overridesモデルを受け取るため) ▲▲▲
         part = stream.Part(id="Drums")
         part.insert(0, self.instrument)
         part.insert(0, tempo.MetronomeMark(number=self.global_tempo))
@@ -207,37 +209,71 @@ class DrumGenerator:
         if not blocks: return part
         logger.info(f"DrumGen compose: Starting for {len(blocks)} blocks.")
 
-        for blk_idx, blk in enumerate(blocks):
+        # ブロックごとのパラメータ解決を先に行う
+        resolved_blocks = []
+        for blk_idx, blk_data_original in enumerate(blocks):
+            blk = copy.deepcopy(blk_data_original) # 元のデータを変更しないようにコピー
+            current_section_name = blk.get("section_name", f"UnnamedSection_{blk_idx}")
+
+            # get_part_override を呼び出し
+            part_specific_overrides_model = get_part_override(
+                overrides if overrides else {},
+                current_section_name,
+                "drums"
+            )
+
+            # chordmap からのパラメータと override からのパラメータをマージ
+            # blk["part_params"]["drums"] が存在することを保証
+            blk.setdefault("part_params", {}).setdefault("drums", {})
+            drum_params_from_chordmap = blk["part_params"]["drums"]
+            
+            final_drum_params = drum_params_from_chordmap.copy()
+            if part_specific_overrides_model:
+                override_dict = part_specific_overrides_model.model_dump(exclude_unset=True)
+                # ネストされた 'options' や他の特定のキーを適切にマージする必要があればここで行う
+                # 例: final_drum_params.get("options", {}).update(override_dict.pop("options", {}))
+                final_drum_params.update(override_dict)
+            
+            blk["part_params"]["drums"] = final_drum_params # マージ結果を格納
+
             emo = blk.get("musical_intent",{}).get("emotion","default").lower()
             inten = blk.get("musical_intent",{}).get("intensity","medium").lower()
-            # _resolve_style now uses self.raw_pattern_lib for existence check
-            style_key_resolved = _resolve_style(emo, inten, self.raw_pattern_lib) 
             
-            blk.setdefault("part_params",{}).setdefault("drums",{})
-            # chordmap.jsonからの明示的なstyle_keyも考慮
-            explicit_style_key = blk["part_params"]["drums"].get("drum_style_key", blk["part_params"]["drums"].get("style_key"))
-            if explicit_style_key and explicit_style_key in self.raw_pattern_lib:
-                final_style_key = explicit_style_key
-                logger.debug(f"DrumGen compose: Blk {blk_idx+1} using explicit style '{final_style_key}' from chordmap.")
+            # スタイルキーの解決 (override -> chordmap -> emotion/intensity)
+            # 1. Override からの rhythm_key
+            style_key_from_override = final_drum_params.get("rhythm_key") # PartOverride に rhythm_key があれば
+            if style_key_from_override and style_key_from_override in self.raw_pattern_lib:
+                final_style_key = style_key_from_override
+                logger.debug(f"DrumGen compose: Blk {blk_idx+1} using style '{final_style_key}' from arrangement_overrides.")
             else:
-                final_style_key = style_key_resolved
-            
-            blk["part_params"]["drums"]["style_key"] = final_style_key # 解決/選択されたキーを格納
-            logger.debug(f"DrumGen compose: Blk {blk_idx+1} (E:'{emo}',I:'{inten}') using style '{final_style_key}'")
+                # 2. Chordmap からの drum_style_key
+                explicit_style_key_chordmap = final_drum_params.get("drum_style_key", final_drum_params.get("style_key"))
+                if explicit_style_key_chordmap and explicit_style_key_chordmap in self.raw_pattern_lib:
+                    final_style_key = explicit_style_key_chordmap
+                    logger.debug(f"DrumGen compose: Blk {blk_idx+1} using explicit style '{final_style_key}' from chordmap.")
+                else:
+                    # 3. Emotion/Intensity からの解決
+                    final_style_key = _resolve_style(emo, inten, self.raw_pattern_lib)
+                    logger.debug(f"DrumGen compose: Blk {blk_idx+1} (E:'{emo}',I:'{inten}') using auto-resolved style '{final_style_key}'")
 
-        self._render(blocks, part)
+            blk["part_params"]["drums"]["final_style_key_for_render"] = final_style_key # 実際に使用するスタイルキーを格納
+            resolved_blocks.append(blk)
+
+        self._render(resolved_blocks, part) # 解決済みブロックリストを渡す
         logger.info(f"DrumGen compose: Finished. Part has {len(list(part.flatten().notesAndRests))} elements.")
         return part
 
     def _render(self, blocks:Sequence[Dict[str,Any]], part:stream.Part):
         ms_since_fill = 0
         for blk_idx, blk_data in enumerate(blocks):
+            # drums_params には既に override がマージされているはず
             drums_params = blk_data.get("part_params", {}).get("drums", {})
-            style_key = drums_params.get("style_key", "default_drum_pattern")
-            
-            style_def = self._get_effective_pattern_def(style_key) # <<< Use inheritance resolving getter
-            if not style_def: # Should be handled by _get_effective_pattern_def returning a default
-                logger.error(f"DrumGen _render: CRITICAL - _get_effective_pattern_def returned None for '{style_key}'.")
+            # final_style_key_for_render を使用
+            style_key = drums_params.get("final_style_key_for_render", "default_drum_pattern")
+
+            style_def = self._get_effective_pattern_def(style_key)
+            if not style_def:
+                logger.error(f"DrumGen _render: CRITICAL - _get_effective_pattern_def returned None for '{style_key}'. Skipping block.")
                 continue
 
             pat_events: List[Dict[str,Any]] = style_def.get("pattern", [])
@@ -245,46 +281,47 @@ class DrumGenerator:
             pat_ts = get_time_signature_object(pat_ts_str)
             if not pat_ts: pat_ts = self.global_ts
 
-            # <<< Use "length_beats" if available, otherwise calculate from TS
             pattern_unit_length_ql = float(style_def.get("length_beats", pat_ts.barDuration.quarterLength if pat_ts else 4.0))
             if pattern_unit_length_ql <=0:
                  logger.warning(f"DrumGen _render: Pattern '{style_key}' has invalid length_beats/barDuration {pattern_unit_length_ql}. Defaulting to 4.0")
                  pattern_unit_length_ql = 4.0
 
-            # <<< Parse new swing structure
-            swing_setting = style_def.get("swing", 0.5) # Default to 0.5 (straight)
-            swing_type = "eighth" # Default swing type
-            swing_ratio_val = 0.5
+            swing_setting = style_def.get("swing", 0.5)
+            swing_type = "eighth"; swing_ratio_val = 0.5
             if isinstance(swing_setting, dict):
                 swing_type = swing_setting.get("type", "eighth").lower()
                 swing_ratio_val = float(swing_setting.get("ratio", 0.5))
             elif isinstance(swing_setting, (float, int)):
                 swing_ratio_val = float(swing_setting)
-            
-            fills = style_def.get("fill_ins", {})
-            base_vel = int(drums_params.get("drum_base_velocity", 80))
-            intensity_str = blk_data.get("musical_intent", {}).get("intensity", "medium").lower()
-            if intensity_str in ["high", "medium_high"]: base_vel = min(127, base_vel + 8)
-            elif intensity_str in ["low", "medium_low"]: base_vel = max(20, base_vel - 6)
 
-            offset_in_score = blk_data.get("offset", 0.0) # Renamed for clarity
+            fills = style_def.get("fill_ins", {})
+            # base_vel は drums_params から取得 (override 適用済みのはず)
+            base_vel = int(drums_params.get("drum_base_velocity", drums_params.get("velocity", 80))) # "velocity" もフォールバックとして考慮
+            intensity_str = blk_data.get("musical_intent", {}).get("intensity", "medium").lower()
+            # 強度によるベロシティ調整は translate_keywords_to_params で行われている想定だが、念のためここでも考慮
+            # ただし、overrideで直接velocityが指定されていればそちらを優先すべき
+            if "velocity" not in drums_params and "drum_base_velocity" not in drums_params: # 明示的な指定がない場合のみ強度調整
+                if intensity_str in ["high", "medium_high"]: base_vel = min(127, base_vel + 8)
+                elif intensity_str in ["low", "medium_low"]: base_vel = max(20, base_vel - 6)
+
+
+            offset_in_score = blk_data.get("offset", 0.0)
             remaining_ql_in_block = blk_data.get("q_length", pattern_unit_length_ql)
 
             if blk_data.get("is_first_in_section", False) and blk_idx > 0 :
                 ms_since_fill = 0
-            
+
             current_pos_within_block = 0.0
             while remaining_ql_in_block > MIN_NOTE_DURATION_QL / 8.0:
-                # Duration for this iteration of the pattern unit
                 current_pattern_iteration_ql = min(pattern_unit_length_ql, remaining_ql_in_block)
                 if current_pattern_iteration_ql < MIN_NOTE_DURATION_QL / 4.0 : break
 
-                # is_last_bar_of_block logic needs to be based on remaining_ql_in_block relative to pattern_unit_length_ql
                 is_last_pattern_iteration_in_block = (remaining_ql_in_block <= pattern_unit_length_ql + (MIN_NOTE_DURATION_QL / 8.0))
 
                 pattern_to_use = pat_events
                 fill_applied_this_iter = False
-                
+
+                # fill_override は drums_params から取得 (override 適用済みのはず)
                 override_fill_key = drums_params.get("fill_override", drums_params.get("drum_fill_key_override"))
                 if is_last_pattern_iteration_in_block and override_fill_key:
                     chosen_fill_pattern = fills.get(override_fill_key)
@@ -293,15 +330,13 @@ class DrumGenerator:
                         fill_applied_this_iter = True
                         logger.debug(f"DrumGen _render: Applied override fill '{override_fill_key}' for style '{style_key}'")
                     else: logger.warning(f"DrumGen _render: Override fill key '{override_fill_key}' not in fills for '{style_key}'.")
-                
-                fill_interval = drums_params.get("fill_interval_bars", 0)
+
+                # fill_interval_bars, fill_keys も drums_params から取得
+                fill_interval = drums_params.get("drum_fill_interval_bars", 0) # "fill_interval_bars" が正しいキー
                 if not fill_applied_this_iter and is_last_pattern_iteration_in_block and fill_interval > 0:
-                    # Assuming fill_interval is in terms of main pattern bars
-                    num_pattern_units_for_interval = fill_interval # If pattern_unit_length_ql is one bar
-                    # If pattern_unit_length_ql is e.g. 2 bars, and fill_interval is 4 bars, then interval is every 2 pattern units.
-                    # This fill logic assumes ms_since_fill counts full applications of pattern_unit_length_ql
+                    num_pattern_units_for_interval = fill_interval
                     if (ms_since_fill + 1) >= num_pattern_units_for_interval :
-                        fill_keys_list = drums_params.get("fill_keys", [])
+                        fill_keys_list = drums_params.get("drum_fill_keys", []) # "fill_keys" が正しいキー
                         possible_fills = [fk for fk in fill_keys_list if fk in fills]
                         if possible_fills:
                             chosen_fill_key = self.rng.choice(possible_fills)
@@ -310,20 +345,24 @@ class DrumGenerator:
                                 pattern_to_use = chosen_fill_pattern
                                 fill_applied_this_iter = True
                                 logger.debug(f"DrumGen _render: Applied scheduled fill '{chosen_fill_key}' for style '{style_key}'")
-                
-                self._apply_pattern(part, pattern_to_use, offset_in_score + current_pos_within_block, 
+
+                self._apply_pattern(part, pattern_to_use, offset_in_score + current_pos_within_block,
                                     current_pattern_iteration_ql, base_vel,
-                                    swing_type, swing_ratio_val, pat_ts if pat_ts else self.global_ts)
+                                    swing_type, swing_ratio_val, pat_ts if pat_ts else self.global_ts,
+                                    drums_params) # ★★★ drums_params を渡してヒューマナイズ設定を取得できるようにする ★★★
 
                 if fill_applied_this_iter: ms_since_fill = 0
-                else: ms_since_fill += 1 # Increment for each full pattern unit applied without a fill
-                
+                else: ms_since_fill += 1
+
                 current_pos_within_block += current_pattern_iteration_ql
                 remaining_ql_in_block -= current_pattern_iteration_ql
-    
+
+    # ▼▼▼ _apply_pattern のシグネチャを修正 ▼▼▼
     def _apply_pattern(self, part:stream.Part, events:List[Dict[str,Any]],
                        bar_start_abs:float, current_bar_len_ql:float, base_vel:int,
-                       swing_type:str, swing_ratio:float, pattern_ts:meter.TimeSignature):
+                       swing_type:str, swing_ratio:float, pattern_ts:meter.TimeSignature,
+                       drum_block_params: Dict[str, Any]): # ★★★ drum_block_params を追加 ★★★
+    # ▲▲▲ _apply_pattern のシグネチャを修正 ▲▲▲
         beat_len_ql = pattern_ts.beatDuration.quarterLength if pattern_ts else 1.0
 
         for ev_def in events:
@@ -331,13 +370,12 @@ class DrumGenerator:
             inst_name = ev_def.get("instrument")
             if not inst_name: continue
             rel_offset_in_pattern = float(ev_def.get("offset", 0.0))
-            
+
             if swing_ratio != 0.5:
-                # Pass swing_type to _swing method
                 rel_offset_in_pattern = self._swing(rel_offset_in_pattern, swing_ratio, beat_len_ql, swing_type)
-            
+
             if rel_offset_in_pattern >= current_bar_len_ql - (MIN_NOTE_DURATION_QL / 16.0): continue
-            
+
             hit_duration_ql = float(ev_def.get("duration", 0.125))
             clipped_duration_ql = min(hit_duration_ql, current_bar_len_ql - rel_offset_in_pattern)
             if clipped_duration_ql < MIN_NOTE_DURATION_QL / 8.0: continue
@@ -352,48 +390,64 @@ class DrumGenerator:
             drum_hit = self._make_hit(inst_name, final_vel, clipped_duration_ql)
             if not drum_hit: continue
 
-            humanize_setting = ev_def.get("humanize")
+            # ▼▼▼ ヒューマナイズ処理を drum_block_params から取得 ▼▼▼
+            humanize_this_hit = False
+            humanize_template_for_hit = "drum_tight" # デフォルト
+            humanize_custom_for_hit = {}
+
+            # イベント固有のヒューマナイズ設定 > ブロック全体のヒューマナイズ設定
+            event_humanize_setting = ev_def.get("humanize")
+            if isinstance(event_humanize_setting, bool):
+                humanize_this_hit = event_humanize_setting
+            elif isinstance(event_humanize_setting, str): # テンプレート名指定
+                humanize_this_hit = True
+                humanize_template_for_hit = event_humanize_setting
+            elif isinstance(event_humanize_setting, dict): # カスタムパラメータ指定
+                humanize_this_hit = True
+                humanize_template_for_hit = event_humanize_setting.get("template_name", humanize_template_for_hit)
+                humanize_custom_for_hit = event_humanize_setting.get("custom_params", {})
+            else: # イベントに指定がなければブロック設定を見る
+                if drum_block_params.get("humanize_opt", False): # humanize_opt は translate_keywords_to_params で解決済み
+                    humanize_this_hit = True
+                    humanize_template_for_hit = drum_block_params.get("template_name", "drum_tight")
+                    humanize_custom_for_hit = drum_block_params.get("custom_params", {})
+            # ▲▲▲ ヒューマナイズ処理を drum_block_params から取得 ▲▲▲
+
             time_delta_from_humanizer = 0.0
-            if humanize_setting is not None:
-                template_name_for_hit = "drum_tight" # Default if humanize: true
-                if isinstance(humanize_setting, str): template_name_for_hit = humanize_setting
-                
-                if isinstance(humanize_setting, bool) and not humanize_setting: # humanize: false
-                    pass # Do not humanize
-                else: # humanize: true or humanize: "template_name"
-                    original_hit_offset_before_humanize = drum_hit.offset # Should be 0.0
-                    drum_hit = apply_humanization_to_element(drum_hit, template_name=template_name_for_hit)
-                    time_delta_from_humanizer = drum_hit.offset - original_hit_offset_before_humanize
-            
+            if humanize_this_hit:
+                original_hit_offset_before_humanize = drum_hit.offset # Should be 0.0
+                drum_hit = apply_humanization_to_element(drum_hit, template_name=humanize_template_for_hit, custom_params=humanize_custom_for_hit)
+                time_delta_from_humanizer = drum_hit.offset - original_hit_offset_before_humanize
+
             final_insert_offset = bar_start_abs + rel_offset_in_pattern + time_delta_from_humanizer
-            drum_hit.offset = 0.0
+            drum_hit.offset = 0.0 # music21のinsertは要素のoffsetを無視するので、ここで0にしておくのが無難
             part.insert(final_insert_offset, drum_hit)
+
 
     def _swing(self, rel_offset:float, swing_ratio:float, beat_len_ql:float, swing_type:str = "eighth")->float:
         if abs(swing_ratio - 0.5) < 1e-3 or beat_len_ql <= 0:
             return rel_offset
-        
+
         subdivision_duration_ql: float
         if swing_type == "eighth":
             subdivision_duration_ql = beat_len_ql / 2.0
         elif swing_type == "sixteenth":
             subdivision_duration_ql = beat_len_ql / 4.0
-        else: # Unsupported swing type, return original offset
+        else:
             logger.warning(f"DrumGen _swing: Unsupported swing_type '{swing_type}'. No swing applied.")
             return rel_offset
+        if subdivision_duration_ql <= 0: return rel_offset # ゼロ除算防止
 
-        # Effective beat length for this subdivision pair (e.g., for 8th swing, this is a quarter note; for 16th swing, this is an 8th note)
         effective_beat_for_swing_pair_ql = subdivision_duration_ql * 2.0
 
         beat_num_in_bar = math.floor(rel_offset / effective_beat_for_swing_pair_ql)
         offset_within_effective_beat = rel_offset - (beat_num_in_bar * effective_beat_for_swing_pair_ql)
-        
-        epsilon = subdivision_duration_ql * 0.1
 
-        # Check if it's the *second* subdivision of the pair (the one that gets delayed)
+        epsilon = subdivision_duration_ql * 0.1 # 許容誤差
+
+        # 2番目のサブディビジョン（遅延される方）かどうかを判定
+        # 例: 8分音符スウィングで、4分音符の真ん中（0.5拍目）に近いか
         if abs(offset_within_effective_beat - subdivision_duration_ql) < epsilon:
-            # Straight position of this off-beat subdivision is `subdivision_duration_ql`
-            # Swung position is `effective_beat_for_swing_pair_ql * swing_ratio`
             new_offset_within_effective_beat = effective_beat_for_swing_pair_ql * swing_ratio
             swung_rel_offset = (beat_num_in_bar * effective_beat_for_swing_pair_ql) + new_offset_within_effective_beat
             return swung_rel_offset
@@ -410,7 +464,7 @@ class DrumGenerator:
         n.pitch = pitch.Pitch(midi=midi)
         n.duration = m21dur.Duration(quarterLength=max(MIN_NOTE_DURATION_QL / 8.0, ql))
         n.volume = m21volume.Volume(velocity=max(1,min(127,vel)))
-        n.offset = 0.0
+        n.offset = 0.0 # music21のinsertは要素のoffsetを無視するので、ここで0にしておく
         return n
 
 # --- END OF FILE ---

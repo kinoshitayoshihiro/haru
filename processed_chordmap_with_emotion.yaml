@@ -1,0 +1,2014 @@
+project_title: OreNoNyoubou_Shudaika
+global_settings:
+  tempo: 88
+  time_signature: 4/4
+  key_tonic: F
+  key_mode: major
+sections:
+  Verse 1:
+    order: 1
+    length_in_measures: 9
+    musical_intent:
+      emotion: quiet_pain_and_nascent_strength
+      intensity: low
+    expression_details:
+      section_tonic: D
+      section_mode: dorian
+      recommended_tensions:
+      - m7
+      - add9
+      - sus2
+      target_rhythm_category: sparse_and_floating
+      approach_style: gentle_diatonic
+      articulation_profile: soft_legato
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 55
+      piano_velocity_lh: 50
+      piano_apply_pedal: true
+      drum_style_key: no_drums
+    processed_chord_events:
+    - chord_symbol_for_voicing: Dsus2
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 0.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Dsus2
+      absolute_offset_beats: 0.0
+    - chord_symbol_for_voicing: Gsus2
+      specified_bass_for_voicing: D
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 4.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Gsus2/D
+      absolute_offset_beats: 4.0
+    - chord_symbol_for_voicing: Cadd9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 8.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Cadd9
+      absolute_offset_beats: 8.0
+    - chord_symbol_for_voicing: Amadd9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 12.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Amadd9
+      absolute_offset_beats: 12.0
+    - chord_symbol_for_voicing: Dsus2
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 16.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Dsus2
+      absolute_offset_beats: 16.0
+    - chord_symbol_for_voicing: B-add9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 20.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Bbadd9
+      absolute_offset_beats: 20.0
+    - chord_symbol_for_voicing: Csus4
+      specified_bass_for_voicing: G
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 24.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Csus4/G
+      absolute_offset_beats: 24.0
+    - chord_symbol_for_voicing: Dm
+      specified_bass_for_voicing: null
+      original_duration_beats: 7.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 7.7
+      humanized_offset_beats: 28.022
+      humanized_velocity: 56
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.1
+        velocity_bias: -8
+        articulation: legato
+      original_chord_label: Dm
+      absolute_offset_beats: 28.0
+  Pre-Chorus 1:
+    order: 2
+    length_in_measures: 10
+    musical_intent:
+      emotion: emotional_realization_and_gratitude
+      intensity: medium_low
+    expression_details:
+      section_tonic: G
+      section_mode: lydian
+      recommended_tensions:
+      - M7
+      - '13'
+      target_rhythm_category: awakening_and_flowing
+      approach_style: ascending_lydian
+      articulation_profile: clear_and_connected
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_chordal_moving_rh
+      piano_lh_style_keyword: piano_walking_bass_like_lh
+      piano_velocity_rh: 60
+      piano_velocity_lh: 55
+      piano_apply_pedal: true
+      drum_style_key: ballad_soft_kick_snare_8th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Am7add11
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 0.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Am7add11
+      absolute_offset_beats: 35.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 4.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Dm7
+      absolute_offset_beats: 39.0
+    - chord_symbol_for_voicing: G13
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 8.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: G13
+      absolute_offset_beats: 43.0
+    - chord_symbol_for_voicing: Cmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 12.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Cmaj7
+      absolute_offset_beats: 47.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 16.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 51.0
+    - chord_symbol_for_voicing: Bdim7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 20.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Bdim7
+      absolute_offset_beats: 55.0
+    - chord_symbol_for_voicing: E7b9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 24.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: E7b9
+      absolute_offset_beats: 59.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 28.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Am7
+      absolute_offset_beats: 63.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 5.25
+      original_offset_beats: 32.0
+      humanized_duration_beats: 5.25
+      humanized_offset_beats: 32.0073
+      humanized_velocity: 66
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.0
+        velocity_bias: 2
+        articulation: tenuto
+      original_chord_label: Am7
+      absolute_offset_beats: 67.0
+    - chord_symbol_for_voicing: Rest
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.75
+      original_offset_beats: 37.25
+      humanized_duration_beats: 2.75
+      humanized_offset_beats: 37.25
+      original_chord_label: Rest
+      absolute_offset_beats: 72.25
+  Chorus 1:
+    order: 3
+    length_in_measures: 9
+    musical_intent:
+      emotion: love_and_resolution
+      intensity: medium_high
+    expression_details:
+      section_tonic: C
+      section_mode: ionian
+      recommended_tensions:
+      - add9
+      - M7
+      - '13'
+      target_rhythm_category: anthem_driving
+      approach_style: strong_to_target
+      articulation_profile: clear_and_passionate
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_powerful_block_chords_rh
+      piano_lh_style_keyword: piano_active_octave_bass_lh
+      piano_velocity_rh: 75
+      piano_velocity_lh: 70
+      piano_apply_pedal: true
+      drum_style_key: anthem_rock_chorus_16th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Fmaj7add9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: -0.0073
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Fmaj7add9
+      absolute_offset_beats: 75.0
+    - chord_symbol_for_voicing: C
+      specified_bass_for_voicing: E
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 3.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: C/E
+      absolute_offset_beats: 79.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 7.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Dm7
+      absolute_offset_beats: 83.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 11.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Gm7
+      absolute_offset_beats: 87.0
+    - chord_symbol_for_voicing: C7sus4
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 1.9
+      humanized_offset_beats: 15.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: C7sus4
+      absolute_offset_beats: 91.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 18.0
+      humanized_duration_beats: 1.9
+      humanized_offset_beats: 17.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: C7
+      absolute_offset_beats: 93.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 19.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 95.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 23.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 99.0
+    - chord_symbol_for_voicing: F
+      specified_bass_for_voicing: A
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 3.8
+      humanized_offset_beats: 27.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: F/A
+      absolute_offset_beats: 103.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 32.0
+      humanized_duration_beats: 1.9
+      humanized_offset_beats: 31.9927
+      humanized_velocity: 69
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: -5.0
+        sustain_factor: 0.95
+        velocity_bias: 5
+        articulation: accented
+      original_chord_label: Gm7
+      absolute_offset_beats: 107.0
+  Verse 2:
+    order: 4
+    length_in_measures: 8
+    musical_intent:
+      emotion: regret_and_internal_conflict
+      intensity: medium_low
+    expression_details:
+      section_tonic: A
+      section_mode: aeolian
+      recommended_tensions:
+      - m7
+      - sus2
+      target_rhythm_category: hesitant_and_fragile
+      approach_style: descending_scalar
+      articulation_profile: slightly_detached
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 50
+      piano_velocity_lh: 45
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_sparse_cymbal
+    processed_chord_events:
+    - chord_symbol_for_voicing: Cm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 0.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Cm7
+      absolute_offset_beats: 109.0
+    - chord_symbol_for_voicing: Dmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 4.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Dmaj7
+      absolute_offset_beats: 113.0
+    - chord_symbol_for_voicing: Em7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 8.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Em7
+      absolute_offset_beats: 117.0
+    - chord_symbol_for_voicing: Fm
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 12.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Fm
+      absolute_offset_beats: 121.0
+    - chord_symbol_for_voicing: Cm
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 16.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Cm
+      absolute_offset_beats: 125.0
+    - chord_symbol_for_voicing: Amaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 3.4
+      humanized_offset_beats: 20.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Amaj7
+      absolute_offset_beats: 129.0
+    - chord_symbol_for_voicing: Gm7b5
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 1.7
+      humanized_offset_beats: 24.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Gm7b5
+      absolute_offset_beats: 133.0
+    - chord_symbol_for_voicing: C7#9b13
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 26.0
+      humanized_duration_beats: 1.7
+      humanized_offset_beats: 26.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: C7#9b13
+      absolute_offset_beats: 135.0
+    - chord_symbol_for_voicing: Cm
+      specified_bass_for_voicing: null
+      original_duration_beats: 3.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 2.55
+      humanized_offset_beats: 28.0147
+      humanized_velocity: 59
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.85
+        velocity_bias: -5
+        articulation: staccato
+      original_chord_label: Cm
+      absolute_offset_beats: 137.0
+  Chorus 2:
+    order: 5
+    length_in_measures: 7
+    musical_intent:
+      emotion: emotional_confession
+      intensity: medium
+    expression_details:
+      section_tonic: C
+      section_mode: ionian
+      recommended_tensions:
+      - M7
+      - add11
+      target_rhythm_category: gentle_pulsing
+      approach_style: smooth_voice_leading
+      articulation_profile: warm_legato
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_chordal_moving_rh
+      piano_lh_style_keyword: piano_walking_bass_like_lh
+      piano_velocity_rh: 65
+      piano_velocity_lh: 60
+      piano_apply_pedal: true
+      drum_style_key: rock_ballad_build_up_8th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Dm7add13
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 0.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: Dm7add13
+      absolute_offset_beats: 140.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 4.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: Gm7
+      absolute_offset_beats: 144.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 8.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: C7
+      absolute_offset_beats: 148.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 12.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 152.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 16.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 156.0
+    - chord_symbol_for_voicing: Em7b5
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.2
+      humanized_offset_beats: 20.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: Em7b5
+      absolute_offset_beats: 160.0
+    - chord_symbol_for_voicing: A7b9
+      specified_bass_for_voicing: null
+      original_duration_beats: 1.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 1.05
+      humanized_offset_beats: 24.0117
+      humanized_velocity: 67
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 8.0
+        sustain_factor: 1.05
+        velocity_bias: 3
+        articulation: legato
+      original_chord_label: A7b9
+      absolute_offset_beats: 164.0
+  Interlude:
+    order: 6
+    length_in_measures: 4
+    musical_intent:
+      emotion: reflection_in_absence
+      intensity: medium_low
+    expression_details:
+      section_tonic: E
+      section_mode: phrygian
+      recommended_tensions:
+      - m7
+      - b9
+      target_rhythm_category: sparse_and_questioning
+      approach_style: chromatic_phrygian
+      articulation_profile: tenuto_with_space
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 60
+      piano_velocity_lh: 55
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_gentle_cymbal_swell
+    processed_chord_events:
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.6
+      humanized_offset_beats: 0.0293
+      humanized_velocity: 54
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 20.0
+        sustain_factor: 1.15
+        velocity_bias: -10
+        articulation: tenuto
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 165.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.6
+      humanized_offset_beats: 4.0293
+      humanized_velocity: 54
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 20.0
+        sustain_factor: 1.15
+        velocity_bias: -10
+        articulation: tenuto
+      original_chord_label: Gm7
+      absolute_offset_beats: 169.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.6
+      humanized_offset_beats: 8.0293
+      humanized_velocity: 54
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 20.0
+        sustain_factor: 1.15
+        velocity_bias: -10
+        articulation: tenuto
+      original_chord_label: Am7
+      absolute_offset_beats: 173.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 3.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 3.45
+      humanized_offset_beats: 12.0293
+      humanized_velocity: 54
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 20.0
+        sustain_factor: 1.15
+        velocity_bias: -10
+        articulation: tenuto
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 177.0
+  Bridge 1:
+    order: 7
+    length_in_measures: 8
+    musical_intent:
+      emotion: emotional_storm_and_need
+      intensity: medium_high
+    expression_details:
+      section_tonic: B
+      section_mode: locrian
+      recommended_tensions:
+      - b5
+      - m7b9
+      target_rhythm_category: turbulent_and_unstable
+      approach_style: dissonant_chromatic
+      articulation_profile: sharp_staccato_and_accents
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_powerful_block_chords_rh
+      piano_lh_style_keyword: piano_active_octave_bass_lh
+      piano_velocity_rh: 70
+      piano_velocity_lh: 65
+      piano_apply_pedal: true
+      drum_style_key: rock_ballad_build_up_8th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: C13
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: -0.0147
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: C13
+      absolute_offset_beats: 180.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 3.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 184.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 7.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: C7
+      absolute_offset_beats: 188.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 11.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 192.0
+    - chord_symbol_for_voicing: F
+      specified_bass_for_voicing: A
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 15.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: F/A
+      absolute_offset_beats: 196.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 19.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: Gm7
+      absolute_offset_beats: 200.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 23.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: C7
+      absolute_offset_beats: 204.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 3.0
+      humanized_offset_beats: 27.9853
+      humanized_velocity: 72
+      humanized_articulation: staccato
+      emotion_profile_applied:
+        onset_shift_ms: -10.0
+        sustain_factor: 0.75
+        velocity_bias: 8
+        articulation: staccato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 208.0
+  Verse 3:
+    order: 8
+    length_in_measures: 8
+    musical_intent:
+      emotion: frozen_emotion_and_memory
+      intensity: low
+    expression_details:
+      section_tonic: D
+      section_mode: aeolian
+      recommended_tensions:
+      - m7
+      - add9
+      target_rhythm_category: sparse_and_echoing
+      approach_style: gentle_scalar
+      articulation_profile: tenuto_with_release
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 50
+      piano_velocity_lh: 45
+      piano_apply_pedal: true
+      drum_style_key: no_drums
+    processed_chord_events:
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.8
+      humanized_offset_beats: 0.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: Am7
+      absolute_offset_beats: 212.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.8
+      humanized_offset_beats: 4.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: Dm7
+      absolute_offset_beats: 216.0
+    - chord_symbol_for_voicing: G7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.8
+      humanized_offset_beats: 8.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: G7
+      absolute_offset_beats: 220.0
+    - chord_symbol_for_voicing: Cmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.8
+      humanized_offset_beats: 12.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: Cmaj7
+      absolute_offset_beats: 224.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.8
+      humanized_offset_beats: 16.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 228.0
+    - chord_symbol_for_voicing: E7sus4
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 2.4
+      humanized_offset_beats: 20.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: E7sus4
+      absolute_offset_beats: 232.0
+    - chord_symbol_for_voicing: E7
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 22.0
+      humanized_duration_beats: 2.4
+      humanized_offset_beats: 22.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: E7
+      absolute_offset_beats: 234.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 8.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 9.6
+      humanized_offset_beats: 24.0367
+      humanized_velocity: 52
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 25.0
+        sustain_factor: 1.2
+        velocity_bias: -12
+        articulation: legato
+      original_chord_label: Am7
+      absolute_offset_beats: 236.0
+  Pre-Chorus 2:
+    order: 9
+    length_in_measures: 12
+    musical_intent:
+      emotion: bittersweet_reconciliation
+      intensity: medium
+    expression_details:
+      section_tonic: G
+      section_mode: mixolydian
+      recommended_tensions:
+      - '7'
+      - sus4
+      target_rhythm_category: yearning_but_accepting
+      approach_style: mixolydian_flavor
+      articulation_profile: connected_with_sighs
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_chordal_moving_rh
+      piano_lh_style_keyword: piano_walking_bass_like_lh
+      piano_velocity_rh: 65
+      piano_velocity_lh: 60
+      piano_apply_pedal: true
+      drum_style_key: ballad_soft_kick_snare_8th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Dm7add11
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 0.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Dm7add11
+      absolute_offset_beats: 244.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 4.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Gm7
+      absolute_offset_beats: 248.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 8.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: C7
+      absolute_offset_beats: 252.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 12.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 256.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 16.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 260.0
+    - chord_symbol_for_voicing: C
+      specified_bass_for_voicing: B-
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 20.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: C/B-
+      absolute_offset_beats: 264.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 24.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Am7
+      absolute_offset_beats: 268.0
+    - chord_symbol_for_voicing: D7sus4
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 1.8
+      humanized_offset_beats: 28.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: D7sus4
+      absolute_offset_beats: 272.0
+    - chord_symbol_for_voicing: D7
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 30.0
+      humanized_duration_beats: 1.8
+      humanized_offset_beats: 30.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: D7
+      absolute_offset_beats: 274.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 32.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 32.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Gm7
+      absolute_offset_beats: 276.0
+    - chord_symbol_for_voicing: A7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 36.0
+      humanized_duration_beats: 3.6
+      humanized_offset_beats: 36.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: A7
+      absolute_offset_beats: 280.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 6.0
+      original_offset_beats: 40.0
+      humanized_duration_beats: 5.4
+      humanized_offset_beats: 40.0147
+      humanized_velocity: 64
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 10.0
+        sustain_factor: 0.9
+        velocity_bias: 0
+        articulation: tenuto
+      original_chord_label: Dm7
+      absolute_offset_beats: 284.0
+    - chord_symbol_for_voicing: Rest
+      specified_bass_for_voicing: null
+      original_duration_beats: 1.0
+      original_offset_beats: 46.0
+      humanized_duration_beats: 1.0
+      humanized_offset_beats: 46.0
+      original_chord_label: Rest
+      absolute_offset_beats: 290.0
+  Chorus 3:
+    order: 10
+    length_in_measures: 9
+    musical_intent:
+      emotion: need_and_fragility
+      intensity: high
+    expression_details:
+      section_tonic: C
+      section_mode: ionian
+      recommended_tensions:
+      - add9
+      - M7
+      - '13'
+      target_rhythm_category: intense_but_delicate
+      approach_style: expressive_leaps
+      articulation_profile: tenuto_and_breath
+      humanize_profile: chorus3_fragile_need
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_powerful_block_chords_rh
+      piano_lh_style_keyword: piano_active_octave_bass_lh
+      piano_velocity_rh: 70
+      piano_velocity_lh: 65
+      piano_apply_pedal: true
+      drum_style_key: anthem_rock_chorus_16th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Fmaj7add13
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 0.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Fmaj7add13
+      absolute_offset_beats: 291.0
+    - chord_symbol_for_voicing: C
+      specified_bass_for_voicing: E
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 4.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: C/E
+      absolute_offset_beats: 295.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 8.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Dm7
+      absolute_offset_beats: 299.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 12.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Gm7
+      absolute_offset_beats: 303.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 16.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: C7
+      absolute_offset_beats: 307.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 20.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 311.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 24.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 315.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 28.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Am7
+      absolute_offset_beats: 319.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 1.0
+      original_offset_beats: 32.0
+      humanized_duration_beats: 1.0
+      humanized_offset_beats: 32.022
+      humanized_velocity: 62
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 15.0
+        sustain_factor: 1.0
+        velocity_bias: -2
+        articulation: legato
+      original_chord_label: Dm7
+      absolute_offset_beats: 323.0
+  Bridge 2:
+    order: 11
+    length_in_measures: 8
+    musical_intent:
+      emotion: dawn_and_support
+      intensity: medium
+    expression_details:
+      section_tonic: E
+      section_mode: lydian
+      recommended_tensions:
+      - M7
+      - '13'
+      - sus2
+      target_rhythm_category: broad_and_hopeful
+      approach_style: lydian_brightness
+      articulation_profile: smooth_legato_swell
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 60
+      piano_velocity_lh: 55
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_gentle_cymbal_swell
+    processed_chord_events:
+    - chord_symbol_for_voicing: B-maj7#11add9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 0.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Bbmaj7#11add9
+      absolute_offset_beats: 324.0
+    - chord_symbol_for_voicing: C
+      specified_bass_for_voicing: B-
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 4.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: C/B-
+      absolute_offset_beats: 328.0
+    - chord_symbol_for_voicing: Am7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 8.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Am7
+      absolute_offset_beats: 332.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 12.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Dm7
+      absolute_offset_beats: 336.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 16.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Gm7
+      absolute_offset_beats: 340.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 20.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: C7
+      absolute_offset_beats: 344.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 24.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 348.0
+    - chord_symbol_for_voicing: B-maj7#11
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 28.0073
+      humanized_velocity: 68
+      humanized_articulation: legato
+      emotion_profile_applied:
+        onset_shift_ms: 5.0
+        sustain_factor: 1.1
+        velocity_bias: 4
+        articulation: legato
+      original_chord_label: Bbmaj7#11
+      absolute_offset_beats: 352.0
+  Verse 4:
+    order: 12
+    length_in_measures: 8
+    musical_intent:
+      emotion: light_and_nostalgia
+      intensity: medium_low
+    expression_details:
+      section_tonic: F
+      section_mode: ionian
+      recommended_tensions:
+      - add9
+      - sus4
+      target_rhythm_category: gentle_flowing_and_reminiscent
+      approach_style: smooth_and_simple
+      articulation_profile: soft_tenuto
+      humanize_profile: null
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 55
+      piano_velocity_lh: 50
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_sparse_chimes
+    processed_chord_events:
+    - chord_symbol_for_voicing: B-maj7#11add9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 0.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Bbmaj7#11add9
+      absolute_offset_beats: 356.0
+    - chord_symbol_for_voicing: F
+      specified_bass_for_voicing: A
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 4.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: F/A
+      absolute_offset_beats: 360.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 8.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Gm7
+      absolute_offset_beats: 364.0
+    - chord_symbol_for_voicing: C7sus4
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 2.2
+      humanized_offset_beats: 12.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: C7sus4
+      absolute_offset_beats: 368.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 2.0
+      original_offset_beats: 14.0
+      humanized_duration_beats: 2.2
+      humanized_offset_beats: 14.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: C7
+      absolute_offset_beats: 370.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 16.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 372.0
+    - chord_symbol_for_voicing: E-maj7#11
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 20.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Ebmaj7#11
+      absolute_offset_beats: 376.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: D
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 24.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Bbmaj7/D
+      absolute_offset_beats: 380.0
+    - chord_symbol_for_voicing: Cm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 4.4
+      humanized_offset_beats: 28.0264
+      humanized_velocity: 58
+      humanized_articulation: tenuto
+      emotion_profile_applied:
+        onset_shift_ms: 18.0
+        sustain_factor: 1.1
+        velocity_bias: -6
+        articulation: tenuto
+      original_chord_label: Cm7
+      absolute_offset_beats: 384.0
+  Chorus 4:
+    order: 13
+    length_in_measures: 8
+    musical_intent:
+      emotion: coexistence_and_future
+      intensity: high_to_very_high_then_fade
+    expression_details:
+      section_tonic: C
+      section_mode: ionian
+      recommended_tensions:
+      - add9
+      - M7
+      - '13'
+      target_rhythm_category: grand_and_evolving
+      approach_style: powerful_and_ascending
+      articulation_profile: broad_legato_with_accents
+      humanize_profile: chorus4_grand_finale
+      voicing_style_piano_rh: null
+      voicing_style_piano_lh: null
+      voicing_style_guitar: null
+    part_settings:
+      piano_rh_style_keyword: piano_powerful_block_chords_rh
+      piano_lh_style_keyword: piano_active_octave_bass_lh
+      piano_velocity_rh: 85
+      piano_velocity_lh: 80
+      piano_apply_pedal: true
+      drum_style_key: anthem_rock_chorus_16th_hat
+    processed_chord_events:
+    - chord_symbol_for_voicing: Fmaj7add9
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 0.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 0.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: Fmaj7add9
+      absolute_offset_beats: 388.0
+    - chord_symbol_for_voicing: C
+      specified_bass_for_voicing: E
+      original_duration_beats: 4.0
+      original_offset_beats: 4.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 4.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: C/E
+      absolute_offset_beats: 392.0
+    - chord_symbol_for_voicing: Dm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 8.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 8.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: Dm7
+      absolute_offset_beats: 396.0
+    - chord_symbol_for_voicing: Gm7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 12.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 12.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: Gm7
+      absolute_offset_beats: 400.0
+    - chord_symbol_for_voicing: C7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 16.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 16.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: C7
+      absolute_offset_beats: 404.0
+    - chord_symbol_for_voicing: Fmaj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 20.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 20.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: Fmaj7
+      absolute_offset_beats: 408.0
+    - chord_symbol_for_voicing: B-maj7
+      specified_bass_for_voicing: null
+      original_duration_beats: 4.0
+      original_offset_beats: 24.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 24.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: Bbmaj7
+      absolute_offset_beats: 412.0
+    - chord_symbol_for_voicing: F
+      specified_bass_for_voicing: A
+      original_duration_beats: 4.0
+      original_offset_beats: 28.0
+      humanized_duration_beats: 4.0
+      humanized_offset_beats: 28.0
+      humanized_velocity: 71
+      humanized_articulation: accented
+      emotion_profile_applied:
+        onset_shift_ms: 0.0
+        sustain_factor: 1.0
+        velocity_bias: 7
+        articulation: accented
+      original_chord_label: F/A
+      absolute_offset_beats: 416.0

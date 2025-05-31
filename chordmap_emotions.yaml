@@ -1,0 +1,1069 @@
+global_settings:
+  key_mode: major
+  key_tonic: F
+  tempo: 88
+  time_signature: 4/4
+project_title: OreNoNyoubou_Shudaika
+sections:
+Verse 1:
+    order: 1
+    length_in_measures: 9
+    tonic: D
+    mode: dorian
+    musical_intent:
+      emotion: quiet_pain_and_nascent_strength
+      intensity: low
+chord_progression:
+  - chord: Dm7
+    duration_beats: 4
+    emotion: quiet_pain_and_nascent_strength
+    humanize:
+      onset_shift_ms: 12
+      articulation: legato
+      velocity_bias: 6
+      actual_duration: 3.8
+  - chord: Am7
+    duration_beats: 4
+    emotion: quiet_pain_and_nascent_strength
+    humanize:
+      onset_shift_ms: 12
+      articulation: legato
+      velocity_bias: 6
+      actual_duration: 3.8
+  - chord: Fmaj7
+    duration_beats: 4
+    emotion: quiet_pain_and_nascent_strength
+    humanize:
+      onset_shift_ms: 12
+      articulation: legato
+      velocity_bias: 6
+      actual_duration: 3.8
+  - chord: Cadd9
+    duration_beats: 4
+    emotion: quiet_pain_and_nascent_strength
+    humanize:
+      onset_shift_ms: 12
+      articulation: legato
+      velocity_bias: 6
+      actual_duration: 3.8
+
+Pre-Chorus 1:
+    order: 2
+    length_in_measures: 10
+    tonic: A
+    mode: aeolian
+    musical_intent:
+      emotion: deep_regret_gratitude_and_realization
+      intensity: medium_low
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 37.25
+　chord_progression:
+  - label: Am7add11
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Dm7
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: G13
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Cmaj7
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Fmaj7
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Bdim7
+    duration_beats: 4
+    nuance: passing_diminished_tension
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: E7b9
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Am7
+    duration_beats: 4
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 2.4
+
+  - label: Am7
+    duration_beats: 5.25
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 3.15
+
+  - label: Rest
+    duration_beats: 2.75
+    emotion: deep_regret_gratitude_and_realization
+    humanize:
+      onset_shift_ms: -10
+      articulation: staccato
+      velocity_bias: 3
+      actual_duration: 1.65
+
+
+Chorus 1:
+    order: 3
+    length_in_measures: 9
+    tonic: F
+    mode: ionian
+    musical_intent:
+      emotion: acceptance_of_love_and_pain_hopeful_belief
+      intensity: medium_high
+　  part_specific_hints:
+　　  lyrics_end_actual_beats_from_section_start: 77.25
+
+chord_progression:
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7add9
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C/E
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 2
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7sus4
+- duration_beats: 2
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: F/A
+- duration_beats: 2.0
+  emotion: acceptance_of_love_and_pain_hopeful_belief
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+  adjusted_start_beat: 75.0
+
+  Verse 2:
+    order: 4
+    length_in_measures: 8
+    tonic: C
+    mode: phrygian
+    musical_intent:
+      emotion: self_reproach_regret_deep_sadness
+      intensity: medium_low
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 112.5
+    chord_progression:
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Cm7
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dmaj7
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Em7
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fm
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Cm
+- duration_beats: 4
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Amaj7
+- duration_beats: 2
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7b5
+- duration_beats: 2
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7#9b13
+  nuance: phrygian_dominant_flavor
+- duration_beats: 3.0
+  emotion: self_reproach_regret_deep_sadness
+  humanize:
+    actual_duration: 1.8
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Cm
+
+  adjusted_start_beat: 109.0
+
+Chorus 2:
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7add13
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Em7b5
+- duration_beats: 1.0
+  emotion: supported_light_longing_for_rebirth
+  humanize:
+    actual_duration: 0.6
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: A7b9
+
+  adjusted_start_beat: 140.0
+
+Interlude:
+    order: 6
+    length_in_measures: 4
+    tonic: F
+    mode: major
+    musical_intent:
+      emotion: reflective_transition_instrumental_passage
+      intensity: medium_low
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 24.0
+
+chord_progression:
+- duration_beats: 4
+  emotion: reflective_transition_instrumental_passage
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: reflective_transition_instrumental_passage
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: reflective_transition_instrumental_passage
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Am7
+- duration_beats: 3.0
+  emotion: reflective_transition_instrumental_passage
+  humanize:
+    actual_duration: 1.8
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+
+  adjusted_start_beat: 165.0
+
+  Bridge 1:
+    order: 7
+    length_in_measures: 8
+    tonic: C
+    mode: mixolydian
+    musical_intent:
+      emotion: trial_cry_prayer_unbreakable_heart
+      intensity: medium_high
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 32.0
+    chord_progression:
+
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C13
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: F/A
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: trial_cry_prayer_unbreakable_heart
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+  nuance: temporary_resolve_to_F
+
+  adjusted_start_beat: 180.0
+
+  Verse 3:
+    order: 8
+    length_in_measures: 8
+    tonic: A
+    mode: aeolian
+    musical_intent:
+      emotion: memory_unresolved_feelings_silence
+      intensity: low
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 32.0
+    chord_progression:
+- duration_beats: 4
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 3.6
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: Am7
+  nuance: add sus2 feeling
+- duration_beats: 4
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 3.6
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: Dm7
+- duration_beats: 4
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 3.6
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: G7
+- duration_beats: 4
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 3.6
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: Cmaj7
+- duration_beats: 4
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 3.6
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: Fmaj7
+- duration_beats: 2
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 1.8
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: E7sus4
+- duration_beats: 2
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 1.8
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: E7
+- duration_beats: 8
+  emotion: memory_unresolved_feelings_silence
+  humanize:
+    actual_duration: 7.2
+    articulation: tenuto
+    onset_shift_ms: 18
+    velocity_bias: -4
+  label: Am7
+
+  adjusted_start_beat: 212.0
+
+  Pre-Chorus 2:
+    order: 9
+    length_in_measures: 12
+    tonic: D
+    mode: dorian
+    musical_intent:
+      emotion: wavering_heart_gratitude_chosen_strength
+      intensity: medium
+    part_settings:
+      piano_rh_style_keyword: piano_chordal_moving_rh
+      piano_lh_style_keyword: piano_walking_bass_like_lh
+      piano_velocity_rh: 65
+      piano_velocity_lh: 60
+      piano_apply_pedal: true
+      drum_style_key: ballad_soft_kick_snare_8th_hat
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 46.0
+    chord_progression:
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7add11
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C/Bb
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Am7
+- duration_beats: 2
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: D7sus4
+  nuance: turnaround_to_Gm_or_Dm
+- duration_beats: 2
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: D7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: A7
+- duration_beats: 6
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 3.6
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+- duration_beats: 1.0
+  emotion: wavering_heart_gratitude_chosen_strength
+  humanize:
+    actual_duration: 0.6
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Rest
+
+
+  Chorus 3:
+    order: 10
+    length_in_measures: 9
+    tonic: F
+    mode: ionian
+    musical_intent:
+      emotion: reaffirmed_strength_of_love_positive_determination
+      intensity: high
+    chord_progression:
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7add13
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C/E
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+  nuance: strong_dominant
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Am7
+- duration_beats: 1.0
+  emotion: reaffirmed_strength_of_love_positive_determination
+  humanize:
+    actual_duration: 0.6
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+
+  adjusted_start_beat: 291.0
+
+  Bridge 2:
+    order: 11
+    length_in_measures: 8
+    tonic: Bb
+    mode: lydian
+    musical_intent:
+      emotion: hope_dawn_light_gentle_guidance
+      intensity: medium
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 60
+      piano_velocity_lh: 55
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_gentle_cymbal_swell
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 32.0
+    chord_progression:
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7#11add9
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C/Bb
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Am7
+  nuance: contrast_to_lydian_brightness
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+  nuance: return_to_global_tonic_area
+- duration_beats: 4
+  emotion: hope_dawn_light_gentle_guidance
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7#11
+  nuance: add sus2 feeling
+
+
+  adjusted_start_beat: 324.0
+
+  Verse 4:
+    order: 12
+    length_in_measures: 8
+    tonic: Bb
+    mode: lydian
+    musical_intent:
+      emotion: nature_memory_floating_sensation_forgiveness
+      intensity: medium_low
+    part_settings:
+      piano_rh_style_keyword: piano_reflective_arpeggio_rh
+      piano_lh_style_keyword: piano_sustained_root_lh
+      piano_velocity_rh: 55
+      piano_velocity_lh: 50
+      piano_apply_pedal: true
+      drum_style_key: no_drums_or_sparse_chimes
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 64.0
+    chord_progression:
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7#11add9
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: F/A
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 2
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7sus4
+  nuance: gentle_suspension
+- duration_beats: 2
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 1.2
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+  nuance: momentary_grounding
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Emaj7#11
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: B-maj7/D
+- duration_beats: 4
+  emotion: nature_memory_floating_sensation_forgiveness
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Cm7
+
+  adjusted_start_beat: 356.0
+
+  Chorus 4:
+    order: 13
+    length_in_measures: 8
+    tonic: F
+    mode: ionian
+    musical_intent:
+      emotion: future_cooperation_our_path_final_resolve_and_liberation
+      intensity: high_to_very_high_then_fade
+    part_specific_hints:
+      lyrics_end_actual_beats_from_section_start: 129.5
+      mode_shift_to_lydian_beat_offset: 96.0
+    chord_progression:
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7add9
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C/E
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Dm7
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Gm7
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: C7
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Fmaj7
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: Bbmaj7
+- duration_beats: 4
+  emotion: future_cooperation_our_path_final_resolve_and_liberation
+  humanize:
+    actual_duration: 2.4
+    articulation: staccato
+    onset_shift_ms: -10
+    velocity_bias: 3
+  label: F/A
